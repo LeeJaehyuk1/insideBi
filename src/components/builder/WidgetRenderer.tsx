@@ -9,6 +9,8 @@ import {
 } from "recharts";
 import { WidgetConfig, AxisMapping, ThresholdConfig } from "@/types/builder";
 import { useDataset } from "@/hooks/useDataset";
+import { getDatasetSchema } from "@/lib/dataset-schemas";
+import { mergeGlobalFilter } from "@/lib/filter-utils";
 import { CHART_COLORS, SECTOR_COLORS } from "@/lib/constants";
 import { formatKRW, formatPct } from "@/lib/utils";
 import { WaterfallChart, WaterfallBarData } from "@/components/charts/WaterfallChart";
@@ -827,8 +829,10 @@ function CustomDatasetRenderer({
 
 /* ── Main export ──────────────────────────────────────────────── */
 export function WidgetRenderer({ widget }: { widget: WidgetConfig }) {
-  const { datasetId, chartType, queryParams, axisMapping, thresholds } = widget;
-  const { data, isLoading } = useDataset({ datasetId, ...(queryParams ?? {}) });
+  const { datasetId, chartType, queryParams, axisMapping, thresholds, globalFilter } = widget;
+  const schema = getDatasetSchema(datasetId);
+  const mergedParams = mergeGlobalFilter(globalFilter, queryParams, schema);
+  const { data, isLoading } = useDataset({ datasetId, ...mergedParams });
 
   if (isLoading) return <DataSkeleton />;
 
