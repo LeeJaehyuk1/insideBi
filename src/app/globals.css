@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* react-grid-layout */
+@import "react-grid-layout/css/styles.css";
+@import "react-resizable/css/styles.css";
+
+/* Grid layout custom overrides */
+.react-grid-item.react-grid-placeholder {
+  @apply bg-primary/20 rounded-xl border-2 border-dashed border-primary/40;
+  transition: none !important;
+}
+.react-grid-item > .react-resizable-handle {
+  @apply opacity-0 transition-opacity;
+}
+.react-grid-item:hover > .react-resizable-handle {
+  @apply opacity-100;
+}
+.react-resizable-handle {
+  background-image: none !important;
+}
+.react-resizable-handle::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid hsl(var(--muted-foreground) / 0.5);
+  border-bottom: 2px solid hsl(var(--muted-foreground) / 0.5);
+  border-radius: 1px;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

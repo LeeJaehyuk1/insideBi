@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useRole, getRoleInfo } from "@/context/RoleContext";
 
 const iconMap = {
   LayoutDashboard,
@@ -28,6 +29,8 @@ const iconMap = {
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { role } = useRole();
+  const roleInfo = getRoleInfo(role);
 
   return (
     <aside
@@ -81,10 +84,19 @@ export function AppSidebar() {
       </ScrollArea>
 
       {/* Footer */}
-      <div className="border-t border-sidebar-border px-6 py-4">
-        <p className="text-xs text-sidebar-foreground/40">
-          기준일: 2026-02-26
-        </p>
+      <div className="border-t border-sidebar-border px-6 py-4 space-y-2">
+        {/* 현재 역할 배지 */}
+        <div className={cn(
+          "flex items-center gap-2 rounded-lg border px-3 py-2",
+          roleInfo.bgColor
+        )}>
+          <div className={cn("h-2 w-2 rounded-full bg-current shrink-0", roleInfo.color)} />
+          <div className="flex-1 min-w-0">
+            <p className={cn("text-xs font-semibold", roleInfo.color)}>{roleInfo.label}</p>
+            <p className="text-[10px] text-sidebar-foreground/40 truncate">{roleInfo.description}</p>
+          </div>
+        </div>
+        <p className="text-xs text-sidebar-foreground/40">기준일: 2026-02-26</p>
         <p className="text-xs text-sidebar-foreground/40">v1.0.0</p>
       </div>
     </aside>

@@ -50,6 +50,7 @@ export const chartTypeLabels: Record<string, string> = {
   line: "라인", area: "면적", bar: "막대",
   pie: "파이", scatter: "산포도", radar: "레이더",
   gauge: "게이지", table: "테이블", kpi: "KPI 카드",
+  waterfall: "폭포 차트", bullet: "불릿 차트",
 };
 
 export function getDataset(id: string): DatasetMeta | undefined {

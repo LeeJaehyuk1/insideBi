@@ -9,10 +9,9 @@ import {
   SortableContext, sortableKeyboardCoordinates, rectSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import { LayoutGrid, Trash2 } from "lucide-react";
-import { WidgetConfig, ChartType, ColSpan } from "@/types/builder";
+import { LayoutGrid } from "lucide-react";
+import { WidgetConfig, ColSpan } from "@/types/builder";
 import { WidgetCard } from "./WidgetCard";
-import { cn } from "@/lib/utils";
 
 interface WidgetCanvasProps {
   widgets: WidgetConfig[];
@@ -38,8 +37,8 @@ export function WidgetCanvas({ widgets, onWidgetsChange }: WidgetCanvasProps) {
     onWidgetsChange(widgets.filter((w) => w.id !== id));
   };
 
-  const handleChangeChartType = (id: string, type: ChartType) => {
-    onWidgetsChange(widgets.map((w) => (w.id === id ? { ...w, chartType: type } : w)));
+  const handleUpdateWidget = (id: string, updates: Partial<WidgetConfig>) => {
+    onWidgetsChange(widgets.map((w) => (w.id === id ? { ...w, ...updates } : w)));
   };
 
   const handleChangeColSpan = (id: string, span: ColSpan) => {
@@ -67,7 +66,7 @@ export function WidgetCanvas({ widgets, onWidgetsChange }: WidgetCanvasProps) {
               key={widget.id}
               widget={widget}
               onRemove={handleRemove}
-              onChangeChartType={handleChangeChartType}
+              onUpdateWidget={handleUpdateWidget}
               onChangeColSpan={handleChangeColSpan}
             />
           ))}
