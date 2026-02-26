@@ -62,7 +62,7 @@ export function TopBar() {
   return (
     <header
       data-topbar
-      className="flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur px-6"
+      className="relative z-50 flex h-16 shrink-0 items-center gap-4 border-b bg-background/95 backdrop-blur px-6"
     >
       {/* Mobile menu */}
       <Button
