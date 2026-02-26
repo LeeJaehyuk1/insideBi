@@ -12,6 +12,7 @@ import {
   ShieldAlert,
   ChevronRight,
   LayoutTemplate,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
@@ -25,6 +26,7 @@ const iconMap = {
   Droplets,
   FileText,
   LayoutTemplate,
+  Target,
 } as const;
 
 export function AppSidebar() {

@@ -68,6 +68,12 @@ export const NAV_ITEMS = [
     description: "LCR / NSFR / 만기갭",
   },
   {
+    title: "NCR리스크",
+    href: "/ncr-risk",
+    icon: "Target",
+    description: "순자본비율 및 기타 지표",
+  },
+  {
     title: "보고서",
     href: "/reports",
     icon: "FileText",
