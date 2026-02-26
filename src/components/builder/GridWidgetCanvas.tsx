@@ -7,7 +7,6 @@ import { WidgetConfig, ColSpan } from "@/types/builder";
 import { WidgetCard } from "./WidgetCard";
 
 // react-grid-layout은 SSR 미지원이므로 dynamic import
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const GridLayout = dynamic<any>(
     () => import("react-grid-layout").then((m) => m.default),
     { ssr: false }

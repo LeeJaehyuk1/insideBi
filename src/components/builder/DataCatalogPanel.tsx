@@ -19,6 +19,8 @@ import {
 interface DataCatalogPanelProps {
   addedIds: string[];
   onAdd: (dataset: DatasetMeta) => void;
+  readonly?: boolean;
+  canAddCatalog?: boolean;
 }
 
 const CUSTOM_CATEGORY_META = {
@@ -26,7 +28,7 @@ const CUSTOM_CATEGORY_META = {
   color: "text-purple-600 dark:text-purple-400",
 };
 
-export function DataCatalogPanel({ addedIds, onAdd }: DataCatalogPanelProps) {
+export function DataCatalogPanel({ addedIds, onAdd, readonly, canAddCatalog = true }: DataCatalogPanelProps) {
   const [openCategories, setOpenCategories] = React.useState<Set<string>>(
     new Set([...CATEGORY_ORDER, "custom"])
   );
