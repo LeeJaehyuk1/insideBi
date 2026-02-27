@@ -5,7 +5,7 @@ from vanna.chromadb import ChromaDB_VectorStore
 
 load_dotenv()
 
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")  # ollama | openai | groq
 CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_db")
 DB_PATH = os.getenv("DB_PATH", "./db/insidebi.db")
 
@@ -93,26 +93,30 @@ class OllamaVanna(_VannaBase, ChromaDB_VectorStore, Ollama):
         Ollama.__init__(self, config={"model": os.getenv("OLLAMA_MODEL", "llama3.1:8b")})
 
 
-# OpenAIVanna는 LLM_PROVIDER=openai 일 때만 클래스 정의 (패키지 미설치 환경 보호)
-if LLM_PROVIDER == "openai":
+# OpenAI / Groq 는 같은 클라이언트(openai 패키지), base_url만 다름
+if LLM_PROVIDER in ("openai", "groq"):
     from vanna.openai import OpenAI_Chat
 
     class OpenAIVanna(_VannaBase, ChromaDB_VectorStore, OpenAI_Chat):
         def __init__(self):
             ChromaDB_VectorStore.__init__(self, config={"path": CHROMA_PATH, "n_results": 3})
-            OpenAI_Chat.__init__(self, config={
-                "api_key": os.getenv("OPENAI_API_KEY"),
-                "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            })
+            cfg = {
+                "api_key": os.getenv("OPENAI_API_KEY") if LLM_PROVIDER == "openai"
+                           else os.getenv("GROQ_API_KEY"),
+                "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini") if LLM_PROVIDER == "openai"
+                         else os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+            }
+            if LLM_PROVIDER == "groq":
+                cfg["base_url"] = "https://api.groq.com/openai/v1"
+            OpenAI_Chat.__init__(self, config=cfg)
 
 
 # 모델명 (health endpoint용)
-MODEL_NAME = (
-    os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    if LLM_PROVIDER == "openai"
-    else os.getenv("OLLAMA_MODEL", "llama3.1:8b")
-)
+MODEL_NAME = {
+    "openai": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+    "groq":   os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+}.get(LLM_PROVIDER, os.getenv("OLLAMA_MODEL", "llama3.1:8b"))
 
 # 팩토리
-vn = OpenAIVanna() if LLM_PROVIDER == "openai" else OllamaVanna()
+vn = OpenAIVanna() if LLM_PROVIDER in ("openai", "groq") else OllamaVanna()
 vn.connect_to_sqlite(DB_PATH)

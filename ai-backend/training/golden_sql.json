@@ -118,5 +118,129 @@
   {
     "question": "NCR 시장위험액 신용위험액 운영위험액",
     "sql": "SELECT market_risk, credit_risk, operational_risk FROM ncr_summary"
+  },
+  {
+    "question": "고정이하여신 회의여신 추정손실 비율 추이",
+    "sql": "SELECT month, substandard, doubtful, loss FROM npl_trend ORDER BY month"
+  },
+  {
+    "question": "NPL 비율이 가장 낮은 달은?",
+    "sql": "SELECT month, npl FROM npl_trend ORDER BY npl ASC LIMIT 1"
+  },
+  {
+    "question": "차주 수가 가장 많은 신용등급",
+    "sql": "SELECT grade, count, amount FROM credit_grades ORDER BY count DESC LIMIT 1"
+  },
+  {
+    "question": "신용등급별 차주 수 현황",
+    "sql": "SELECT grade, count, amount, pct FROM credit_grades ORDER BY amount DESC"
+  },
+  {
+    "question": "BBB 이하 저등급 익스포저 합계",
+    "sql": "SELECT SUM(amount) as low_grade_total, SUM(pct) as low_grade_pct FROM credit_grades WHERE grade IN ('BBB', 'BB', 'B', 'CCC이하')"
+  },
+  {
+    "question": "업종별 집중도 현황 PD와 비중",
+    "sql": "SELECT name, x as pd, y as pct, z as exposure FROM concentration ORDER BY z DESC"
+  },
+  {
+    "question": "PD가 높고 비중도 큰 고위험 집중 업종",
+    "sql": "SELECT name, x as pd, y as pct FROM concentration WHERE x > 2 AND y > 10 ORDER BY x DESC"
+  },
+  {
+    "question": "충당금 적립 현황",
+    "sql": "SELECT provision_amount, provision_ratio, npl_amount FROM npl_summary"
+  },
+  {
+    "question": "충당금 얼마야",
+    "sql": "SELECT provision_amount, provision_ratio FROM npl_summary"
+  },
+  {
+    "question": "충당금 적립률",
+    "sql": "SELECT provision_ratio FROM npl_summary"
+  },
+  {
+    "question": "충당금 적립금액",
+    "sql": "SELECT provision_amount FROM npl_summary"
+  },
+  {
+    "question": "대손충당금 현황",
+    "sql": "SELECT provision_amount, provision_ratio, npl_amount FROM npl_summary"
+  },
+  {
+    "question": "충당금과 부실여신 비교",
+    "sql": "SELECT npl_amount, provision_amount, provision_ratio FROM npl_summary"
+  },
+  {
+    "question": "충당금 커버리지 비율",
+    "sql": "SELECT provision_ratio, npl_amount, provision_amount FROM npl_summary"
+  },
+  {
+    "question": "순 NPL 비율",
+    "sql": "SELECT net_npl, npl_ratio, provision_ratio FROM npl_summary"
+  },
+  {
+    "question": "위험가중자산 RWA 규모",
+    "sql": "SELECT rwa, ead, expected_loss FROM pd_lgd_ead"
+  },
+  {
+    "question": "최근 30일 VaR 한도 초과 횟수",
+    "sql": "SELECT breach_count30d FROM var_summary"
+  },
+  {
+    "question": "그리스 지표 델타 감마 베가 로",
+    "sql": "SELECT delta, gamma, vega, rho FROM var_summary"
+  },
+  {
+    "question": "최근 20일 VaR 평균과 최대값",
+    "sql": "SELECT avg_last20, max_last20, current, limit_val FROM var_summary"
+  },
+  {
+    "question": "PnL 손실이 가장 컸던 날",
+    "sql": "SELECT date, pnl, var FROM var_trend ORDER BY pnl ASC LIMIT 1"
+  },
+  {
+    "question": "VaR 한도를 초과한 날 목록",
+    "sql": "SELECT date, var, limit FROM var_trend WHERE var > limit ORDER BY date"
+  },
+  {
+    "question": "스트레스 시나리오별 신용손실 시장손실 유동성손실",
+    "sql": "SELECT name, credit_loss, market_loss, liquidity_loss, total FROM stress_scenarios ORDER BY total DESC"
+  },
+  {
+    "question": "BIS 비율이 8% 미만으로 떨어지는 스트레스 시나리오",
+    "sql": "SELECT name, bis_after, total FROM stress_scenarios WHERE bis_after < 8 ORDER BY bis_after ASC"
+  },
+  {
+    "question": "LCR 규제 기준과 현재 수치 비교",
+    "sql": "SELECT lcr, lcr_threshold, lcr - lcr_threshold as margin FROM lcr_gauge"
+  },
+  {
+    "question": "HQLA 레벨1 레벨2A 레벨2B 자산 구성",
+    "sql": "SELECT hqla, level1, level2a, level2b FROM lcr_gauge"
+  },
+  {
+    "question": "월별 순현금유출 추이",
+    "sql": "SELECT month, outflow, hqla FROM lcr_nsfr_trend ORDER BY month"
+  },
+  {
+    "question": "만기갭이 가장 큰 구간",
+    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap ORDER BY gap DESC LIMIT 1"
+  },
+  {
+    "question": "유동성 버퍼 여유 추이 가용에서 필요를 뺀 값",
+    "sql": "SELECT date, available, required, available - required as buffer_margin FROM liquidity_buffer ORDER BY date"
+  },
+  {
+    "question": "스트레스 상황에서 유동성이 부족해지는 시점",
+    "sql": "SELECT date, available, stress, available - stress as stress_margin FROM liquidity_buffer WHERE available < stress ORDER BY date"
+  },
+  {
+    "question": "안정성이 낮은 조달 원천",
+    "sql": "SELECT source, amount, pct FROM funding_structure WHERE stability = 'low' ORDER BY amount DESC"
+  },
+  {
+    "question": "조달 안정성 등급별 합계",
+    "sql": "SELECT stability, SUM(amount) as total_amount, SUM(pct) as total_pct FROM funding_structure GROUP BY stability ORDER BY total_amount DESC"
   }
 ]

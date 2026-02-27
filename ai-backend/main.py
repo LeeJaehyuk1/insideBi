@@ -206,6 +206,16 @@ async def suggest():
     return {"suggestions": SUGGESTIONS}
 
 
+@app.post("/api/cache-reload")
+async def cache_reload():
+    """Golden SQL 캐시를 파일에서 다시 로드"""
+    before = len(_sql_cache)
+    _sql_cache.clear()
+    _load_golden_sql()
+    after = len(_sql_cache)
+    return {"before": before, "after": after}
+
+
 @app.post("/api/ask")
 async def ask(req: AskRequest):
     if not req.question.strip():
