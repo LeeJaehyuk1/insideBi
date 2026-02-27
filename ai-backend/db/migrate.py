@@ -160,10 +160,10 @@ def migrate(conn: sqlite3.Connection):
     cur.execute("DROP TABLE IF EXISTS var_trend")
     cur.execute("""
         CREATE TABLE var_trend (
-            date  TEXT PRIMARY KEY,
-            var   REAL,
-            pnl   REAL,
-            limit REAL
+            date      TEXT PRIMARY KEY,
+            var       REAL,
+            pnl       REAL,
+            var_limit REAL
         )
     """)
     cur.executemany("INSERT INTO var_trend VALUES (?,?,?,?)", generate_var_series())

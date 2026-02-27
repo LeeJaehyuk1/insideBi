@@ -39,3 +39,11 @@ next-env.d.ts
 # Gemini
 .gemini/
 .claude/
+
+# ai-backend
+ai-backend/.env
+ai-backend/__pycache__/
+ai-backend/**/__pycache__/
+ai-backend/chroma_db/
+ai-backend/db/insidebi.db
+ai-backend/feedback.json
