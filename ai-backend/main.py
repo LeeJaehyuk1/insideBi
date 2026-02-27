@@ -18,14 +18,18 @@ from pydantic import BaseModel
 load_dotenv()
 
 # Vanna 초기화 (import 시점에 ChromaDB + Ollama 연결)
-from vanna_setup import vn, OLLAMA_MODEL
+from vanna_setup import vn, OLLAMA_MODEL, DB_PATH as VANNA_DB_PATH
 
 app = FastAPI(title="insideBi AI API", version="1.0.0")
 
+# FRONTEND_URL 환경변수로 허용 origin 추가 (Railway 배포 시 설정)
+_extra_origin = os.getenv("FRONTEND_URL", "")
+_allowed_origins = ["http://localhost:3000"] + ([_extra_origin] if _extra_origin else [])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
+    allow_origins=_allowed_origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -70,6 +74,23 @@ def _load_golden_sql():
 
 
 _load_golden_sql()
+
+
+@app.on_event("startup")
+async def _startup():
+    """Railway 등 클라우드 환경: DB가 없으면 자동 마이그레이션"""
+    import sys
+    if not os.path.exists(VANNA_DB_PATH):
+        print("[startup] DB not found — running migration...")
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, os.path.join(os.path.dirname(__file__), "db", "migrate.py")],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0:
+            print("[startup] Migration complete")
+        else:
+            print(f"[startup] Migration failed:\n{result.stderr}")
 
 
 def find_cached_sql(question: str) -> tuple[str | None, float]:
