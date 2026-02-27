@@ -18,6 +18,7 @@ import { useDashboardPersist } from "@/hooks/useDashboardPersist";
 import { useDashboardLibrary } from "@/hooks/useDashboardLibrary";
 import { useMyDashboard } from "@/hooks/useMyDashboard";
 import { useRole, can, getRoleInfo } from "@/context/RoleContext";
+import { DefaultDashboard } from "@/components/dashboard/DefaultDashboard";
 
 function generateId() {
   return Math.random().toString(36).slice(2, 9);
@@ -299,20 +300,34 @@ export function BuilderClient() {
           </div>
         </div>
 
-        {/* Right: Canvas */}
+        {/* Right: Canvas or Default Dashboard */}
         <div className="flex-1 min-w-0">
-          <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-muted-foreground">캔버스</h2>
-            <span className="text-xs text-muted-foreground hidden sm:inline">
-              드래그로 자유 배치 · 우측 하단 모서리로 크기 조절 · ⚙ 로 차트 설정
-            </span>
-          </div>
-          <GridWidgetCanvas
-            widgets={widgets}
-            layouts={layouts}
-            onWidgetsChange={setWidgets}
-            onLayoutChange={handleLayoutChange}
-          />
+          {widgets.length === 0 && library.length === 0 ? (
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-muted-foreground">종합 리스크 현황</h2>
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  좌측 카탈로그에서 + 버튼으로 지표를 추가해 커스텀 대시보드를 만들어보세요
+                </span>
+              </div>
+              <DefaultDashboard />
+            </div>
+          ) : (
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-muted-foreground">캔버스</h2>
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  드래그로 자유 배치 · 우측 하단 모서리로 크기 조절 · ⚙ 로 차트 설정
+                </span>
+              </div>
+              <GridWidgetCanvas
+                widgets={widgets}
+                layouts={layouts}
+                onWidgetsChange={setWidgets}
+                onLayoutChange={handleLayoutChange}
+              />
+            </div>
+          )}
         </div>
       </div>
 
