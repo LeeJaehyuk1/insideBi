@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
 import { useMyDashboard } from "@/hooks/useMyDashboard";
@@ -8,7 +9,7 @@ import { DashboardPreview } from "@/components/builder/DashboardPreview";
 import { DefaultDashboard } from "./DefaultDashboard";
 
 export function HomeDashboard() {
-  const { myDashboard, hydrated: myHydrated } = useMyDashboard();
+  const { myDashboard, hydrated: myHydrated, clearMyDashboard } = useMyDashboard();
   const { library, hydrated: libHydrated } = useDashboardLibrary();
 
   if (!myHydrated || !libHydrated) {
@@ -19,15 +20,27 @@ export function HomeDashboard() {
     );
   }
 
-  // 라이브러리에 저장된 대시보드가 있고 홈으로 지정된 경우에만 커스텀 대시보드 표시
-  if (library.length > 0 && myDashboard) {
+  // myDashboard가 라이브러리에 실제로 존재하는지 교차검증
+  const validMyDashboard =
+    myDashboard && library.some((d) => d.name === myDashboard.name)
+      ? myDashboard
+      : null;
+
+  // stale myDashboard 자동 cleanup (라이브러리에 없는 경우)
+  React.useEffect(() => {
+    if (myHydrated && libHydrated && myDashboard && !validMyDashboard) {
+      clearMyDashboard();
+    }
+  }, [myHydrated, libHydrated, myDashboard, validMyDashboard, clearMyDashboard]);
+
+  if (validMyDashboard) {
     return (
       <div>
         <div className="flex items-center gap-3 mb-4">
           <div>
-            <h1 className="text-lg font-bold">{myDashboard.name}</h1>
+            <h1 className="text-lg font-bold">{validMyDashboard.name}</h1>
             <p className="text-xs text-muted-foreground">
-              저장: {new Date(myDashboard.savedAt).toLocaleString("ko-KR")} · 위젯 {myDashboard.widgets.length}개
+              저장: {new Date(validMyDashboard.savedAt).toLocaleString("ko-KR")} · 위젯 {validMyDashboard.widgets.length}개
             </p>
           </div>
           <Link
@@ -37,7 +50,7 @@ export function HomeDashboard() {
             <Pencil className="h-3 w-3" /> 편집
           </Link>
         </div>
-        <DashboardPreview dashboard={myDashboard} hideHeader />
+        <DashboardPreview dashboard={validMyDashboard} hideHeader />
       </div>
     );
   }
