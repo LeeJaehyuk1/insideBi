@@ -17,8 +17,8 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-# Vanna 초기화 (import 시점에 ChromaDB + Ollama 연결)
-from vanna_setup import vn, OLLAMA_MODEL, DB_PATH as VANNA_DB_PATH
+# Vanna 초기화 (import 시점에 ChromaDB + LLM 연결)
+from vanna_setup import vn, MODEL_NAME, LLM_PROVIDER, DB_PATH as VANNA_DB_PATH
 
 app = FastAPI(title="insideBi AI API", version="1.0.0")
 
@@ -154,8 +154,8 @@ def generate_summary(question: str, df: pd.DataFrame, sql: str) -> str:
 
 async def ask_with_retry(question: str, max_attempts: int = 3):
     """
-    1) 캐시 조회 → 히트 시 Ollama 생략
-    2) 캐시 미스 → Ollama SQL 생성 (최대 3회 재시도)
+    1) 캐시 조회 → 히트 시 LLM 생략
+    2) 캐시 미스 → LLM SQL 생성 (최대 3회 재시도)
     3) 성공한 SQL을 캐시에 저장
     """
     # ── 캐시 조회 ──────────────────────────────────────────
@@ -166,9 +166,9 @@ async def ask_with_retry(question: str, max_attempts: int = 3):
             df = vn.run_sql(cached_sql)
             return cached_sql, df, True  # (sql, df, from_cache)
         except Exception as e:
-            print(f"[cache] 캐시 SQL 실행 실패, Ollama로 폴백: {e}")
+            print(f"[cache] 캐시 SQL 실행 실패, LLM으로 폴백: {e}")
 
-    # ── Ollama 생성 ────────────────────────────────────────
+    # ── LLM 생성 ───────────────────────────────────────────
     context = question
     last_error = None
     for attempt in range(max_attempts):
@@ -193,7 +193,12 @@ async def ask_with_retry(question: str, max_attempts: int = 3):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "model": OLLAMA_MODEL, "cache_size": len(_sql_cache)}
+    return {
+        "status": "ok",
+        "provider": LLM_PROVIDER,
+        "model": MODEL_NAME,
+        "cache_size": len(_sql_cache),
+    }
 
 
 @app.get("/api/suggest")

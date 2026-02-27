@@ -5,12 +5,12 @@ from vanna.chromadb import ChromaDB_VectorStore
 
 load_dotenv()
 
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:latest")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
 CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_db")
 DB_PATH = os.getenv("DB_PATH", "./db/insidebi.db")
 
 # ── 고정 시스템 프롬프트 ───────────────────────────────────────
-# 매 요청 동일한 prefix → Ollama KV 캐시 활성화
+# 매 요청 동일한 prefix → LLM KV 캐시 활성화 (Ollama)
 # 한국어 주석 제거 + 컴팩트 DDL → 토큰 수 대폭 감소
 _COMPACT_DDL = """\
 CREATE TABLE npl_trend(month TEXT,npl REAL,substandard REAL,doubtful REAL,loss REAL);
@@ -32,7 +32,7 @@ CREATE TABLE ncr_trend(month TEXT,ncr REAL,ncr_limit REAL);
 CREATE TABLE ncr_summary(current_ncr REAL,ncr_limit REAL,net_operating_capital REAL,total_risk REAL,market_risk REAL,credit_risk REAL,operational_risk REAL,warning_level REAL,target_level REAL,change_from_last_month REAL);
 CREATE TABLE risk_composition(name TEXT,value REAL,percentage REAL);"""
 
-# 이 문자열은 불변(클래스 변수) → Ollama가 동일 prefix로 KV 캐시 재사용
+# 이 문자열은 불변(클래스 변수) → LLM이 동일 prefix로 KV 캐시 재사용 (Ollama)
 _FIXED_SYSTEM_PROMPT = f"""\
 You are a SQLite expert. Output only valid SQLite SQL, no explanation.
 Tables:
@@ -56,20 +56,14 @@ def _clean_sql(raw: str) -> str:
     return s
 
 
-class MyVanna(ChromaDB_VectorStore, Ollama):
-    # 클래스 변수 → 모든 요청에서 동일한 bytes → Ollama KV 캐시 활성화
+class _VannaBase:
+    """submit_prompt()를 제공하는 백엔드에 공통 SQL 생성 로직 주입"""
     _FIXED_SYS = _FIXED_SYSTEM_PROMPT
-
-    def __init__(self):
-        # n_results=3: 유사 Q-SQL 상위 3개만 few-shot으로 사용 (토큰 절약)
-        ChromaDB_VectorStore.__init__(self, config={"path": CHROMA_PATH, "n_results": 3})
-        Ollama.__init__(self, config={"model": OLLAMA_MODEL})
 
     def generate_sql(self, question: str, **kwargs) -> str:
         """
-        고정 시스템 프롬프트 + 상위 3개 few-shot 예시 → Ollama KV 캐시 활용
+        고정 시스템 프롬프트 + 상위 3개 few-shot 예시 → LLM KV 캐시 활용 (Ollama)
         토큰: ~3060 → ~670 (78% 감소)
-        KV 캐시: 첫 요청 이후 고정 prefix 재연산 생략
         """
         # ChromaDB에서 유사 Q-SQL 상위 3개 조회
         try:
@@ -93,5 +87,32 @@ class MyVanna(ChromaDB_VectorStore, Ollama):
         return _clean_sql(raw)
 
 
-vn = MyVanna()
+class OllamaVanna(_VannaBase, ChromaDB_VectorStore, Ollama):
+    def __init__(self):
+        ChromaDB_VectorStore.__init__(self, config={"path": CHROMA_PATH, "n_results": 3})
+        Ollama.__init__(self, config={"model": os.getenv("OLLAMA_MODEL", "llama3.1:8b")})
+
+
+# OpenAIVanna는 LLM_PROVIDER=openai 일 때만 클래스 정의 (패키지 미설치 환경 보호)
+if LLM_PROVIDER == "openai":
+    from vanna.openai import OpenAI_Chat
+
+    class OpenAIVanna(_VannaBase, ChromaDB_VectorStore, OpenAI_Chat):
+        def __init__(self):
+            ChromaDB_VectorStore.__init__(self, config={"path": CHROMA_PATH, "n_results": 3})
+            OpenAI_Chat.__init__(self, config={
+                "api_key": os.getenv("OPENAI_API_KEY"),
+                "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            })
+
+
+# 모델명 (health endpoint용)
+MODEL_NAME = (
+    os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    if LLM_PROVIDER == "openai"
+    else os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+)
+
+# 팩토리
+vn = OpenAIVanna() if LLM_PROVIDER == "openai" else OllamaVanna()
 vn.connect_to_sqlite(DB_PATH)
