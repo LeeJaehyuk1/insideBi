@@ -27,7 +27,10 @@ CREATE TABLE lcr_nsfr_trend(month TEXT,lcr REAL,nsfr REAL,hqla REAL,outflow REAL
 CREATE TABLE maturity_gap(bucket TEXT,assets REAL,liabilities REAL,gap REAL);
 CREATE TABLE liquidity_buffer(date TEXT,available REAL,required REAL,stress REAL);
 CREATE TABLE funding_structure(source TEXT,amount REAL,pct REAL,stability TEXT);
-CREATE TABLE lcr_gauge(lcr REAL,nsfr REAL,hqla REAL,net_outflow REAL,level1 REAL,level2a REAL,level2b REAL,lcr_threshold REAL,nsfr_threshold REAL);"""
+CREATE TABLE lcr_gauge(lcr REAL,nsfr REAL,hqla REAL,net_outflow REAL,level1 REAL,level2a REAL,level2b REAL,lcr_threshold REAL,nsfr_threshold REAL);
+CREATE TABLE ncr_trend(month TEXT,ncr REAL,ncr_limit REAL);
+CREATE TABLE ncr_summary(current_ncr REAL,ncr_limit REAL,net_operating_capital REAL,total_risk REAL,market_risk REAL,credit_risk REAL,operational_risk REAL,warning_level REAL,target_level REAL,change_from_last_month REAL);
+CREATE TABLE risk_composition(name TEXT,value REAL,percentage REAL);"""
 
 # 이 문자열은 불변(클래스 변수) → Ollama가 동일 prefix로 KV 캐시 재사용
 _FIXED_SYSTEM_PROMPT = f"""\

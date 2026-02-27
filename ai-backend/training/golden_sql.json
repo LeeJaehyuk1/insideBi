@@ -98,5 +98,25 @@
   {
     "question": "월별 HQLA 고유동성자산 추이",
     "sql": "SELECT month, hqla FROM lcr_nsfr_trend ORDER BY month"
+  },
+  {
+    "question": "NCR 비율 요약",
+    "sql": "SELECT current_ncr, ncr_limit, net_operating_capital, total_risk FROM ncr_summary"
+  },
+  {
+    "question": "NCR 순자본비율 추이",
+    "sql": "SELECT month, ncr, ncr_limit FROM ncr_trend ORDER BY month"
+  },
+  {
+    "question": "현재 NCR 수치",
+    "sql": "SELECT current_ncr, ncr_limit FROM ncr_summary"
+  },
+  {
+    "question": "위험액 구성 비율",
+    "sql": "SELECT name, value, percentage FROM risk_composition ORDER BY value DESC"
+  },
+  {
+    "question": "NCR 시장위험액 신용위험액 운영위험액",
+    "sql": "SELECT market_risk, credit_risk, operational_risk FROM ncr_summary"
   }
 ]

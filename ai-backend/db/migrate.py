@@ -334,6 +334,65 @@ def migrate(conn: sqlite3.Connection):
     cur.execute("INSERT INTO lcr_gauge VALUES (?,?,?,?,?,?,?,?,?)",
                 (142.3, 118.7, 44980, 31610, 38420, 4820, 1740, 100, 100))
 
+    # ── 16. ncr_trend ────────────────────────────────────────
+    cur.execute("DROP TABLE IF EXISTS ncr_trend")
+    cur.execute("""
+        CREATE TABLE ncr_trend (
+            month     TEXT PRIMARY KEY,
+            ncr       REAL,
+            ncr_limit REAL
+        )
+    """)
+    ncr_rows = [
+        ("2025-03", 580.2, 150),
+        ("2025-04", 592.5, 150),
+        ("2025-05", 610.1, 150),
+        ("2025-06", 605.4, 150),
+        ("2025-07", 615.8, 150),
+        ("2025-08", 620.3, 150),
+        ("2025-09", 608.9, 150),
+        ("2025-10", 612.4, 150),
+        ("2025-11", 598.6, 150),
+        ("2025-12", 625.1, 150),
+        ("2026-01", 618.2, 150),
+        ("2026-02", 642.5, 150),
+    ]
+    cur.executemany("INSERT INTO ncr_trend VALUES (?,?,?)", ncr_rows)
+
+    # ── 17. ncr_summary (scalar) ─────────────────────────────
+    cur.execute("DROP TABLE IF EXISTS ncr_summary")
+    cur.execute("""
+        CREATE TABLE ncr_summary (
+            current_ncr          REAL,
+            ncr_limit            REAL,
+            net_operating_capital REAL,
+            total_risk           REAL,
+            market_risk          REAL,
+            credit_risk          REAL,
+            operational_risk     REAL,
+            warning_level        REAL,
+            target_level         REAL,
+            change_from_last_month REAL
+        )
+    """)
+    cur.execute("INSERT INTO ncr_summary VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (642.5, 150.0, 425300, 66194, 32000, 29500, 4694, 200, 500, 24.3))
+
+    # ── 18. risk_composition ─────────────────────────────────
+    cur.execute("DROP TABLE IF EXISTS risk_composition")
+    cur.execute("""
+        CREATE TABLE risk_composition (
+            name       TEXT PRIMARY KEY,
+            value      REAL,
+            percentage REAL
+        )
+    """)
+    cur.executemany("INSERT INTO risk_composition VALUES (?,?,?)", [
+        ("시장위험액", 32000, 48.3),
+        ("신용위험액", 29500, 44.6),
+        ("운영위험액",  4694,  7.1),
+    ])
+
     conn.commit()
     print(f"[migrate] DB 생성 완료 → {DB_PATH}")
     tables = cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
