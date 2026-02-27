@@ -6,6 +6,7 @@ export interface ChatMessage {
   data?: Record<string, unknown>[];
   chartType?: string;
   summary?: string;
+  fromCache?: boolean;
   status: "idle" | "loading" | "success" | "error";
   timestamp: number;
 }
@@ -16,4 +17,5 @@ export interface AiAskResponse {
   data: Record<string, unknown>[];
   chart_type: string;
   summary: string;
+  from_cache: boolean;
 }

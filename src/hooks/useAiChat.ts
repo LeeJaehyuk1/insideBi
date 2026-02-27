@@ -55,6 +55,7 @@ export function useAiChat() {
                 sql: data.sql,
                 data: data.data,
                 chartType: data.chart_type,
+                fromCache: data.from_cache,
                 status: "success",
               }
             : m

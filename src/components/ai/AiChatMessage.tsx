@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Code, ThumbsUp, ThumbsDown, Bot } from "lucide-react";
+import { Code, ThumbsUp, ThumbsDown, Bot, Zap } from "lucide-react";
 import { ChatMessage } from "@/types/ai";
 import { AiChartResult } from "./AiChartResult";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,17 +26,30 @@ export function AiChatMessage({ message, onFeedback }: AiChatMessageProps) {
     );
   }
 
-  // Assistant loading
+  // Assistant loading (경과 시간 표시)
+  const [elapsed, setElapsed] = React.useState(0);
+  React.useEffect(() => {
+    if (message.status !== "loading") return;
+    setElapsed(0);
+    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [message.status]);
+
   if (message.status === "loading") {
     return (
       <div className="flex items-start gap-2.5 px-4 py-1">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
-          <Bot className="h-4 w-4 text-primary" />
+          <Bot className="h-4 w-4 text-primary animate-pulse" />
         </div>
         <div className="flex-1 space-y-2 pt-1">
           <Skeleton className="h-3 w-3/4" />
           <Skeleton className="h-3 w-1/2" />
           <Skeleton className="h-3 w-5/6" />
+          <p className="text-[10px] text-muted-foreground pt-0.5">
+            SQL 생성 중...
+            {elapsed > 0 && ` ${elapsed}초 경과`}
+            {elapsed >= 10 && " (CPU 추론, 잠시 기다려 주세요)"}
+          </p>
         </div>
       </div>
     );
@@ -79,6 +92,11 @@ export function AiChatMessage({ message, onFeedback }: AiChatMessageProps) {
 
         {/* Actions: SQL toggle + feedback */}
         <div className="flex items-center gap-2">
+          {message.fromCache && (
+            <span className="flex items-center gap-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+              <Zap className="h-2.5 w-2.5" /> 캐시
+            </span>
+          )}
           {message.sql && (
             <button
               onClick={() => setSqlOpen((o) => !o)}
