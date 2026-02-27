@@ -34,7 +34,13 @@ function buildDefaultLayouts(
     widgets: WidgetConfig[],
     existing: Record<string, GridItemLayout>
 ): GridItemLayout[] {
-    // 이미 배치된 위젯들의 최대 y+h 값을 구해 새 위젯의 시작 row를 결정
+    // 이미 저장된 레이아웃만으로 구성된 위젯들: 그대로 반환
+    const allExist = widgets.every((w) => !!existing[w.id]);
+    if (allExist && widgets.length > 0) {
+        return widgets.map((w) => existing[w.id]);
+    }
+
+    // 새 위젯이 섞인 경우: 기존 레이아웃 아래부터 배치
     const maxBottom = Object.values(existing).reduce(
         (acc, item) => Math.max(acc, item.y + item.h),
         0
@@ -45,10 +51,10 @@ function buildDefaultLayouts(
     let curY = maxBottom;
 
     return widgets.map((w) => {
-        // 이미 레이아웃이 저장되어 있으면 그대로 사용
+        // 이미 레이아웃이 저장되어 있으면 그대로 사용 (저장된 w 비율 그대로)
         if (existing[w.id]) return existing[w.id];
 
-        // 새 위젯: 항상 기본 크기(w:1, h:1)로 맨 아래에 순서대로 배치
+        // 새 위젯: 기본 크기(w:1, h:1)로 맨 아래에 순서대로 배치
         const DEFAULT_W = 1;
         const DEFAULT_H = 1;
 
@@ -82,13 +88,24 @@ export function GridWidgetCanvas({
 
     const layoutItems = buildDefaultLayouts(widgets, layouts);
 
+    // 드래그/리사이즈가 완전히 끝난 후 레이아웃 저장
+    const handleLayoutChange = (layout: GridItemLayout[]) => {
+        if (!Array.isArray(layout) || layout.length === 0) return;
+        const next: Record<string, GridItemLayout> = {};
+        layout.forEach((item) => { next[item.i] = item; });
+        onLayoutChange(next);
+    };
+
     const handleDragStop = (...args: unknown[]) => {
-        const newItem = args[2] as GridItemLayout | null;
-        if (!newItem) return;
-        onLayoutChange({ ...layouts, [newItem.i]: newItem });
+        const layout = args[0] as GridItemLayout[] | null;
+        if (!Array.isArray(layout)) return;
+        const next: Record<string, GridItemLayout> = {};
+        layout.forEach((item) => { next[item.i] = item; });
+        onLayoutChange(next);
     };
 
     const handleResizeStop = (...args: unknown[]) => {
+        const layout = args[0] as GridItemLayout[] | null;
         const newItem = args[2] as GridItemLayout | null;
         if (!newItem) return;
         // Sync colSpan with grid width
@@ -97,7 +114,16 @@ export function GridWidgetCanvas({
         onWidgetsChange(
             widgets.map((w) => (w.id === wId ? { ...w, colSpan: clamped } : w))
         );
-        onLayoutChange({ ...layouts, [newItem.i]: { ...newItem, w: clamped } });
+        // 전체 레이아웃 동기화
+        if (Array.isArray(layout)) {
+            const next: Record<string, GridItemLayout> = {};
+            layout.forEach((item) => {
+                next[item.i] = item.i === wId ? { ...item, w: clamped } : item;
+            });
+            onLayoutChange(next);
+        } else {
+            onLayoutChange({ ...layouts, [newItem.i]: { ...newItem, w: clamped } });
+        }
     };
 
     const handleRemove = (id: string) => {
@@ -143,6 +169,7 @@ export function GridWidgetCanvas({
                 resizeHandles={["se"]}
                 compactType={null}
                 preventCollision={true}
+                onLayoutChange={handleLayoutChange}
                 onDragStop={handleDragStop}
                 onResizeStop={handleResizeStop}
                 useCSSTransforms={true}

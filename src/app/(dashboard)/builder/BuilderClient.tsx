@@ -3,17 +3,20 @@
 import * as React from "react";
 import {
   Save, RotateCcw, Eye, EyeOff,
-  PanelLeftClose, PanelLeft, CheckCircle2, Lock,
+  PanelLeftClose, PanelLeft, CheckCircle2, Lock, BookOpen,
 } from "lucide-react";
-import { WidgetConfig, SavedDashboard, DatasetMeta, GlobalFilter } from "@/types/builder";
+import { WidgetConfig, SavedDashboard, DatasetMeta, GlobalFilter, ColSpan } from "@/types/builder";
 import { DataCatalogPanel } from "@/components/builder/DataCatalogPanel";
 import { GridWidgetCanvas, GridItemLayout } from "@/components/builder/GridWidgetCanvas";
 import { DashboardPreview } from "@/components/builder/DashboardPreview";
+import { DashboardLibrary } from "@/components/builder/DashboardLibrary";
 import { FilterBar, FilterState, DEFAULT_FILTER } from "@/components/builder/FilterBar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useDashboardPersist } from "@/hooks/useDashboardPersist";
+import { useDashboardLibrary } from "@/hooks/useDashboardLibrary";
+import { useMyDashboard } from "@/hooks/useMyDashboard";
 import { useRole, can, getRoleInfo } from "@/context/RoleContext";
 
 function generateId() {
@@ -38,11 +41,28 @@ export function BuilderClient() {
     clearPersist,
   } = useDashboardPersist();
 
+  const { library, saveDashboard: saveToLibrary, deleteDashboard: deleteFromLibrary } = useDashboardLibrary();
+  const { myDashboard, setMyDashboard, clearMyDashboard } = useMyDashboard();
   const [showPreview, setShowPreview] = React.useState(false);
   const [catalogOpen, setCatalogOpen] = React.useState(true);
   const [filter, setFilter] = React.useState<FilterState>(DEFAULT_FILTER);
   const [saveToast, setSaveToast] = React.useState<"saved" | null>(null);
+  const [libraryOpen, setLibraryOpen] = React.useState(false);
   const previewRef = React.useRef<HTMLDivElement>(null);
+
+  // Normalize colSpan from layouts.w once after hydration (fixes stale localStorage data)
+  React.useEffect(() => {
+    if (!hydrated || Object.keys(layouts).length === 0) return;
+    setWidgets((prev) =>
+      prev.map((w) => {
+        const lay = layouts[w.id];
+        if (!lay) return w;
+        const clamped = Math.max(1, Math.min(3, lay.w)) as ColSpan;
+        return clamped !== w.colSpan ? { ...w, colSpan: clamped } : w;
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]); // run once after hydration
 
   const { role } = useRole();
   const roleInfo = getRoleInfo(role);
@@ -53,16 +73,33 @@ export function BuilderClient() {
 
   const addedIds = widgets.map((w) => w.datasetId);
 
-  /** 현재 layouts에서 가장 아래 행 번호를 구함 */
-  function getNextY(currentLayouts: Record<string, GridItemLayout>): number {
-    return Object.values(currentLayouts).reduce(
-      (acc, item) => Math.max(acc, item.y + item.h),
-      0
-    );
-  }
-
-  const DEFAULT_W = 3; // 추가 시 기본 너비 (3컬럼 전체)
+  const DEFAULT_W = 1; // 추가 시 기본 너비 (1컬럼)
   const DEFAULT_H = 1; // 추가 시 기본 높이 (1행)
+
+  /** 새 위젯을 배치할 최적 위치 반환 (옆 공간 우선, 없으면 새 행) */
+  function findNextPosition(
+    currentLayouts: Record<string, GridItemLayout>,
+    newW: number
+  ): { x: number; y: number } {
+    const items = Object.values(currentLayouts);
+    if (items.length === 0) return { x: 0, y: 0 };
+
+    const maxBottom = items.reduce((acc, it) => Math.max(acc, it.y + it.h), 0);
+
+    // 마지막 행 아이템들이 모두 h=DEFAULT_H이면 옆에 패킹 시도
+    const lastRowItems = items.filter((it) => it.y + it.h === maxBottom);
+    const allH1 = lastRowItems.every((it) => it.h === DEFAULT_H);
+    if (allH1 && lastRowItems.length > 0) {
+      const rightmostX = lastRowItems.reduce((acc, it) => Math.max(acc, it.x + it.w), 0);
+      if (rightmostX + newW <= 3) {
+        // 마지막 행의 시작 y = maxBottom - DEFAULT_H
+        return { x: rightmostX, y: maxBottom - DEFAULT_H };
+      }
+    }
+
+    // 공간 없으면 새 행
+    return { x: 0, y: maxBottom };
+  }
 
   const handleAdd = (dataset: DatasetMeta) => {
     const newId = generateId();
@@ -77,10 +114,10 @@ export function BuilderClient() {
 
     // 새 위젯의 레이아웃을 즉시 등록 → react-grid-layout compaction 방지
     setLayouts((prev) => {
-      const nextY = getNextY(prev);
+      const { x, y } = findNextPosition(prev, DEFAULT_W);
       return {
         ...prev,
-        [newId]: { i: newId, x: 0, y: nextY, w: DEFAULT_W, h: DEFAULT_H },
+        [newId]: { i: newId, x, y, w: DEFAULT_W, h: DEFAULT_H },
       };
     });
 
@@ -101,14 +138,23 @@ export function BuilderClient() {
       name: dashboardName,
       widgets,
       savedAt: new Date().toISOString(),
+      layouts,
     };
     setSavedDashboard(dashboard);
+    saveToLibrary(dashboard);
     setShowPreview(true);
     setSaveToast("saved");
     setTimeout(() => setSaveToast(null), 2500);
     setTimeout(() => {
       previewRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
+  };
+
+  const handleLoadDashboard = (dashboard: SavedDashboard) => {
+    setWidgets(dashboard.widgets);
+    setDashboardName(dashboard.name);
+    if (dashboard.layouts) setLayouts(dashboard.layouts);
+    setLibraryOpen(false);
   };
 
   const handleReset = () => {
@@ -203,6 +249,10 @@ export function BuilderClient() {
               미리보기
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={() => setLibraryOpen(true)}>
+            <BookOpen className="h-4 w-4 mr-1" />
+            라이브러리
+          </Button>
           {canReset && (
             <Button variant="outline" size="sm" onClick={handleReset} disabled={widgets.length === 0}>
               <RotateCcw className="h-4 w-4 mr-1.5" />
@@ -279,6 +329,17 @@ export function BuilderClient() {
           <DashboardPreview dashboard={savedDashboard} />
         </div>
       )}
+
+      <DashboardLibrary
+        library={library}
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        onLoad={handleLoadDashboard}
+        onDelete={deleteFromLibrary}
+        onSetHome={setMyDashboard}
+        onClearHome={clearMyDashboard}
+        homeName={myDashboard?.name ?? null}
+      />
     </div>
   );
 }

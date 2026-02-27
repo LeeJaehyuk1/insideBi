@@ -7,6 +7,7 @@ import { WidgetConfig } from "@/types/builder";
 import { ColumnMeta } from "@/types/dataset";
 import { getDatasetSchema } from "@/lib/dataset-schemas";
 import { useDataset } from "@/hooks/useDataset";
+import { mergeGlobalFilter } from "@/lib/filter-utils";
 import { Button } from "@/components/ui/button";
 
 type SortDir = "asc" | "desc" | null;
@@ -33,10 +34,8 @@ interface DrilldownTableProps {
 
 export function DrilldownTable({ widget, onClose }: DrilldownTableProps) {
     const schema = getDatasetSchema(widget.datasetId);
-    const { data, isLoading } = useDataset({
-        datasetId: widget.datasetId,
-        ...(widget.queryParams ?? {}),
-    });
+    const mergedParams = mergeGlobalFilter(widget.globalFilter, widget.queryParams, schema);
+    const { data, isLoading } = useDataset({ datasetId: widget.datasetId, ...mergedParams });
 
     const [sortKey, setSortKey] = React.useState<string | null>(null);
     const [sortDir, setSortDir] = React.useState<SortDir>(null);
