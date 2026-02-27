@@ -3,7 +3,6 @@
 import * as React from "react";
 import { Bot, Trash2, Send } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -20,14 +19,13 @@ export function AiPanel({ open, onOpenChange }: AiPanelProps) {
   const { messages, ask, submitFeedback, clearHistory } = useAiChat();
   const [input, setInput] = React.useState("");
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const bottomRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const isLoading = messages.some((m) => m.status === "loading");
 
   // Scroll to bottom when new messages arrive
   React.useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   // Focus textarea when panel opens
@@ -53,7 +51,7 @@ export function AiPanel({ open, onOpenChange }: AiPanelProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[480px] max-w-full flex flex-col p-0 gap-0">
+      <SheetContent side="right" className="w-[520px] max-w-[95vw] flex flex-col p-0 gap-0 h-full">
         {/* Header */}
         <SheetHeader className="px-4 py-3 border-b shrink-0">
           <div className="flex items-center justify-between">
@@ -77,8 +75,8 @@ export function AiPanel({ open, onOpenChange }: AiPanelProps) {
           </div>
         </SheetHeader>
 
-        {/* Messages */}
-        <ScrollArea className="flex-1" ref={scrollRef as React.RefObject<HTMLDivElement>}>
+        {/* Messages — native scroll so scrollIntoView works */}
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
           <div className="py-4 space-y-1">
             {messages.length === 0 ? (
               <AiSuggestions onSelect={(q) => ask(q)} />
@@ -91,8 +89,10 @@ export function AiPanel({ open, onOpenChange }: AiPanelProps) {
                 />
               ))
             )}
+            {/* Scroll anchor */}
+            <div ref={bottomRef} />
           </div>
-        </ScrollArea>
+        </div>
 
         <Separator />
 
