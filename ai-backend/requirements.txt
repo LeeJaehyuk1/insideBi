@@ -1,0 +1,5 @@
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+vanna[chromadb,ollama]==0.7.9
+pandas==2.2.2
+python-dotenv==1.0.1

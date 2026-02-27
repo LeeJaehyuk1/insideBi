@@ -1,0 +1,102 @@
+[
+  {
+    "question": "지난 12개월 NPL 비율 추이",
+    "sql": "SELECT month, npl FROM npl_trend ORDER BY month"
+  },
+  {
+    "question": "NPL 비율이 가장 높은 달은?",
+    "sql": "SELECT month, npl FROM npl_trend ORDER BY npl DESC LIMIT 1"
+  },
+  {
+    "question": "업종별 익스포저 TOP 5",
+    "sql": "SELECT sector, amount FROM sector_exposure ORDER BY amount DESC LIMIT 5"
+  },
+  {
+    "question": "업종별 부도율(PD) 높은 순으로 보여줘",
+    "sql": "SELECT sector, pd FROM sector_exposure ORDER BY pd DESC"
+  },
+  {
+    "question": "신용등급별 익스포저 비율",
+    "sql": "SELECT grade, pct FROM credit_grades ORDER BY pct DESC"
+  },
+  {
+    "question": "신용등급별 금액과 비중",
+    "sql": "SELECT grade, amount, pct FROM credit_grades ORDER BY amount DESC"
+  },
+  {
+    "question": "현재 LCR 수치",
+    "sql": "SELECT lcr FROM lcr_gauge"
+  },
+  {
+    "question": "현재 LCR과 NSFR 수치",
+    "sql": "SELECT lcr, nsfr FROM lcr_gauge"
+  },
+  {
+    "question": "LCR NSFR 12개월 추이",
+    "sql": "SELECT month, lcr, nsfr FROM lcr_nsfr_trend ORDER BY month"
+  },
+  {
+    "question": "스트레스 시나리오별 총 손실 비교",
+    "sql": "SELECT name, total FROM stress_scenarios ORDER BY total DESC"
+  },
+  {
+    "question": "스트레스 테스트 후 BIS 비율이 가장 낮은 시나리오",
+    "sql": "SELECT name, bis_after FROM stress_scenarios ORDER BY bis_after ASC LIMIT 1"
+  },
+  {
+    "question": "VaR가 1300억원을 초과한 날",
+    "sql": "SELECT date, var FROM var_trend WHERE var > 1300 ORDER BY date"
+  },
+  {
+    "question": "최근 20일 VaR 추이",
+    "sql": "SELECT date, var, limit FROM var_trend ORDER BY date DESC LIMIT 20"
+  },
+  {
+    "question": "현재 VaR 한도 사용률",
+    "sql": "SELECT current, limit_val, utilization FROM var_summary"
+  },
+  {
+    "question": "만기갭 분석 - 각 구간별 자산 부채 차이",
+    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap ORDER BY rowid"
+  },
+  {
+    "question": "단기 유동성 위험 구간 (갭이 음수인 만기 구간)",
+    "sql": "SELECT bucket, gap FROM maturity_gap WHERE gap < 0 ORDER BY gap ASC"
+  },
+  {
+    "question": "유동성 버퍼 전망",
+    "sql": "SELECT date, available, required, stress FROM liquidity_buffer ORDER BY date"
+  },
+  {
+    "question": "조달 구조 비중",
+    "sql": "SELECT source, pct FROM funding_structure ORDER BY pct DESC"
+  },
+  {
+    "question": "안정성 높은 조달 원천만 보여줘",
+    "sql": "SELECT source, amount, pct FROM funding_structure WHERE stability = 'high' ORDER BY amount DESC"
+  },
+  {
+    "question": "총 여신과 부실여신 현황",
+    "sql": "SELECT total_loan, npl_amount, npl_ratio, provision_ratio FROM npl_summary"
+  },
+  {
+    "question": "PD LGD EAD 신용리스크 파라미터",
+    "sql": "SELECT pd, lgd, ead, expected_loss, unexpected_loss FROM pd_lgd_ead"
+  },
+  {
+    "question": "리스크 민감도 지표",
+    "sql": "SELECT factor, value FROM sensitivity ORDER BY value DESC"
+  },
+  {
+    "question": "부동산 업종 익스포저",
+    "sql": "SELECT sector, amount, pct, pd FROM sector_exposure WHERE sector = '부동산'"
+  },
+  {
+    "question": "VaR 손익(PnL)이 적자인 날 수",
+    "sql": "SELECT COUNT(*) as loss_days FROM var_trend WHERE pnl < 0"
+  },
+  {
+    "question": "월별 HQLA 고유동성자산 추이",
+    "sql": "SELECT month, hqla FROM lcr_nsfr_trend ORDER BY month"
+  }
+]

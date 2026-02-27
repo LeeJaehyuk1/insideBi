@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { Moon, Sun, Bell, Menu, ChevronDown, ShieldCheck, Eye, Pencil } from "lucide-react";
+import { Moon, Sun, Bell, Menu, ChevronDown, ShieldCheck, Eye, Pencil, Bot } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,11 @@ const roleIcons: Record<Role, React.ElementType> = {
   viewer: Eye,
 };
 
-export function TopBar() {
+interface TopBarProps {
+  onAiOpen?: () => void;
+}
+
+export function TopBar({ onAiOpen }: TopBarProps = {}) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -104,6 +108,11 @@ export function TopBar() {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
+        {/* AI 분석 */}
+        <Button variant="ghost" size="icon" onClick={onAiOpen} title="AI 데이터 분석">
+          <Bot className="h-4 w-4" />
+        </Button>
+
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-4 w-4" />

@@ -22,8 +22,10 @@ export function HomeDashboard() {
       <div>
         <div className="flex items-center gap-3 mb-4">
           <div>
-            <h1 className="text-lg font-bold">나의 대시보드</h1>
-            <p className="text-xs text-muted-foreground">{myDashboard.name}</p>
+            <h1 className="text-lg font-bold">{myDashboard.name}</h1>
+            <p className="text-xs text-muted-foreground">
+              저장: {new Date(myDashboard.savedAt).toLocaleString("ko-KR")} · 위젯 {myDashboard.widgets.length}개
+            </p>
           </div>
           <Link
             href="/builder"
@@ -32,7 +34,7 @@ export function HomeDashboard() {
             <Pencil className="h-3 w-3" /> 편집
           </Link>
         </div>
-        <DashboardPreview dashboard={myDashboard} />
+        <DashboardPreview dashboard={myDashboard} hideHeader />
       </div>
     );
   }

@@ -13,6 +13,7 @@ import {
   ChevronRight,
   LayoutTemplate,
   Target,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
@@ -29,7 +30,11 @@ const iconMap = {
   Target,
 } as const;
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onAiOpen?: () => void;
+}
+
+export function AppSidebar({ onAiOpen }: AppSidebarProps = {}) {
   const pathname = usePathname();
   const { role } = useRole();
   const roleInfo = getRoleInfo(role);
@@ -83,6 +88,20 @@ export function AppSidebar() {
             );
           })}
         </nav>
+
+        {/* AI 분석 버튼 (구분선 아래) */}
+        <div className="mt-3 pt-3 border-t border-sidebar-border/50">
+          <button
+            onClick={onAiOpen}
+            className="w-full group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+          >
+            <Bot className="h-4 w-4 shrink-0" />
+            <div className="flex-1 min-w-0 text-left">
+              <p className="truncate">AI 데이터 분석</p>
+              <p className="truncate text-xs opacity-60">자연어로 데이터 질문</p>
+            </div>
+          </button>
+        </div>
       </ScrollArea>
 
       {/* Footer */}

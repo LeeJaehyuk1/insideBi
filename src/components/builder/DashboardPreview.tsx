@@ -18,9 +18,10 @@ const ROW_HEIGHT = 280;
 
 interface DashboardPreviewProps {
   dashboard: SavedDashboard;
+  hideHeader?: boolean;
 }
 
-export function DashboardPreview({ dashboard }: DashboardPreviewProps) {
+export function DashboardPreview({ dashboard, hideHeader }: DashboardPreviewProps) {
   const layouts = dashboard.layouts ?? {};
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = React.useState(900);
@@ -43,14 +44,16 @@ export function DashboardPreview({ dashboard }: DashboardPreviewProps) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-base font-semibold">{dashboard.name}</h3>
-          <p className="text-xs text-muted-foreground">
-            저장: {new Date(dashboard.savedAt).toLocaleString("ko-KR")} · 위젯 {dashboard.widgets.length}개
-          </p>
+      {!hideHeader && (
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-base font-semibold">{dashboard.name}</h3>
+            <p className="text-xs text-muted-foreground">
+              저장: {new Date(dashboard.savedAt).toLocaleString("ko-KR")} · 위젯 {dashboard.widgets.length}개
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div ref={containerRef} className="w-full">
         <GridLayout
