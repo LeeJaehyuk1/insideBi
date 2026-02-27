@@ -64,9 +64,10 @@ export function useAiChat() {
     } catch (err) {
       let message = "알 수 없는 오류가 발생했습니다.";
       if (err instanceof TypeError && err.message.toLowerCase().includes("fetch")) {
-        message =
-          "AI 서버에 연결할 수 없습니다. FastAPI 서버가 실행 중인지 확인하세요.\n\n" +
-          "cd ai-backend\nuvicorn main:app --reload --port 8000";
+        const isLocal = AI_API_URL.includes("localhost") || AI_API_URL.includes("127.0.0.1");
+        message = isLocal
+          ? "AI 서버에 연결할 수 없습니다. FastAPI 서버가 실행 중인지 확인하세요.\n\ncd ai-backend\nuvicorn main:app --reload --port 8000"
+          : "AI 서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요.";
       } else if (err instanceof Error) {
         message = err.message;
       }
