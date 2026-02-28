@@ -15,6 +15,14 @@ interface AiChatMessageProps {
 export function AiChatMessage({ message, onFeedback }: AiChatMessageProps) {
   const [sqlOpen, setSqlOpen] = React.useState(false);
   const [feedbackGiven, setFeedbackGiven] = React.useState<"up" | "down" | null>(null);
+  const [elapsed, setElapsed] = React.useState(0);
+
+  React.useEffect(() => {
+    if (message.status !== "loading") return;
+    setElapsed(0);
+    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [message.status]);
 
   if (message.role === "user") {
     return (
@@ -25,15 +33,6 @@ export function AiChatMessage({ message, onFeedback }: AiChatMessageProps) {
       </div>
     );
   }
-
-  // Assistant loading (경과 시간 표시)
-  const [elapsed, setElapsed] = React.useState(0);
-  React.useEffect(() => {
-    if (message.status !== "loading") return;
-    setElapsed(0);
-    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [message.status]);
 
   if (message.status === "loading") {
     return (

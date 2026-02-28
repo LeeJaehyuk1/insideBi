@@ -12,14 +12,6 @@ export function HomeDashboard() {
   const { myDashboard, hydrated: myHydrated, clearMyDashboard } = useMyDashboard();
   const { library, hydrated: libHydrated } = useDashboardLibrary();
 
-  if (!myHydrated || !libHydrated) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground text-sm animate-pulse">
-        대시보드 불러오는 중...
-      </div>
-    );
-  }
-
   // myDashboard가 라이브러리에 실제로 존재하는지 교차검증
   const validMyDashboard =
     myDashboard && library.some((d) => d.name === myDashboard.name)
@@ -32,6 +24,14 @@ export function HomeDashboard() {
       clearMyDashboard();
     }
   }, [myHydrated, libHydrated, myDashboard, validMyDashboard, clearMyDashboard]);
+
+  if (!myHydrated || !libHydrated) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground text-sm animate-pulse">
+        대시보드 불러오는 중...
+      </div>
+    );
+  }
 
   if (validMyDashboard) {
     return (
