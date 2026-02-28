@@ -1,4 +1,6 @@
 import os
+import sqlite3
+import pandas as pd
 from dotenv import load_dotenv
 from vanna.ollama import Ollama
 from vanna.chromadb import ChromaDB_VectorStore
@@ -119,4 +121,14 @@ MODEL_NAME = {
 
 # 팩토리
 vn = OpenAIVanna() if LLM_PROVIDER in ("openai", "groq") else OllamaVanna()
-vn.connect_to_sqlite(DB_PATH)
+
+# connect_to_sqlite는 URL만 지원 → sqlite3 직접 연결
+def _run_sql(sql: str) -> pd.DataFrame:
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return pd.read_sql(sql, conn)
+    finally:
+        conn.close()
+
+vn.run_sql = _run_sql
+vn.run_sql_is_set = True
