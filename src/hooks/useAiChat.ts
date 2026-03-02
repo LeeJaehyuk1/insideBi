@@ -52,6 +52,7 @@ export function useAiChat() {
                 ...m,
                 id: data.message_id,
                 content: data.summary,
+                question,
                 sql: data.sql,
                 data: data.data,
                 chartType: data.chart_type,
@@ -82,12 +83,12 @@ export function useAiChat() {
   }, []);
 
   const submitFeedback = useCallback(
-    async (messageId: string, rating: "up" | "down") => {
+    async (messageId: string, rating: "up" | "down", question?: string, sql?: string) => {
       try {
         await fetch(`${AI_API_URL}/api/feedback`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message_id: messageId, rating }),
+          body: JSON.stringify({ message_id: messageId, rating, question, sql }),
         });
       } catch {
         // 피드백 실패는 무시

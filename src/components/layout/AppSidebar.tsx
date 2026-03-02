@@ -10,6 +10,7 @@ import {
   Droplets,
   FileText,
   ShieldAlert,
+  Shield,
   ChevronRight,
   LayoutTemplate,
   Target,
@@ -28,6 +29,7 @@ const iconMap = {
   FileText,
   LayoutTemplate,
   Target,
+  Shield,
 } as const;
 
 interface AppSidebarProps {

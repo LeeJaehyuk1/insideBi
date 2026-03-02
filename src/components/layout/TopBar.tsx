@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { Moon, Sun, Bell, Menu, ChevronDown, ShieldCheck, Eye, Pencil, Bot } from "lucide-react";
+import { Moon, Sun, Bell, Menu, ChevronDown, ShieldCheck, Eye, Pencil, Bot, Shield } from "lucide-react";
 import { useTheme } from "next-themes";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -20,6 +21,7 @@ const breadcrumbMap: Record<string, string[]> = {
   "/ncr-risk": ["NCR리스크"],
   "/reports": ["보고서"],
   "/builder": ["대시보드 빌더"],
+  "/admin": ["관리자"],
 };
 
 const roleIcons: Record<Role, React.ElementType> = {
@@ -111,6 +113,13 @@ export function TopBar({ onAiOpen }: TopBarProps = {}) {
         {/* AI 분석 */}
         <Button variant="ghost" size="icon" onClick={onAiOpen} title="AI 데이터 분석">
           <Bot className="h-4 w-4" />
+        </Button>
+
+        {/* 관리자 */}
+        <Button variant="ghost" size="icon" asChild title="관리자">
+          <Link href="/admin">
+            <Shield className="h-4 w-4" />
+          </Link>
         </Button>
 
         {/* Notifications */}

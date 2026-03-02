@@ -2,6 +2,7 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  question?: string;
   sql?: string;
   data?: Record<string, unknown>[];
   chartType?: string;

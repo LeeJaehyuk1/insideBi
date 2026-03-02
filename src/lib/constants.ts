@@ -85,6 +85,12 @@ export const NAV_ITEMS = [
     icon: "LayoutTemplate",
     description: "커스텀 대시보드 구성",
   },
+  {
+    title: "관리자",
+    href: "/admin",
+    icon: "Shield",
+    description: "AI 학습 데이터 관리",
+  },
 ] as const;
 
 export const CHART_COLORS = {

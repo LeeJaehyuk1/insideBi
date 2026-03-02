@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 interface AiChatMessageProps {
   message: ChatMessage;
-  onFeedback: (id: string, rating: "up" | "down") => void;
+  onFeedback: (id: string, rating: "up" | "down", question?: string, sql?: string) => void;
 }
 
 export function AiChatMessage({ message, onFeedback }: AiChatMessageProps) {
@@ -110,7 +110,7 @@ export function AiChatMessage({ message, onFeedback }: AiChatMessageProps) {
               onClick={() => {
                 if (!feedbackGiven) {
                   setFeedbackGiven("up");
-                  onFeedback(message.id, "up");
+                  onFeedback(message.id, "up", message.question, message.sql);
                 }
               }}
               className={cn(
@@ -126,7 +126,7 @@ export function AiChatMessage({ message, onFeedback }: AiChatMessageProps) {
               onClick={() => {
                 if (!feedbackGiven) {
                   setFeedbackGiven("down");
-                  onFeedback(message.id, "down");
+                  onFeedback(message.id, "down", message.question, message.sql);
                 }
               }}
               className={cn(
