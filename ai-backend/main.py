@@ -22,13 +22,15 @@ from vanna_setup import vn, MODEL_NAME, LLM_PROVIDER, DB_PATH as VANNA_DB_PATH
 
 app = FastAPI(title="insideBi AI API", version="1.0.0")
 
-# FRONTEND_URL 환경변수로 허용 origin 추가 (Railway 배포 시 설정)
-_extra_origin = os.getenv("FRONTEND_URL", "")
-_allowed_origins = ["http://localhost:3000"] + ([_extra_origin] if _extra_origin else [])
+# FRONTEND_URL 환경변수로 허용 origin 추가 (쉼표로 여러 개 가능)
+# 예: FRONTEND_URL=https://insidebi.up.railway.app
+_extra_origins = [o.strip() for o in os.getenv("FRONTEND_URL", "").split(",") if o.strip()]
+_allowed_origins = ["http://localhost:3000"] + _extra_origins
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
+    allow_origin_regex=r"https://.*\.up\.railway\.app",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
