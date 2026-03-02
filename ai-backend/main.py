@@ -109,11 +109,11 @@ def find_cached_sql(question: str) -> tuple[str | None, float]:
 
 # ── 관리자 인증 ───────────────────────────────────────────────
 
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin1234")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin1234").strip()
 
 
 def require_admin(x_admin_password: str = Header(...)):
-    if x_admin_password != ADMIN_PASSWORD:
+    if x_admin_password.strip() != ADMIN_PASSWORD:
         raise HTTPException(status_code=401, detail="관리자 비밀번호가 올바르지 않습니다.")
 
 
@@ -309,7 +309,7 @@ async def feedback(req: FeedbackRequest):
 
 @app.post("/admin/login")
 async def admin_login(x_admin_password: str = Header(...)):
-    if x_admin_password != ADMIN_PASSWORD:
+    if x_admin_password.strip() != ADMIN_PASSWORD:
         raise HTTPException(status_code=401, detail="비밀번호가 올바르지 않습니다.")
     return {"ok": True}
 
