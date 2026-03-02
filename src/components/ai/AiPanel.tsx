@@ -53,7 +53,7 @@ export function AiPanel({ open, onOpenChange }: AiPanelProps) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[520px] max-w-[95vw] flex flex-col p-0 gap-0 h-full">
         {/* Header */}
-        <SheetHeader className="px-4 py-3 border-b shrink-0">
+        <SheetHeader className="pl-4 pr-12 py-3 border-b shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
