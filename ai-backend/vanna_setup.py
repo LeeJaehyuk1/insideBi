@@ -122,6 +122,14 @@ MODEL_NAME = {
 # 팩토리
 vn = OpenAIVanna() if LLM_PROVIDER in ("openai", "groq") else OllamaVanna()
 
+# Groq 사용 시 Vanna의 base_url 미적용 버그 우회 → 클라이언트 직접 교체
+if LLM_PROVIDER == "groq":
+    from openai import OpenAI as _OpenAI
+    vn.client = _OpenAI(
+        api_key=os.getenv("GROQ_API_KEY"),
+        base_url="https://api.groq.com/openai/v1",
+    )
+
 # connect_to_sqlite는 URL만 지원 → sqlite3 직접 연결
 def _run_sql(sql: str) -> pd.DataFrame:
     conn = sqlite3.connect(DB_PATH)
