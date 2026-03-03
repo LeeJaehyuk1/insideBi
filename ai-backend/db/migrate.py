@@ -1,13 +1,13 @@
 """
-migrate.py – mock-data 값을 SQLite insidebi.db 로 마이그레이션
+migrate.py – mock-data 값을 PostgreSQL insidebi DB 로 마이그레이션
 실행: python db/migrate.py
 """
-import sqlite3
+import psycopg2
 import os
 import random
 from datetime import date, timedelta
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "insidebi.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 def generate_var_series():
@@ -28,7 +28,7 @@ def generate_var_series():
     return rows
 
 
-def migrate(conn: sqlite3.Connection):
+def migrate(conn: psycopg2.extensions.connection):
     cur = conn.cursor()
 
     # ── 1. npl_trend ─────────────────────────────────────────
@@ -56,7 +56,7 @@ def migrate(conn: sqlite3.Connection):
         ("2026-01", 1.80, 1.08, 0.48, 0.24),
         ("2026-02", 1.82, 1.09, 0.49, 0.24),
     ]
-    cur.executemany("INSERT INTO npl_trend VALUES (?,?,?,?,?)", npl_rows)
+    cur.executemany("INSERT INTO npl_trend VALUES (%s,%s,%s,%s,%s)", npl_rows)
 
     # ── 2. credit_grades ──────────────────────────────────────
     cur.execute("DROP TABLE IF EXISTS credit_grades")
@@ -77,7 +77,7 @@ def migrate(conn: sqlite3.Connection):
         ("B",      13280, 12840,  7.2),
         ("CCC이하",  5590, 6218,   3.0),
     ]
-    cur.executemany("INSERT INTO credit_grades VALUES (?,?,?,?)", grade_rows)
+    cur.executemany("INSERT INTO credit_grades VALUES (%s,%s,%s,%s)", grade_rows)
 
     # ── 3. sector_exposure ────────────────────────────────────
     cur.execute("DROP TABLE IF EXISTS sector_exposure")
@@ -99,7 +99,7 @@ def migrate(conn: sqlite3.Connection):
         ("운수/물류",   12840,  6.9, 1.43),
         ("기타",        10200,  5.5, 1.78),
     ]
-    cur.executemany("INSERT INTO sector_exposure VALUES (?,?,?,?)", sector_rows)
+    cur.executemany("INSERT INTO sector_exposure VALUES (%s,%s,%s,%s)", sector_rows)
 
     # ── 4. concentration ──────────────────────────────────────
     cur.execute("DROP TABLE IF EXISTS concentration")
@@ -121,7 +121,7 @@ def migrate(conn: sqlite3.Connection):
         ("운수/물류", 1.43,  6.9, 12.84),
         ("기타",      1.78,  5.5, 10.20),
     ]
-    cur.executemany("INSERT INTO concentration VALUES (?,?,?,?)", conc_rows)
+    cur.executemany("INSERT INTO concentration VALUES (%s,%s,%s,%s)", conc_rows)
 
     # ── 5. npl_summary (scalar) ───────────────────────────────
     cur.execute("DROP TABLE IF EXISTS npl_summary")
@@ -138,7 +138,7 @@ def migrate(conn: sqlite3.Connection):
             net_npl          REAL
         )
     """)
-    cur.execute("INSERT INTO npl_summary VALUES (?,?,?,?,?,?,?,?,?)",
+    cur.execute("INSERT INTO npl_summary VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (185420, 3375, 1.82, 2019, 907, 449, 2940, 87.1, 0.24))
 
     # ── 6. pd_lgd_ead (scalar) ───────────────────────────────
@@ -153,7 +153,7 @@ def migrate(conn: sqlite3.Connection):
             rwa              REAL
         )
     """)
-    cur.execute("INSERT INTO pd_lgd_ead VALUES (?,?,?,?,?,?)",
+    cur.execute("INSERT INTO pd_lgd_ead VALUES (%s,%s,%s,%s,%s,%s)",
                 (1.24, 42.3, 185420, 972, 3240, 98350))
 
     # ── 7. var_trend ─────────────────────────────────────────
@@ -166,7 +166,7 @@ def migrate(conn: sqlite3.Connection):
             var_limit REAL
         )
     """)
-    cur.executemany("INSERT INTO var_trend VALUES (?,?,?,?)", generate_var_series())
+    cur.executemany("INSERT INTO var_trend VALUES (%s,%s,%s,%s)", generate_var_series())
 
     # ── 8. stress_scenarios ──────────────────────────────────
     cur.execute("DROP TABLE IF EXISTS stress_scenarios")
@@ -188,7 +188,7 @@ def migrate(conn: sqlite3.Connection):
         ("환율 급등(+20%)",               1250, 5640,  320,  7210, 13.9),
         ("복합 위기 시나리오",           12480, 9230, 2100, 23810,  9.2),
     ]
-    cur.executemany("INSERT INTO stress_scenarios VALUES (?,?,?,?,?,?)", stress_rows)
+    cur.executemany("INSERT INTO stress_scenarios VALUES (%s,%s,%s,%s,%s,%s)", stress_rows)
 
     # ── 9. sensitivity ───────────────────────────────────────
     cur.execute("DROP TABLE IF EXISTS sensitivity")
@@ -207,7 +207,7 @@ def migrate(conn: sqlite3.Connection):
         ("원자재리스크", 34, 100),
         ("변동성리스크", 61, 100),
     ]
-    cur.executemany("INSERT INTO sensitivity VALUES (?,?,?)", sens_rows)
+    cur.executemany("INSERT INTO sensitivity VALUES (%s,%s,%s)", sens_rows)
 
     # ── 10. var_summary (scalar) ─────────────────────────────
     cur.execute("DROP TABLE IF EXISTS var_summary")
@@ -225,7 +225,7 @@ def migrate(conn: sqlite3.Connection):
             rho            REAL
         )
     """)
-    cur.execute("INSERT INTO var_summary VALUES (?,?,?,?,?,?,?,?,?,?)",
+    cur.execute("INSERT INTO var_summary VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (1250, 1500, 83.3, 1198, 1385, 0, 680, -42, 890, 125))
 
     # ── 11. lcr_nsfr_trend ───────────────────────────────────
@@ -253,7 +253,7 @@ def migrate(conn: sqlite3.Connection):
         ("2026-01", 143.1, 118.9, 45120, 31530),
         ("2026-02", 142.3, 118.7, 44980, 31610),
     ]
-    cur.executemany("INSERT INTO lcr_nsfr_trend VALUES (?,?,?,?,?)", lcr_rows)
+    cur.executemany("INSERT INTO lcr_nsfr_trend VALUES (%s,%s,%s,%s,%s)", lcr_rows)
 
     # ── 12. maturity_gap ─────────────────────────────────────
     cur.execute("DROP TABLE IF EXISTS maturity_gap")
@@ -274,7 +274,7 @@ def migrate(conn: sqlite3.Connection):
         ("1년이내",   35920, 28460,  7460),
         ("1년초과",   98420, 99630, -1210),
     ]
-    cur.executemany("INSERT INTO maturity_gap VALUES (?,?,?,?)", gap_rows)
+    cur.executemany("INSERT INTO maturity_gap VALUES (%s,%s,%s,%s)", gap_rows)
 
     # ── 13. liquidity_buffer ─────────────────────────────────
     cur.execute("DROP TABLE IF EXISTS liquidity_buffer")
@@ -293,7 +293,7 @@ def migrate(conn: sqlite3.Connection):
         ("2026-05", 42500, 32600, 54100),
         ("2026-06", 41800, 33000, 54500),
     ]
-    cur.executemany("INSERT INTO liquidity_buffer VALUES (?,?,?,?)", buf_rows)
+    cur.executemany("INSERT INTO liquidity_buffer VALUES (%s,%s,%s,%s)", buf_rows)
 
     # ── 14. funding_structure ────────────────────────────────
     cur.execute("DROP TABLE IF EXISTS funding_structure")
@@ -314,7 +314,7 @@ def migrate(conn: sqlite3.Connection):
         ("자기자본",  28480,  9.6, "high"),
         ("기타",      23280,  7.9, "medium"),
     ]
-    cur.executemany("INSERT INTO funding_structure VALUES (?,?,?,?)", fund_rows)
+    cur.executemany("INSERT INTO funding_structure VALUES (%s,%s,%s,%s)", fund_rows)
 
     # ── 15. lcr_gauge (scalar) ───────────────────────────────
     cur.execute("DROP TABLE IF EXISTS lcr_gauge")
@@ -331,7 +331,7 @@ def migrate(conn: sqlite3.Connection):
             nsfr_threshold REAL
         )
     """)
-    cur.execute("INSERT INTO lcr_gauge VALUES (?,?,?,?,?,?,?,?,?)",
+    cur.execute("INSERT INTO lcr_gauge VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (142.3, 118.7, 44980, 31610, 38420, 4820, 1740, 100, 100))
 
     # ── 16. ncr_trend ────────────────────────────────────────
@@ -357,7 +357,7 @@ def migrate(conn: sqlite3.Connection):
         ("2026-01", 618.2, 150),
         ("2026-02", 642.5, 150),
     ]
-    cur.executemany("INSERT INTO ncr_trend VALUES (?,?,?)", ncr_rows)
+    cur.executemany("INSERT INTO ncr_trend VALUES (%s,%s,%s)", ncr_rows)
 
     # ── 17. ncr_summary (scalar) ─────────────────────────────
     cur.execute("DROP TABLE IF EXISTS ncr_summary")
@@ -375,7 +375,7 @@ def migrate(conn: sqlite3.Connection):
             change_from_last_month REAL
         )
     """)
-    cur.execute("INSERT INTO ncr_summary VALUES (?,?,?,?,?,?,?,?,?,?)",
+    cur.execute("INSERT INTO ncr_summary VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (642.5, 150.0, 425300, 66194, 32000, 29500, 4694, 200, 500, 24.3))
 
     # ── 18. risk_composition ─────────────────────────────────
@@ -387,22 +387,23 @@ def migrate(conn: sqlite3.Connection):
             percentage REAL
         )
     """)
-    cur.executemany("INSERT INTO risk_composition VALUES (?,?,?)", [
+    cur.executemany("INSERT INTO risk_composition VALUES (%s,%s,%s)", [
         ("시장위험액", 32000, 48.3),
         ("신용위험액", 29500, 44.6),
         ("운영위험액",  4694,  7.1),
     ])
 
     conn.commit()
-    print(f"[migrate] DB 생성 완료 → {DB_PATH}")
-    tables = cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+    print("[migrate] DB 마이그레이션 완료")
+    cur.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
+    tables = cur.fetchall()
     for t in tables:
-        cnt = cur.execute(f"SELECT COUNT(*) FROM {t[0]}").fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) FROM {t[0]}")
+        cnt = cur.fetchone()[0]
         print(f"  {t[0]:25s} {cnt} rows")
 
 
 if __name__ == "__main__":
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DATABASE_URL)
     migrate(conn)
     conn.close()

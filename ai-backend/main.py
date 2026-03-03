@@ -31,6 +31,7 @@ from vanna_setup import (
     LLM_PROVIDER,
     SQLCODER_MODE,
     DB_PATH as VANNA_DB_PATH,
+    DATABASE_URL,
 )
 
 app = FastAPI(title="insideBi AI API", version="2.0.0")
@@ -255,9 +256,30 @@ async def ask_with_retry(question: str, max_attempts: int = 2):
 async def _startup():
     """DB가 없으면 자동 마이그레이션"""
     import sys
-    if not os.path.exists(VANNA_DB_PATH):
+    import subprocess
+
+    needs_migration = False
+
+    if DATABASE_URL:
+        # PostgreSQL: npl_trend 테이블 존재 여부로 판단
+        try:
+            import psycopg2
+            conn = psycopg2.connect(DATABASE_URL)
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT COUNT(*) FROM information_schema.tables "
+                "WHERE table_schema='public' AND table_name='npl_trend'"
+            )
+            needs_migration = cur.fetchone()[0] == 0
+            conn.close()
+        except Exception as e:
+            print(f"[startup] PostgreSQL 연결 실패: {e}")
+    else:
+        # SQLite: 파일 존재 여부로 판단
+        needs_migration = not os.path.exists(VANNA_DB_PATH)
+
+    if needs_migration:
         print("[startup] DB not found — running migration...")
-        import subprocess
         result = subprocess.run(
             [sys.executable, os.path.join(os.path.dirname(__file__), "db", "migrate.py")],
             capture_output=True, text=True,

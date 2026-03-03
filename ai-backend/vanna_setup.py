@@ -35,6 +35,7 @@ LLM_PROVIDER   = os.getenv("LLM_PROVIDER", "ollama")   # sqlcoder | groq | opena
 SQLCODER_MODE  = os.getenv("SQLCODER_MODE", "ollama")  # ollama | groq
 CHROMA_PATH    = os.getenv("CHROMA_PATH", "./chroma_db")
 DB_PATH        = os.getenv("DB_PATH", "./db/insidebi.db")
+DATABASE_URL   = os.getenv("DATABASE_URL", "")         # PostgreSQL (Railway 등 프로덕션)
 
 # SQLCoder via Ollama
 SQLCODER_MODEL  = os.getenv("SQLCODER_MODEL", "sqlcoder:7b")  # ollama: sqlcoder:7b / sqlcoder:15b
@@ -82,13 +83,15 @@ CREATE TABLE risk_composition(name TEXT,value REAL,percentage REAL);"""
 
 # ── SQLCoder 전용 시스템 프롬프트 ───────────────────────────────
 # Defog 공식 권장 포맷 기반 (Ollama sqlcoder:7b 및 Groq Llama 모두 호환)
-_SQLCODER_SYSTEM = """\
+_DB_DIALECT = "PostgreSQL" if DATABASE_URL else "SQLite"
+
+_SQLCODER_SYSTEM = f"""\
 ### Instructions:
-Your task is to convert a question into a SQL query, given a SQLite database schema.
+Your task is to convert a question into a SQL query, given a {_DB_DIALECT} database schema.
 Adhere to these rules:
 - **Deliberately go through the question and database schema word by word** to appropriately answer the question
 - **Use Table Aliases** to prevent ambiguity
-- **Output ONLY valid SQLite SELECT SQL** — no explanation, no markdown fences, no extra text
+- **Output ONLY valid {_DB_DIALECT} SELECT SQL** — no explanation, no markdown fences, no extra text
 - For time-series data, ORDER BY month or date ASC
 - For TOP-N queries, use ORDER BY col DESC LIMIT N
 - For the latest single value, use ORDER BY col DESC LIMIT 1
@@ -97,12 +100,12 @@ Adhere to these rules:
 - Domain glossary: NPL=무수익여신, VaR=가치위험, LCR=유동성커버리지비율, NSFR=순안정자금조달비율, NCR=순자본비율, BIS=자기자본비율, 익스포저=신용위험노출액"""
 
 _SQLCODER_SCHEMA = f"""
-### Database Schema (SQLite):
+### Database Schema ({_DB_DIALECT}):
 {_COMPACT_DDL}"""
 
 # 범용 fallback 시스템 프롬프트 (간결 버전)
 _FALLBACK_SYSTEM = f"""\
-You are a SQLite expert. Output ONLY valid SQLite SELECT SQL, no explanation.
+You are a {_DB_DIALECT} expert. Output ONLY valid {_DB_DIALECT} SELECT SQL, no explanation.
 Tables:
 {_COMPACT_DDL}
 Rules:
@@ -148,7 +151,7 @@ def _build_sqlcoder_prompt(question: str, similar: list) -> str:
                 parts.append(f"-- Q: {item['question']}\n{item['sql']}")
 
     parts.append(f"\n### Question:\n{question}")
-    parts.append("\n### Answer (SQLite SQL only):\n")
+    parts.append(f"\n### Answer ({_DB_DIALECT} SQL only):\n")
     return "\n".join(parts)
 
 
@@ -171,14 +174,20 @@ def _build_sqlcoder_messages(question: str, similar: list) -> list:
     return messages
 
 
-# ── SQLite 실행 헬퍼 ─────────────────────────────────────────────
+# ── DB 실행 헬퍼 (PostgreSQL 우선, 없으면 SQLite fallback) ────────
 
 def _run_sql(sql: str) -> pd.DataFrame:
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        return pd.read_sql(sql, conn)
-    finally:
-        conn.close()
+    if DATABASE_URL:
+        from sqlalchemy import create_engine, text
+        engine = create_engine(DATABASE_URL)
+        with engine.connect() as conn:
+            return pd.read_sql(text(sql), conn)
+    else:
+        conn = sqlite3.connect(DB_PATH)
+        try:
+            return pd.read_sql(sql, conn)
+        finally:
+            conn.close()
 
 
 # ════════════════════════════════════════════════════════════════
