@@ -1,6 +1,12 @@
 """
 main.py – FastAPI AI 분석 서버
 실행: uvicorn main:app --reload --port 8000
+
+[SQLCoder 이중 파이프라인]
+  1) 캐시(Golden SQL + _sql_cache) 조회
+  2) Primary LLM (SQLCoder via Ollama 또는 Defog API)
+  3) 실패 시 Fallback LLM (Groq 또는 Ollama 범용)
+  4) 최종 실패 시 503 에러 반환
 """
 import json
 import os
@@ -17,12 +23,18 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-# Vanna 초기화 (import 시점에 ChromaDB + LLM 연결)
-from vanna_setup import vn, MODEL_NAME, LLM_PROVIDER, DB_PATH as VANNA_DB_PATH
+# Vanna / SQLCoder 초기화
+from vanna_setup import (
+    vn,
+    get_fallback_vn,
+    MODEL_NAME,
+    LLM_PROVIDER,
+    SQLCODER_MODE,
+    DB_PATH as VANNA_DB_PATH,
+)
 
-app = FastAPI(title="insideBi AI API", version="1.0.0")
+app = FastAPI(title="insideBi AI API", version="2.0.0")
 
-# FRONTEND_URL 환경변수로 허용 origin 추가 (쉼표로 여러 개 가능)
 _extra_origins = [o.strip() for o in os.getenv("FRONTEND_URL", "").split(",") if o.strip()]
 _allowed_origins = ["http://localhost:3000"] + _extra_origins
 
@@ -34,10 +46,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 피드백 저장 파일
+# ── 피드백 파일 ──────────────────────────────────────────────────
 FEEDBACK_FILE = os.path.join(os.path.dirname(__file__), "feedback.json")
 
-# SQL 보안 가드레일
+# ── SQL 보안 가드레일 ─────────────────────────────────────────────
 FORBIDDEN_KEYWORDS = [
     "DELETE", "DROP", "UPDATE", "INSERT", "CREATE",
     "ALTER", "TRUNCATE", "REPLACE", "ATTACH", "DETACH",
@@ -54,14 +66,12 @@ SUGGESTIONS = [
     "조달 구조 비중",
 ]
 
-# ── SQL 캐시 ──────────────────────────────────────────────────
+# ── SQL 캐시 ──────────────────────────────────────────────────────
 _sql_cache: dict[str, str] = {}
-
 CACHE_THRESHOLD = 0.78
 
 
 def _load_golden_sql():
-    """서버 시작 시 Golden SQL 쌍을 캐시에 로드"""
     path = os.path.join(os.path.dirname(__file__), "training/golden_sql.json")
     if not os.path.exists(path):
         return
@@ -75,40 +85,7 @@ def _load_golden_sql():
 _load_golden_sql()
 
 
-@app.on_event("startup")
-async def _startup():
-    """Railway 등 클라우드 환경: DB가 없으면 자동 마이그레이션"""
-    import sys
-    if not os.path.exists(VANNA_DB_PATH):
-        print("[startup] DB not found — running migration...")
-        import subprocess
-        result = subprocess.run(
-            [sys.executable, os.path.join(os.path.dirname(__file__), "db", "migrate.py")],
-            capture_output=True, text=True,
-        )
-        if result.returncode == 0:
-            print("[startup] Migration complete")
-        else:
-            print(f"[startup] Migration failed:\n{result.stderr}")
-
-
-def find_cached_sql(question: str) -> tuple[str | None, float]:
-    """질문과 캐시된 질문들 간의 퍼지 유사도를 계산해 SQL 반환"""
-    best_q: str | None = None
-    best_score = 0.0
-    q = question.strip()
-    for cached_q in _sql_cache:
-        score = SequenceMatcher(None, q, cached_q).ratio()
-        if score > best_score:
-            best_score = score
-            best_q = cached_q
-    if best_q and best_score >= CACHE_THRESHOLD:
-        return _sql_cache[best_q], best_score
-    return None, 0.0
-
-
-# ── 관리자 인증 ───────────────────────────────────────────────
-
+# ── 관리자 인증 ───────────────────────────────────────────────────
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin1234").strip()
 
 
@@ -117,7 +94,7 @@ def require_admin(x_admin_password: str = Header(...)):
         raise HTTPException(status_code=401, detail="관리자 비밀번호가 올바르지 않습니다.")
 
 
-# ── 모델 ─────────────────────────────────────────────────────
+# ── 모델 정의 ─────────────────────────────────────────────────────
 
 class AskRequest(BaseModel):
     question: str
@@ -153,7 +130,21 @@ class FeedbackDeleteRequest(BaseModel):
     message_id: str
 
 
-# ── 유틸 ─────────────────────────────────────────────────────
+# ── 유틸 함수 ─────────────────────────────────────────────────────
+
+def find_cached_sql(question: str) -> tuple[str | None, float]:
+    best_q: str | None = None
+    best_score = 0.0
+    q = question.strip()
+    for cached_q in _sql_cache:
+        score = SequenceMatcher(None, q, cached_q).ratio()
+        if score > best_score:
+            best_score = score
+            best_q = cached_q
+    if best_q and best_score >= CACHE_THRESHOLD:
+        return _sql_cache[best_q], best_score
+    return None, 0.0
+
 
 def validate_sql(sql: str) -> bool:
     upper = sql.upper()
@@ -161,23 +152,19 @@ def validate_sql(sql: str) -> bool:
 
 
 def infer_chart_type(df: pd.DataFrame) -> str:
-    """컬럼 특성으로 차트 타입 자동 추론"""
     cols = [c.lower() for c in df.columns]
     date_cols = [c for c in cols if any(k in c for k in ["date", "month", "year", "날짜", "월", "기간"])]
     numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
     pct_cols = [c for c in cols if "pct" in c or "ratio" in c or "rate" in c or "비율" in c]
 
     if date_cols:
-        if len(numeric_cols) >= 2:
-            return "area"
-        return "line"
+        return "area" if len(numeric_cols) >= 2 else "line"
     if pct_cols and len(df.columns) <= 3 and len(df) <= 10:
         return "pie"
     return "bar"
 
 
 def generate_summary(question: str, df: pd.DataFrame, sql: str) -> str:
-    """간단한 결과 요약 생성 (규칙 기반)"""
     rows = len(df)
     cols = list(df.columns)
     if rows == 1:
@@ -186,39 +173,100 @@ def generate_summary(question: str, df: pd.DataFrame, sql: str) -> str:
     return f"총 {rows}개 데이터를 조회했습니다. ({', '.join(cols[:3])} 등)"
 
 
-async def ask_with_retry(question: str, max_attempts: int = 3):
+# ── SQLCoder 이중 파이프라인 핵심 함수 ───────────────────────────
+
+async def ask_with_retry(question: str, max_attempts: int = 2):
     """
-    1) 캐시 조회 → 히트 시 LLM 생략
-    2) 캐시 미스 → LLM SQL 생성 (최대 3회 재시도)
-    3) 성공한 SQL을 캐시에 저장
+    [파이프라인]
+    1) SQL 캐시 조회        → 히트 시 LLM 생략
+    2) Primary LLM 시도    → SQLCoder (Ollama or Defog API)
+    3) Primary 실패 시     → Fallback LLM (Groq or 범용 Ollama) 재시도
+    4) 모두 실패           → 503 에러
     """
+    # ── Step 1: 캐시 조회 ─────────────────────────────────────
     cached_sql, score = find_cached_sql(question)
     if cached_sql:
-        print(f"[cache HIT] score={score:.2f}  sql={cached_sql}")
+        print(f"[cache HIT] score={score:.2f}  sql={cached_sql[:60]}")
         try:
             df = vn.run_sql(cached_sql)
-            return cached_sql, df, True
+            return cached_sql, df, True, "cache"
         except Exception as e:
-            print(f"[cache] 캐시 SQL 실행 실패, LLM으로 폴백: {e}")
+            print(f"[cache] 캐시 SQL 실행 실패, Primary LLM으로 폴백: {e}")
 
+    # ── Step 2: Primary LLM (SQLCoder) ───────────────────────
+    last_error: str = ""
     context = question
-    last_error = None
+
     for attempt in range(max_attempts):
         try:
             sql = vn.generate_sql(context)
+            if not sql or not sql.upper().strip().startswith("SELECT"):
+                raise ValueError(f"유효하지 않은 SQL 형식: {sql[:80]}")
             if not validate_sql(sql):
-                raise HTTPException(status_code=400, detail="보안 위반 쿼리가 감지되었습니다. 데이터 조회 질문만 가능합니다.")
+                raise HTTPException(
+                    status_code=400,
+                    detail="보안 위반 쿼리가 감지되었습니다. 데이터 조회 질문만 가능합니다."
+                )
             df = vn.run_sql(sql)
             _sql_cache[question.strip()] = sql
-            print(f"[cache STORE] question={question[:30]}  sql={sql}")
-            return sql, df, False
+            backend = f"sqlcoder-{SQLCODER_MODE}" if LLM_PROVIDER == "sqlcoder" else LLM_PROVIDER
+            print(f"[{backend}] 성공 (attempt={attempt+1})  sql={sql[:60]}")
+            return sql, df, False, backend
         except HTTPException:
             raise
         except Exception as e:
             last_error = str(e)
-            context = f"{question}\n[이전 시도 오류 수정 필요: {last_error}]"
-    raise HTTPException(status_code=500, detail=f"쿼리 생성에 실패했습니다: {last_error}")
+            print(f"[primary] attempt={attempt+1} 실패: {last_error[:120]}")
+            context = f"{question}\n[이전 시도 오류, 다시 시도: {last_error[:80]}]"
 
+    # ── Step 3: Fallback LLM ─────────────────────────────────
+    fallback_vn = get_fallback_vn()
+    if fallback_vn is not None:
+        print("[fallback] Primary 실패 → Fallback LLM 시도")
+        for attempt in range(2):
+            try:
+                sql = fallback_vn.generate_sql(context)
+                if not sql or not sql.upper().strip().startswith("SELECT"):
+                    raise ValueError(f"Fallback SQL 형식 오류: {sql[:80]}")
+                if not validate_sql(sql):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="보안 위반 쿼리가 감지되었습니다."
+                    )
+                df = fallback_vn.run_sql(sql)
+                _sql_cache[question.strip()] = sql
+                print(f"[fallback] 성공 (attempt={attempt+1})  sql={sql[:60]}")
+                return sql, df, False, "fallback"
+            except HTTPException:
+                raise
+            except Exception as e:
+                last_error = str(e)
+                print(f"[fallback] attempt={attempt+1} 실패: {last_error[:120]}")
+
+    raise HTTPException(
+        status_code=503,
+        detail=f"SQL 생성에 실패했습니다 (Primary + Fallback 모두 실패): {last_error}"
+    )
+
+
+# ── 이벤트 핸들러 ─────────────────────────────────────────────────
+
+@app.on_event("startup")
+async def _startup():
+    """DB가 없으면 자동 마이그레이션"""
+    import sys
+    if not os.path.exists(VANNA_DB_PATH):
+        print("[startup] DB not found — running migration...")
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, os.path.join(os.path.dirname(__file__), "db", "migrate.py")],
+            capture_output=True, text=True,
+        )
+        print("[startup] Migration complete" if result.returncode == 0
+              else f"[startup] Migration failed:\n{result.stderr}")
+
+
+# ── 피드백 I/O ────────────────────────────────────────────────────
 
 def _read_feedback() -> list:
     if not os.path.exists(FEEDBACK_FILE):
@@ -235,14 +283,18 @@ def _write_feedback(records: list):
         json.dump(records, f, ensure_ascii=False, indent=2)
 
 
-# ── 공개 엔드포인트 ───────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════
+#  공개 엔드포인트
+# ════════════════════════════════════════════════════════════════
 
 @app.get("/api/health")
 async def health():
     return {
         "status": "ok",
         "provider": LLM_PROVIDER,
+        "sqlcoder_mode": SQLCODER_MODE if LLM_PROVIDER == "sqlcoder" else None,
         "model": MODEL_NAME,
+        "fallback_enabled": get_fallback_vn() is not None,
         "cache_size": len(_sql_cache),
     }
 
@@ -254,12 +306,10 @@ async def suggest():
 
 @app.post("/api/cache-reload")
 async def cache_reload():
-    """Golden SQL 캐시를 파일에서 다시 로드"""
     before = len(_sql_cache)
     _sql_cache.clear()
     _load_golden_sql()
-    after = len(_sql_cache)
-    return {"before": before, "after": after}
+    return {"before": before, "after": len(_sql_cache)}
 
 
 @app.post("/api/ask")
@@ -267,7 +317,7 @@ async def ask(req: AskRequest):
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="질문을 입력해주세요.")
 
-    sql, df, from_cache = await ask_with_retry(req.question)
+    sql, df, from_cache, backend = await ask_with_retry(req.question)
 
     data = json.loads(df.to_json(orient="records", force_ascii=False))
     chart_type = infer_chart_type(df)
@@ -281,6 +331,7 @@ async def ask(req: AskRequest):
         "chart_type": chart_type,
         "summary": summary,
         "from_cache": from_cache,
+        "backend": backend,   # 어느 LLM이 응답했는지 디버깅용
     }
 
 
@@ -297,15 +348,15 @@ async def feedback(req: FeedbackRequest):
         "approved": False,
         "timestamp": datetime.now().isoformat(),
     }
-
     records = _read_feedback()
     records.append(entry)
     _write_feedback(records)
-
     return {"ok": True}
 
 
-# ── 관리자 엔드포인트 ─────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════
+#  관리자 엔드포인트
+# ════════════════════════════════════════════════════════════════
 
 @app.post("/admin/login")
 async def admin_login(x_admin_password: str = Header(...)):
@@ -316,23 +367,19 @@ async def admin_login(x_admin_password: str = Header(...)):
 
 @app.get("/admin/training")
 async def admin_get_training(_=Depends(require_admin)):
-    """Vanna ChromaDB에 저장된 학습 데이터 전체 반환"""
     try:
         df = vn.get_training_data()
         if df is None or len(df) == 0:
             return {"items": []}
-        records = json.loads(df.to_json(orient="records", force_ascii=False))
-        return {"items": records}
+        return {"items": json.loads(df.to_json(orient="records", force_ascii=False))}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/admin/training/sql")
 async def admin_train_sql(req: TrainSQLRequest, _=Depends(require_admin)):
-    """Q-SQL 쌍을 학습"""
     try:
         vn.train(question=req.question, sql=req.sql)
-        # 캐시에도 즉시 반영
         _sql_cache[req.question.strip()] = req.sql
         return {"ok": True}
     except Exception as e:
@@ -341,7 +388,6 @@ async def admin_train_sql(req: TrainSQLRequest, _=Depends(require_admin)):
 
 @app.post("/admin/training/doc")
 async def admin_train_doc(req: TrainDocRequest, _=Depends(require_admin)):
-    """비즈니스 용어/문서를 학습"""
     try:
         vn.train(documentation=req.documentation)
         return {"ok": True}
@@ -351,7 +397,6 @@ async def admin_train_doc(req: TrainDocRequest, _=Depends(require_admin)):
 
 @app.post("/admin/training/delete")
 async def admin_delete_training(req: DeleteTrainingRequest, _=Depends(require_admin)):
-    """학습 데이터 항목 삭제"""
     try:
         vn.remove_training_data(id=req.id)
         return {"ok": True}
@@ -361,14 +406,12 @@ async def admin_delete_training(req: DeleteTrainingRequest, _=Depends(require_ad
 
 @app.post("/admin/training/ddl-sync")
 async def admin_ddl_sync(_=Depends(require_admin)):
-    """ddl.sql 파일을 파싱하여 DDL 전체 재학습"""
     ddl_path = os.path.join(os.path.dirname(__file__), "training/ddl.sql")
     if not os.path.exists(ddl_path):
         raise HTTPException(status_code=404, detail="ddl.sql 파일을 찾을 수 없습니다.")
     try:
         with open(ddl_path, encoding="utf-8") as f:
             ddl_content = f.read()
-        # CREATE TABLE 단위로 분할하여 개별 학습
         statements = [s.strip() for s in ddl_content.split(";") if s.strip() and "CREATE TABLE" in s.upper()]
         count = 0
         for stmt in statements:
@@ -381,14 +424,11 @@ async def admin_ddl_sync(_=Depends(require_admin)):
 
 @app.get("/admin/feedback")
 async def admin_get_feedback(_=Depends(require_admin)):
-    """피드백 목록 반환"""
-    records = _read_feedback()
-    return {"items": records}
+    return {"items": _read_feedback()}
 
 
 @app.post("/admin/feedback/approve")
 async def admin_approve_feedback(req: FeedbackApproveRequest, _=Depends(require_admin)):
-    """피드백 승인: Q-SQL 쌍으로 학습 후 approved 플래그 업데이트"""
     try:
         vn.train(question=req.question, sql=req.sql)
         _sql_cache[req.question.strip()] = req.sql
@@ -406,8 +446,6 @@ async def admin_approve_feedback(req: FeedbackApproveRequest, _=Depends(require_
 
 @app.post("/admin/feedback/delete")
 async def admin_delete_feedback(req: FeedbackDeleteRequest, _=Depends(require_admin)):
-    """피드백 항목 삭제"""
-    records = _read_feedback()
-    records = [r for r in records if r["message_id"] != req.message_id]
+    records = [r for r in _read_feedback() if r["message_id"] != req.message_id]
     _write_feedback(records)
     return {"ok": True}
