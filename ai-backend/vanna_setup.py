@@ -203,12 +203,35 @@ def _build_sqlcoder_messages(question: str, similar: list) -> list:
 
 # ── DB 실행 헬퍼 (PostgreSQL 우선, 없으면 SQLite fallback) ────────
 
+# SQLAlchemy 엔진은 모듈 레벨에서 한 번만 생성 (연결 풀 재사용)
+_pg_engine = None
+if DATABASE_URL:
+    from sqlalchemy import create_engine
+    _pg_engine = create_engine(
+        DATABASE_URL,
+        pool_size=3,           # 기본 연결 풀 크기 (Railway 무료 티어 고려)
+        max_overflow=2,        # 추가 허용 연결 수
+        pool_pre_ping=True,    # 쿼리 전 연결 유효성 검사 (끊긴 연결 자동 재연결)
+        pool_recycle=300,      # 5분마다 연결 재활용 (Railway idle connection 차단 대응)
+        connect_args={"connect_timeout": 10},  # 연결 타임아웃 10초
+    )
+
+
 def _run_sql(sql: str) -> pd.DataFrame:
-    if DATABASE_URL:
-        from sqlalchemy import create_engine, text
-        engine = create_engine(DATABASE_URL)
-        with engine.connect() as conn:
-            return pd.read_sql(text(sql), conn)
+    if _pg_engine is not None:
+        from sqlalchemy import text
+        last_err = None
+        for attempt in range(3):  # 최대 3회 재시도
+            try:
+                with _pg_engine.connect() as conn:
+                    return pd.read_sql(text(sql), conn)
+            except Exception as e:
+                last_err = e
+                print(f"[db] SQL 실행 실패 (시도 {attempt + 1}/3): {e}")
+                if attempt < 2:
+                    import time
+                    time.sleep(1)
+        raise last_err
     else:
         conn = sqlite3.connect(DB_PATH)
         try:
