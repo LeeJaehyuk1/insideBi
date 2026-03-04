@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Bot, RotateCcw, Zap, Code, Sparkles } from "lucide-react";
+import { Bot, RotateCcw, Zap, Code, Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
 import { AiSearchBar } from "./AiSearchBar";
 import { InsightBriefing } from "./InsightBriefing";
 import { AiChartResult } from "@/components/ai/AiChartResult";
@@ -10,8 +10,9 @@ import { useAiChat } from "@/hooks/useAiChat";
 import { cn } from "@/lib/utils";
 
 export function SmartHome() {
-  const { messages, ask, clearHistory } = useAiChat();
+  const { messages, ask, submitFeedback, clearHistory } = useAiChat();
   const [sqlOpen, setSqlOpen] = React.useState(false);
+  const [feedbackGiven, setFeedbackGiven] = React.useState<"up" | "down" | null>(null);
   const resultRef = React.useRef<HTMLDivElement>(null);
 
   const hasMessages = messages.length > 0;
@@ -24,6 +25,7 @@ export function SmartHome() {
   const handleSearch = (q: string) => {
     clearHistory();
     setSqlOpen(false);
+    setFeedbackGiven(null);
     ask(q);
     // 결과 영역으로 부드럽게 스크롤
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
@@ -32,6 +34,7 @@ export function SmartHome() {
   const handleReset = () => {
     clearHistory();
     setSqlOpen(false);
+    setFeedbackGiven(null);
   };
 
   return (
@@ -140,9 +143,9 @@ export function SmartHome() {
                   />
                 )}
 
-                {/* SQL 토글 */}
-                {lastAssistant.sql && (
-                  <div>
+                {/* SQL 토글 + 피드백 */}
+                <div className="flex items-center gap-2">
+                  {lastAssistant.sql && (
                     <button
                       onClick={() => setSqlOpen((o) => !o)}
                       className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted transition-colors"
@@ -150,12 +153,54 @@ export function SmartHome() {
                       <Code className="h-3 w-3" />
                       {sqlOpen ? "SQL 닫기" : "SQL 보기"}
                     </button>
-                    {sqlOpen && (
-                      <pre className="mt-2 overflow-x-auto rounded-lg bg-muted/80 p-3 text-[11px] leading-relaxed text-foreground border">
-                        {lastAssistant.sql}
-                      </pre>
+                  )}
+                  <div className="ml-auto flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground mr-1">결과가 유용했나요?</span>
+                    <button
+                      onClick={() => {
+                        if (!feedbackGiven) {
+                          setFeedbackGiven("up");
+                          submitFeedback(lastAssistant.id, "up", lastAssistant.question, lastAssistant.sql);
+                        }
+                      }}
+                      className={cn(
+                        "rounded-md p-1.5 transition-colors",
+                        feedbackGiven === "up"
+                          ? "text-green-600 bg-green-50 dark:bg-green-950"
+                          : "text-muted-foreground hover:bg-muted"
+                      )}
+                      title="도움이 됐어요"
+                    >
+                      <ThumbsUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (!feedbackGiven) {
+                          setFeedbackGiven("down");
+                          submitFeedback(lastAssistant.id, "down", lastAssistant.question, lastAssistant.sql);
+                        }
+                      }}
+                      className={cn(
+                        "rounded-md p-1.5 transition-colors",
+                        feedbackGiven === "down"
+                          ? "text-red-600 bg-red-50 dark:bg-red-950"
+                          : "text-muted-foreground hover:bg-muted"
+                      )}
+                      title="개선이 필요해요"
+                    >
+                      <ThumbsDown className="h-4 w-4" />
+                    </button>
+                    {feedbackGiven && (
+                      <span className="text-xs text-muted-foreground ml-1">
+                        {feedbackGiven === "up" ? "감사합니다!" : "피드백 감사합니다."}
+                      </span>
                     )}
                   </div>
+                </div>
+                {sqlOpen && lastAssistant.sql && (
+                  <pre className="overflow-x-auto rounded-lg bg-muted/80 p-3 text-[11px] leading-relaxed text-foreground border">
+                    {lastAssistant.sql}
+                  </pre>
                 )}
               </>
             )}
