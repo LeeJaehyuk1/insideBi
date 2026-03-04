@@ -85,7 +85,11 @@ export function AiChatMessage({ message, onFeedback }: AiChatMessageProps) {
         {/* Chart */}
         {message.data && message.data.length > 0 && message.chartType && (
           <div className="rounded-xl border bg-background p-3">
-            <AiChartResult data={message.data} chartType={message.chartType} />
+            <AiChartResult
+              data={message.data}
+              chartType={message.chartType}
+              question={message.question}
+            />
           </div>
         )}
 

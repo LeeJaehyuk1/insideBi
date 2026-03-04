@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
+  Home,
   CreditCard,
   TrendingUp,
   Droplets,
@@ -17,12 +17,12 @@ import {
   Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NAV_ITEMS } from "@/lib/constants";
+import { NAV_GROUPS } from "@/lib/constants";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRole, getRoleInfo } from "@/context/RoleContext";
 
 const iconMap = {
-  LayoutDashboard,
+  Home,
   CreditCard,
   TrendingUp,
   Droplets,
@@ -59,36 +59,50 @@ export function AppSidebar({ onAiOpen }: AppSidebarProps = {}) {
 
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
-        <nav className="space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const Icon = iconMap[item.icon as keyof typeof iconMap];
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-foreground font-medium"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="truncate">{item.title}</p>
-                  <p className="truncate text-xs opacity-60">{item.description}</p>
+        <nav className="space-y-4">
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={gi}>
+              {group.label && (
+                <div className="mb-1 px-3 flex items-center gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+                    {group.label}
+                  </span>
+                  <div className="flex-1 h-px bg-sidebar-border/50" />
                 </div>
-                {isActive && (
-                  <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                )}
-              </Link>
-            );
-          })}
+              )}
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const Icon = iconMap[item.icon as keyof typeof iconMap];
+                  const isActive =
+                    item.href === "/"
+                      ? pathname === "/"
+                      : pathname.startsWith(item.href);
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate">{item.title}</p>
+                        <p className="truncate text-xs opacity-60">{item.description}</p>
+                      </div>
+                      {isActive && (
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* AI 분석 버튼 (구분선 아래) */}

@@ -543,3 +543,221 @@ async def admin_delete_feedback(req: FeedbackDeleteRequest, _=Depends(require_ad
     records = [r for r in _read_feedback() if r["message_id"] != req.message_id]
     _write_feedback(records)
     return {"ok": True}
+
+
+# ════════════════════════════════════════════════════════════════
+#  브리핑 엔드포인트 (LLM 호출 없음 — 직접 SQL 조회)
+# ════════════════════════════════════════════════════════════════
+
+def _classify_npl(value: float) -> str:
+    if value >= 3.0: return "danger"
+    if value >= 2.0: return "warning"
+    if value >= 1.5: return "caution"
+    return "normal"
+
+def _classify_var_util(utilization: float) -> str:
+    if utilization >= 95: return "danger"
+    if utilization >= 80: return "warning"
+    if utilization >= 65: return "caution"
+    return "normal"
+
+def _classify_lcr(lcr: float) -> str:
+    if lcr < 100: return "danger"
+    if lcr < 110: return "warning"
+    if lcr < 120: return "caution"
+    return "normal"
+
+
+@app.get("/api/briefing")
+async def get_briefing():
+    """주요 KPI 직접 조회 → 요약 반환 (LLM 호출 없음)"""
+    items = []
+    try:
+        # ── NPL ──────────────────────────────────────────────
+        try:
+            df_npl = vn.run_sql(
+                "SELECT npl_ratio, npl_amount, total_loan FROM npl_summary LIMIT 1"
+            )
+            npl_ratio = float(df_npl.iloc[0]["npl_ratio"])
+            npl_amount = float(df_npl.iloc[0]["npl_amount"])
+            total_loan = float(df_npl.iloc[0]["total_loan"])
+            items.append({
+                "key": "npl",
+                "label": "신용리스크 (NPL)",
+                "value": f"{npl_ratio:.2f}%",
+                "subValue": f"NPL 잔액 {npl_amount:.0f}억원 / 총여신 {total_loan:.0f}억원",
+                "status": _classify_npl(npl_ratio),
+                "description": f"NPL 비율 {'정상 수준' if npl_ratio < 1.5 else '기준 초과 — 모니터링 필요'}",
+                "trend": "up" if npl_ratio >= 1.5 else "flat",
+            })
+        except Exception as e:
+            print(f"[briefing] NPL 조회 실패: {e}")
+            items.append({
+                "key": "npl", "label": "신용리스크 (NPL)",
+                "value": "N/A", "status": "caution",
+                "description": "데이터 조회 실패", "trend": "flat",
+            })
+
+        # ── VaR ──────────────────────────────────────────────
+        try:
+            df_var = vn.run_sql(
+                "SELECT current, limit_val, utilization FROM var_summary LIMIT 1"
+            )
+            current_var = float(df_var.iloc[0]["current"])
+            var_limit = float(df_var.iloc[0]["limit_val"])
+            utilization = float(df_var.iloc[0]["utilization"])
+            items.append({
+                "key": "var",
+                "label": "시장리스크 (VaR)",
+                "value": f"{current_var:.0f}억원",
+                "subValue": f"한도 {var_limit:.0f}억원 대비 {utilization:.1f}% 소진",
+                "status": _classify_var_util(utilization),
+                "description": f"VaR 한도 소진율 {utilization:.1f}% — {'여유' if utilization < 65 else '주의 필요'}",
+                "trend": "up" if utilization >= 65 else "flat",
+            })
+        except Exception as e:
+            print(f"[briefing] VaR 조회 실패: {e}")
+            items.append({
+                "key": "var", "label": "시장리스크 (VaR)",
+                "value": "N/A", "status": "caution",
+                "description": "데이터 조회 실패", "trend": "flat",
+            })
+
+        # ── LCR ──────────────────────────────────────────────
+        try:
+            df_lcr = vn.run_sql(
+                "SELECT lcr, nsfr FROM lcr_gauge LIMIT 1"
+            )
+            lcr = float(df_lcr.iloc[0]["lcr"])
+            nsfr = float(df_lcr.iloc[0]["nsfr"])
+            items.append({
+                "key": "lcr",
+                "label": "유동성리스크 (LCR)",
+                "value": f"{lcr:.1f}%",
+                "subValue": f"NSFR {nsfr:.1f}% / 규제 최저 100%",
+                "status": _classify_lcr(lcr),
+                "description": f"LCR {lcr:.1f}% — {'규제 준수' if lcr >= 100 else '규제 미달 위험'}",
+                "trend": "down" if lcr < 120 else "flat",
+            })
+        except Exception as e:
+            print(f"[briefing] LCR 조회 실패: {e}")
+            items.append({
+                "key": "lcr", "label": "유동성리스크 (LCR)",
+                "value": "N/A", "status": "caution",
+                "description": "데이터 조회 실패", "trend": "flat",
+            })
+
+        # ── NCR ──────────────────────────────────────────────
+        try:
+            df_ncr = vn.run_sql(
+                "SELECT current_ncr, ncr_limit, warning_level, target_level, change_from_last_month FROM ncr_summary LIMIT 1"
+            )
+            current_ncr = float(df_ncr.iloc[0]["current_ncr"])
+            ncr_limit = float(df_ncr.iloc[0]["ncr_limit"])
+            warning_level = float(df_ncr.iloc[0]["warning_level"])
+            target_level = float(df_ncr.iloc[0]["target_level"])
+            change = float(df_ncr.iloc[0]["change_from_last_month"])
+            # NCR은 높을수록 좋음: limit(150%) 미만 위험, warning(200%) 미만 경고, target(500%) 미만 주의
+            if current_ncr < ncr_limit:
+                ncr_status = "danger"
+            elif current_ncr < warning_level:
+                ncr_status = "warning"
+            elif current_ncr < target_level:
+                ncr_status = "caution"
+            else:
+                ncr_status = "normal"
+            items.append({
+                "key": "ncr",
+                "label": "NCR리스크 (순자본비율)",
+                "value": f"{current_ncr:.1f}%",
+                "subValue": f"규제 한도 {ncr_limit:.0f}% / 목표 {target_level:.0f}%",
+                "status": ncr_status,
+                "description": f"전월 대비 {'+' if change >= 0 else ''}{change:.1f}%p — {'양호' if current_ncr >= target_level else '목표 미달'}",
+                "trend": "up" if change > 0 else "down" if change < 0 else "flat",
+            })
+        except Exception as e:
+            print(f"[briefing] NCR 조회 실패: {e}")
+            items.append({
+                "key": "ncr", "label": "NCR리스크 (순자본비율)",
+                "value": "N/A", "status": "caution",
+                "description": "데이터 조회 실패", "trend": "flat",
+            })
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {"items": items}
+
+
+# ════════════════════════════════════════════════════════════════
+#  Smart Narrative 엔드포인트
+# ════════════════════════════════════════════════════════════════
+
+class NarrativeRequest(BaseModel):
+    question: str
+    data: list  # list of dicts
+
+
+@app.post("/api/narrative")
+async def generate_narrative(req: NarrativeRequest):
+    """데이터 → 1~2문장 한국어 설명 (LLM 또는 템플릿 fallback)"""
+    if not req.data:
+        return {"narrative": ""}
+
+    try:
+        df = pd.DataFrame(req.data)
+    except Exception:
+        return {"narrative": ""}
+
+    numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+    rows = len(df)
+
+    # ── 통계 계산 ─────────────────────────────────────────────
+    stats: dict = {"rows": rows}
+    for col in numeric_cols[:3]:
+        vals = df[col].dropna()
+        if len(vals) == 0:
+            continue
+        stats[col] = {
+            "min": float(vals.min()),
+            "max": float(vals.max()),
+            "mean": float(vals.mean()),
+            "last": float(vals.iloc[-1]),
+            "first": float(vals.iloc[0]),
+            "trend": "상승" if vals.iloc[-1] > vals.iloc[0] else "하락" if vals.iloc[-1] < vals.iloc[0] else "보합",
+        }
+
+    # ── LLM으로 설명 생성 시도 ─────────────────────────────────
+    try:
+        stats_summary = "; ".join([
+            f"{col}: 최솟값={v['min']:.2f}, 최댓값={v['max']:.2f}, 추세={v['trend']}"
+            for col, v in stats.items() if isinstance(v, dict)
+        ])
+        prompt = (
+            f"질문: {req.question}\n"
+            f"데이터 요약({rows}행): {stats_summary}\n"
+            "위 데이터를 한국어로 1~2문장으로 간결하게 설명해 주세요. "
+            "수치와 추세를 포함하고, 리스크 관리 관점에서 해석하세요."
+        )
+        # vn의 LLM을 직접 사용 (submit_prompt가 있으면)
+        if hasattr(vn, "submit_prompt"):
+            narrative = vn.submit_prompt(prompt)
+            # 너무 길면 첫 2문장만
+            sentences = [s.strip() for s in narrative.replace("\n", " ").split(".") if s.strip()]
+            narrative = ". ".join(sentences[:2]) + ("." if sentences else "")
+            return {"narrative": narrative}
+    except Exception as e:
+        print(f"[narrative] LLM 실패, 템플릿 사용: {e}")
+
+    # ── 템플릿 fallback ────────────────────────────────────────
+    parts = []
+    for col, v in stats.items():
+        if not isinstance(v, dict):
+            continue
+        parts.append(f"{col}은 {v['first']:.2f}에서 {v['last']:.2f}으로 {v['trend']} 추세입니다.")
+        if v["max"] != v["last"]:
+            parts.append(f"최댓값은 {v['max']:.2f}이었습니다.")
+        break  # 첫 번째 수치 컬럼만
+    if not parts:
+        parts = [f"총 {rows}개의 데이터가 조회되었습니다."]
+    return {"narrative": " ".join(parts[:2])}

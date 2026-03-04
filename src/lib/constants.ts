@@ -42,56 +42,81 @@ export const SEVERITY_COLORS = {
   },
 } as const;
 
-export const NAV_ITEMS = [
+export const NAV_GROUPS = [
   {
-    title: "종합 리스크 현황",
-    href: "/",
-    icon: "LayoutDashboard",
-    description: "KRI 종합 현황판",
+    label: null,
+    items: [
+      {
+        title: "Smart Home",
+        href: "/",
+        icon: "Home",
+        description: "AI 검색 + 인사이트 브리핑",
+      },
+    ],
   },
   {
-    title: "신용리스크",
-    href: "/credit-risk",
-    icon: "CreditCard",
-    description: "NPL / PD / LGD / EAD",
+    label: "리스크 관리",
+    items: [
+      {
+        title: "신용리스크",
+        href: "/credit-risk",
+        icon: "CreditCard",
+        description: "NPL / PD / LGD / EAD",
+      },
+      {
+        title: "시장리스크",
+        href: "/market-risk",
+        icon: "TrendingUp",
+        description: "VaR / 스트레스 테스트",
+      },
+      {
+        title: "유동성리스크",
+        href: "/liquidity-risk",
+        icon: "Droplets",
+        description: "LCR / NSFR / 만기갭",
+      },
+      {
+        title: "NCR리스크",
+        href: "/ncr-risk",
+        icon: "Target",
+        description: "순자본비율 및 기타 지표",
+      },
+    ],
   },
   {
-    title: "시장리스크",
-    href: "/market-risk",
-    icon: "TrendingUp",
-    description: "VaR / 스트레스 테스트",
+    label: "분석",
+    items: [
+      {
+        title: "워크스페이스",
+        href: "/builder",
+        icon: "LayoutTemplate",
+        description: "커스텀 대시보드 구성",
+      },
+      {
+        title: "보고서",
+        href: "/reports",
+        icon: "FileText",
+        description: "경영진 보고서",
+      },
+    ],
   },
   {
-    title: "유동성리스크",
-    href: "/liquidity-risk",
-    icon: "Droplets",
-    description: "LCR / NSFR / 만기갭",
-  },
-  {
-    title: "NCR리스크",
-    href: "/ncr-risk",
-    icon: "Target",
-    description: "순자본비율 및 기타 지표",
-  },
-  {
-    title: "보고서",
-    href: "/reports",
-    icon: "FileText",
-    description: "경영진 보고서",
-  },
-  {
-    title: "대시보드 빌더",
-    href: "/builder",
-    icon: "LayoutTemplate",
-    description: "커스텀 대시보드 구성",
-  },
-  {
-    title: "관리자",
-    href: "/admin",
-    icon: "Shield",
-    description: "AI 학습 데이터 관리",
+    label: "설정",
+    items: [
+      {
+        title: "AI 설정",
+        href: "/admin",
+        icon: "Shield",
+        description: "AI 학습 데이터 관리",
+      },
+    ],
   },
 ] as const;
+
+// backward-compat flat array (AppSidebar 외부에서 참조 시)
+export const NAV_ITEMS = NAV_GROUPS.flatMap(
+  (g) => [...g.items] as { title: string; href: string; icon: string; description: string }[]
+);
 
 export const CHART_COLORS = {
   primary: "#3b82f6",

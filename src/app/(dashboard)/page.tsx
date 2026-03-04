@@ -1,5 +1,5 @@
-import { HomeDashboard } from "@/components/dashboard/HomeDashboard";
+import { SmartHome } from "@/components/home/SmartHome";
 
 export default function DashboardPage() {
-  return <HomeDashboard />;
+  return <SmartHome />;
 }

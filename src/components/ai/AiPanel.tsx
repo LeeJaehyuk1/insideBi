@@ -13,27 +13,34 @@ import { AiSuggestions } from "./AiSuggestions";
 interface AiPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultQuestion?: string;
 }
 
-export function AiPanel({ open, onOpenChange }: AiPanelProps) {
+export function AiPanel({ open, onOpenChange, defaultQuestion }: AiPanelProps) {
   const { messages, ask, submitFeedback, clearHistory } = useAiChat();
   const [input, setInput] = React.useState("");
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const isLoading = messages.some((m) => m.status === "loading");
+  const askedRef = React.useRef<string | undefined>();
 
   // Scroll to bottom when new messages arrive
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Focus textarea when panel opens
+  // Focus textarea when panel opens; fire defaultQuestion once
   React.useEffect(() => {
     if (open) {
       setTimeout(() => textareaRef.current?.focus(), 100);
+      if (defaultQuestion && defaultQuestion !== askedRef.current) {
+        askedRef.current = defaultQuestion;
+        ask(defaultQuestion);
+      }
     }
-  }, [open]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultQuestion]);
 
   const handleSubmit = () => {
     const q = input.trim();
