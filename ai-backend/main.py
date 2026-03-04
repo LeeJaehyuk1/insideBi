@@ -292,6 +292,30 @@ async def _startup():
         print("[startup] Migration complete" if result.returncode == 0
               else f"[startup] Migration failed:\n{result.stderr}")
 
+    # ChromaDB가 비어있으면 자동 학습
+    try:
+        df = vn.get_training_data()
+        chroma_empty = df is None or len(df) == 0
+    except Exception:
+        chroma_empty = True
+
+    if chroma_empty:
+        print("[startup] ChromaDB 비어있음 — 자동 학습 시작...")
+        for script in ["train.py", "train_ncr.py"]:
+            script_path = os.path.join(os.path.dirname(__file__), script)
+            if not os.path.exists(script_path):
+                continue
+            result = subprocess.run(
+                [sys.executable, script_path],
+                capture_output=True, text=True,
+            )
+            if result.returncode == 0:
+                print(f"[startup] {script} 학습 완료")
+            else:
+                print(f"[startup] {script} 학습 실패:\n{result.stderr[:500]}")
+    else:
+        print(f"[startup] ChromaDB 학습 데이터 {len(df)}개 확인됨 (학습 스킵)")
+
     # ChromaDB에서 구형 NCR 테이블(ncr_summary, ncr_trend, risk_composition) 학습 데이터 자동 정리
     _OBSOLETE_TABLES = ["ncr_summary", "ncr_trend", "risk_composition"]
     try:

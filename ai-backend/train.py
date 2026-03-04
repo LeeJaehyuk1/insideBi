@@ -34,7 +34,11 @@ def train_documentation():
 
 
 def train_golden_sql():
-    json_path = os.path.join(TRAINING_DIR, "golden_sql.json")
+    filename = os.getenv("GOLDEN_SQL_FILE", "golden_sql.json")
+    json_path = os.path.join(TRAINING_DIR, filename)
+    if not os.path.exists(json_path):
+        json_path = os.path.join(TRAINING_DIR, "golden_sql.json")
+    print(f"  [SQL] 파일: {os.path.basename(json_path)}")
     with open(json_path, encoding="utf-8") as f:
         pairs = json.load(f)
     for pair in pairs:
