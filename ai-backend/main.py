@@ -24,6 +24,8 @@ from pydantic import BaseModel
 load_dotenv()
 
 # Vanna / SQLCoder 초기화
+import requests as _requests
+
 from vanna_setup import (
     vn,
     get_fallback_vn,
@@ -32,6 +34,10 @@ from vanna_setup import (
     SQLCODER_MODE,
     DB_PATH as VANNA_DB_PATH,
     DATABASE_URL,
+    GROQ_API_KEY,
+    GROQ_MODEL_FB,
+    OLLAMA_HOST,
+    FALLBACK_OLLAMA_MODEL,
 )
 
 app = FastAPI(title="InsightBi AI API", version="2.0.0")
@@ -733,16 +739,37 @@ async def generate_narrative(req: NarrativeRequest):
             f"{col}: 최솟값={v['min']:.2f}, 최댓값={v['max']:.2f}, 추세={v['trend']}"
             for col, v in stats.items() if isinstance(v, dict)
         ])
-        prompt = (
+        prompt_text = (
             f"질문: {req.question}\n"
             f"데이터 요약({rows}행): {stats_summary}\n"
             "위 데이터를 한국어로 1~2문장으로 간결하게 설명해 주세요. "
             "수치와 추세를 포함하고, 리스크 관리 관점에서 해석하세요."
         )
-        # vn의 LLM을 직접 사용 (submit_prompt가 있으면)
-        if hasattr(vn, "submit_prompt"):
-            narrative = vn.submit_prompt([{"role": "user", "content": prompt}])
-            # 너무 길면 첫 2문장만
+        messages = [{"role": "user", "content": prompt_text}]
+        narrative = None
+
+        # 1순위: Groq API 직접 호출 (프로덕션)
+        if GROQ_API_KEY:
+            from openai import OpenAI as _OpenAI
+            _client = _OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+            resp = _client.chat.completions.create(
+                model=GROQ_MODEL_FB,
+                messages=messages,
+                temperature=0.3,
+                max_tokens=150,
+            )
+            narrative = resp.choices[0].message.content
+        # 2순위: Ollama 직접 호출 (로컬)
+        elif OLLAMA_HOST:
+            resp = _requests.post(
+                f"{OLLAMA_HOST}/api/chat",
+                json={"model": FALLBACK_OLLAMA_MODEL, "messages": messages, "stream": False},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            narrative = resp.json()["message"]["content"]
+
+        if narrative:
             sentences = [s.strip() for s in narrative.replace("\n", " ").split(".") if s.strip()]
             narrative = ". ".join(sentences[:2]) + ("." if sentences else "")
             return {"narrative": narrative}
