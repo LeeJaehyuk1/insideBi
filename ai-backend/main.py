@@ -741,7 +741,7 @@ async def generate_narrative(req: NarrativeRequest):
         )
         # vn의 LLM을 직접 사용 (submit_prompt가 있으면)
         if hasattr(vn, "submit_prompt"):
-            narrative = vn.submit_prompt(prompt)
+            narrative = vn.submit_prompt([{"role": "user", "content": prompt}])
             # 너무 길면 첫 2문장만
             sentences = [s.strip() for s in narrative.replace("\n", " ").split(".") if s.strip()]
             narrative = ". ".join(sentences[:2]) + ("." if sentences else "")
