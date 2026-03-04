@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, RefreshCw, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -25,6 +25,7 @@ export function GoldenSQLTab({ password }: GoldenSQLTabProps) {
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [error, setError] = React.useState("");
   const [successMsg, setSuccessMsg] = React.useState("");
+  const [retraining, setRetraining] = React.useState(false);
 
   const headers = { "x-admin-password": password };
 
@@ -72,6 +73,27 @@ export function GoldenSQLTab({ password }: GoldenSQLTabProps) {
       setError(e instanceof Error ? e.message : "추가 실패");
     } finally {
       setAdding(false);
+    }
+  };
+
+  const handleRetrainAll = async () => {
+    if (!confirm("ChromaDB를 전체 재학습합니다. 시간이 걸릴 수 있습니다. 진행하시겠습니까?")) return;
+    setRetraining(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/retrain-all", {
+        method: "POST",
+        headers,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail);
+      setSuccessMsg("전체 재학습 완료! 목록을 새로고침합니다.");
+      setTimeout(() => setSuccessMsg(""), 4000);
+      fetchItems();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "재학습 실패");
+    } finally {
+      setRetraining(false);
     }
   };
 
@@ -125,10 +147,22 @@ export function GoldenSQLTab({ password }: GoldenSQLTabProps) {
           <p className="text-sm text-muted-foreground">
             총 {items.length}개 Q-SQL 쌍
           </p>
-          <Button variant="ghost" size="sm" onClick={fetchItems} disabled={loading}>
-            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
-            새로고침
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetrainAll}
+              disabled={retraining}
+              className="text-orange-600 border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950"
+            >
+              <RotateCcw className={`h-3.5 w-3.5 mr-1 ${retraining ? "animate-spin" : ""}`} />
+              {retraining ? "재학습 중..." : "전체 재학습"}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={fetchItems} disabled={loading}>
+              <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
+              새로고침
+            </Button>
+          </div>
         </div>
 
         {items.length === 0 && !loading && (

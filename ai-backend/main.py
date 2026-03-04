@@ -474,6 +474,30 @@ async def admin_delete_training(req: DeleteTrainingRequest, _=Depends(require_ad
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/admin/training/retrain-all")
+async def admin_retrain_all(_=Depends(require_admin)):
+    """ChromaDB 전체 재학습 (train.py + train_ncr.py)"""
+    import sys
+    import subprocess
+    results = []
+    for script in ["train.py", "train_ncr.py"]:
+        script_path = os.path.join(os.path.dirname(__file__), script)
+        if not os.path.exists(script_path):
+            results.append({"script": script, "status": "skipped"})
+            continue
+        result = subprocess.run(
+            [sys.executable, script_path],
+            capture_output=True, text=True,
+        )
+        results.append({
+            "script": script,
+            "status": "ok" if result.returncode == 0 else "error",
+            "output": result.stdout[-1000:] if result.stdout else "",
+            "error": result.stderr[-500:] if result.stderr and result.returncode != 0 else "",
+        })
+    return {"ok": True, "results": results}
+
+
 @app.post("/admin/training/ddl-sync")
 async def admin_ddl_sync(_=Depends(require_admin)):
     ddl_path = os.path.join(os.path.dirname(__file__), "training/ddl.sql")
