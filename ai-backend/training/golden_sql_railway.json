@@ -57,7 +57,7 @@
   },
   {
     "question": "만기갭 분석 - 각 구간별 자산 부채 차이",
-    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap ORDER BY rowid"
+    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap"
   },
   {
     "question": "단기 유동성 위험 구간 (갭이 음수인 만기 구간)",
@@ -110,14 +110,6 @@
   {
     "question": "현재 NCR 수치",
     "sql": "SELECT item_lclas_nm, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY item_lclas_cd, item_lclas_nm ORDER BY total_val DESC"
-  },
-  {
-    "question": "위험액 구성 비율",
-    "sql": "SELECT '시장위험액' AS name, SUM(COALESCE(st_specific_risk_amt,0)+COALESCE(st_gen_risk_amt,0)+COALESCE(ir_specific_risk_amt,0)+COALESCE(ir_gen_risk_amt,0)+COALESCE(fx_curr_risk_amt,0)+COALESCE(fx_gold_risk_amt,0)) AS value FROM td_irriskmr WHERE ncr_stress_no = 0 UNION ALL SELECT '신용위험액', SUM(crdt_risk_amt) FROM td_irriskcr WHERE ncr_stress_no = 0"
-  },
-  {
-    "question": "NCR 시장위험액 신용위험액 운영위험액",
-    "sql": "SELECT '시장위험액' AS risk_type, SUM(COALESCE(st_specific_risk_amt,0)+COALESCE(st_gen_risk_amt,0)+COALESCE(ir_specific_risk_amt,0)+COALESCE(ir_gen_risk_amt,0)+COALESCE(fx_curr_risk_amt,0)+COALESCE(fx_gold_risk_amt,0)) AS risk_amt FROM td_irriskmr WHERE ncr_stress_no = 0 UNION ALL SELECT '신용위험액', SUM(crdt_risk_amt) FROM td_irriskcr WHERE ncr_stress_no = 0"
   },
   {
     "question": "고정이하여신 회의여신 추정손실 비율 추이",
@@ -244,26 +236,6 @@
     "sql": "SELECT stability, SUM(amount) as total_amount, SUM(pct) as total_pct FROM funding_structure GROUP BY stability ORDER BY total_amount DESC"
   },
   {
-    "question": "거래상대방별 신용위험액 상위 10개",
-    "sql": "SELECT cpty_name, SUM(crdt_risk_amt) AS total_crdt_risk FROM td_irriskcr WHERE ncr_stress_no = 0 AND crdt_risk_amt IS NOT NULL GROUP BY cpty_name ORDER BY total_crdt_risk DESC LIMIT 10"
-  },
-  {
-    "question": "신용등급별 신용위험액",
-    "sql": "SELECT ncr_grad_cd_nm, SUM(crdt_chng_amt) AS total_chng, SUM(crdt_risk_amt) AS total_risk FROM td_irriskcr WHERE ncr_stress_no = 0 AND crdt_risk_amt IS NOT NULL AND ncr_grad_cd_nm IS NOT NULL GROUP BY ncr_grad_cd_nm ORDER BY total_risk DESC"
-  },
-  {
-    "question": "신용경감 전후 위험액 비교",
-    "sql": "SELECT SUM(crdt_risk_amt) AS risk_before, SUM(crdt_mtgt_risk_amt) AS risk_after, SUM(crdt_risk_amt) - SUM(crdt_mtgt_risk_amt) AS reduction FROM td_irriskcr WHERE ncr_stress_no = 0 AND crdt_risk_amt IS NOT NULL"
-  },
-  {
-    "question": "기준일자별 신용위험액 추이",
-    "sql": "SELECT std_date, SUM(crdt_risk_amt) AS total_crdt_risk FROM td_irriskcr WHERE ncr_stress_no = 0 AND crdt_risk_amt IS NOT NULL GROUP BY std_date ORDER BY std_date"
-  },
-  {
-    "question": "CCF 그룹별 신용환산액 합계",
-    "sql": "SELECT ccf_grp_nm, SUM(crdt_chng_amt) AS total_chng FROM td_irriskcr WHERE ncr_stress_no = 0 AND crdt_chng_amt IS NOT NULL AND ccf_grp_nm IS NOT NULL GROUP BY ccf_grp_nm ORDER BY total_chng DESC"
-  },
-  {
     "question": "NCR 항목 대분류별 산출값 합계",
     "sql": "SELECT item_lclas_nm, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY item_lclas_cd, item_lclas_nm ORDER BY total_val DESC"
   },
@@ -282,42 +254,6 @@
   {
     "question": "NCR 항목 중분류별 산출값",
     "sql": "SELECT item_lclas_nm, item_mclas_nm, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY item_lclas_cd, item_lclas_nm, item_mclas_cd, item_mclas_nm ORDER BY item_lclas_cd, total_val DESC"
-  },
-  {
-    "question": "시장금액 상위 10개 포지션 종목",
-    "sql": "SELECT item_name, market_amt, book_amt, eval_pl_amt FROM td_irpos ORDER BY ABS(market_amt) DESC LIMIT 10"
-  },
-  {
-    "question": "NCR 업무영역별 포지션금액 합계",
-    "sql": "SELECT biz_area_nm, SUM(posi_amt) AS total_posi FROM td_irpos WHERE biz_area_nm IS NOT NULL GROUP BY biz_area_cd, biz_area_nm ORDER BY total_posi DESC"
-  },
-  {
-    "question": "파생상품 델타포지션 금액 상위 종목",
-    "sql": "SELECT item_name, delta_posi_amt, gamma_posi_amt, vega_posi_amt FROM td_irpos WHERE delta_posi_amt IS NOT NULL ORDER BY ABS(delta_posi_amt) DESC LIMIT 10"
-  },
-  {
-    "question": "금리위험 해당 포지션의 시장금액 합계",
-    "sql": "SELECT SUM(market_amt) AS ir_risk_market_amt FROM td_irpos WHERE ir_risk_yn = 'Y'"
-  },
-  {
-    "question": "시장위험 유형별 위험액 합계",
-    "sql": "SELECT SUM(COALESCE(st_specific_risk_amt,0) + COALESCE(st_gen_risk_amt,0)) AS stock_risk, SUM(COALESCE(ir_specific_risk_amt,0) + COALESCE(ir_gen_risk_amt,0)) AS ir_risk, SUM(COALESCE(fx_curr_risk_amt,0) + COALESCE(fx_gold_risk_amt,0)) AS fx_risk FROM td_irriskmr WHERE ncr_stress_no = 0"
-  },
-  {
-    "question": "기준일자별 시장위험액 추이",
-    "sql": "SELECT std_date, SUM(COALESCE(st_specific_risk_amt,0) + COALESCE(st_gen_risk_amt,0)) AS stock_risk, SUM(COALESCE(ir_specific_risk_amt,0) + COALESCE(ir_gen_risk_amt,0)) AS ir_risk, SUM(COALESCE(fx_curr_risk_amt,0) + COALESCE(fx_gold_risk_amt,0)) AS fx_risk FROM td_irriskmr WHERE ncr_stress_no = 0 GROUP BY std_date ORDER BY std_date"
-  },
-  {
-    "question": "옵션 감마 베가 위험액 합계",
-    "sql": "SELECT SUM(COALESCE(opt_gamma_risk_amt,0)) AS gamma_risk, SUM(COALESCE(opt_vega_risk_amt,0)) AS vega_risk FROM td_irriskmr WHERE ncr_stress_no = 0"
-  },
-  {
-    "question": "NCR 금리그룹별 금리일반위험액",
-    "sql": "SELECT ncr_ir_grp_nm, SUM(ir_gen_risk_amt) AS total_ir_gen_risk FROM td_irriskmr WHERE ncr_stress_no = 0 AND ir_gen_risk_amt IS NOT NULL AND ncr_ir_grp_nm IS NOT NULL GROUP BY ncr_ir_grp_nm ORDER BY total_ir_gen_risk DESC"
-  },
-  {
-    "question": "주식 개별위험 일반위험액 상위 포지션",
-    "sql": "SELECT item_name, st_specific_risk_amt, st_gen_risk_amt FROM td_irriskmr WHERE ncr_stress_no = 0 AND (st_specific_risk_amt IS NOT NULL OR st_gen_risk_amt IS NOT NULL) ORDER BY COALESCE(st_specific_risk_amt,0) DESC LIMIT 10"
   },
   {
     "question": "NPL 얼마야",
@@ -488,22 +424,6 @@
     "sql": "SELECT std_date, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY std_date ORDER BY std_date"
   },
   {
-    "question": "위험액 현황",
-    "sql": "SELECT '시장위험액' AS name, SUM(COALESCE(st_specific_risk_amt,0)+COALESCE(st_gen_risk_amt,0)+COALESCE(ir_specific_risk_amt,0)+COALESCE(ir_gen_risk_amt,0)+COALESCE(fx_curr_risk_amt,0)+COALESCE(fx_gold_risk_amt,0)) AS value FROM td_irriskmr WHERE ncr_stress_no = 0 UNION ALL SELECT '신용위험액', SUM(crdt_risk_amt) FROM td_irriskcr WHERE ncr_stress_no = 0"
-  },
-  {
-    "question": "위험액 구성",
-    "sql": "SELECT '시장위험액' AS name, SUM(COALESCE(st_specific_risk_amt,0)+COALESCE(st_gen_risk_amt,0)+COALESCE(ir_specific_risk_amt,0)+COALESCE(ir_gen_risk_amt,0)+COALESCE(fx_curr_risk_amt,0)+COALESCE(fx_gold_risk_amt,0)) AS value FROM td_irriskmr WHERE ncr_stress_no = 0 UNION ALL SELECT '신용위험액', SUM(crdt_risk_amt) FROM td_irriskcr WHERE ncr_stress_no = 0"
-  },
-  {
-    "question": "시장위험액 얼마야",
-    "sql": "SELECT SUM(COALESCE(st_specific_risk_amt,0)+COALESCE(st_gen_risk_amt,0)+COALESCE(ir_specific_risk_amt,0)+COALESCE(ir_gen_risk_amt,0)+COALESCE(fx_curr_risk_amt,0)+COALESCE(fx_gold_risk_amt,0)) AS total_market_risk FROM td_irriskmr WHERE ncr_stress_no = 0"
-  },
-  {
-    "question": "신용위험액 얼마야",
-    "sql": "SELECT SUM(crdt_risk_amt) AS total_credit_risk FROM td_irriskcr WHERE ncr_stress_no = 0 AND crdt_risk_amt IS NOT NULL"
-  },
-  {
     "question": "운영위험액 얼마야",
     "sql": "SELECT SUM(prod_val) AS operational_risk FROM td_irncr WHERE ncr_stress_no = 0 AND item_lclas_nm LIKE '%운영%'"
   },
@@ -573,15 +493,15 @@
   },
   {
     "question": "만기갭",
-    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap ORDER BY rowid"
+    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap"
   },
   {
     "question": "만기갭 현황",
-    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap ORDER BY rowid"
+    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap"
   },
   {
     "question": "자산 부채 만기 분석",
-    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap ORDER BY rowid"
+    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap"
   },
   {
     "question": "유동성 버퍼",

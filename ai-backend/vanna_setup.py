@@ -77,9 +77,10 @@ CREATE TABLE maturity_gap(bucket TEXT,assets REAL,liabilities REAL,gap REAL);
 CREATE TABLE liquidity_buffer(date TEXT,available REAL,required REAL,stress REAL);
 CREATE TABLE funding_structure(source TEXT,amount REAL,pct REAL,stability TEXT);
 CREATE TABLE lcr_gauge(lcr REAL,nsfr REAL,hqla REAL,net_outflow REAL,level1 REAL,level2a REAL,level2b REAL,lcr_threshold REAL,nsfr_threshold REAL);
-CREATE TABLE ncr_trend(month TEXT,ncr REAL,ncr_limit REAL);
-CREATE TABLE ncr_summary(current_ncr REAL,ncr_limit REAL,net_operating_capital REAL,total_risk REAL,market_risk REAL,credit_risk REAL,operational_risk REAL,warning_level REAL,target_level REAL,change_from_last_month REAL);
-CREATE TABLE risk_composition(name TEXT,value REAL,percentage REAL);"""
+CREATE TABLE td_irncr(std_date CHAR(8),org_code VARCHAR(6),con_sep_clcd VARCHAR(1),ncr_stress_no NUMERIC,port_no NUMERIC,obj_dtl_cd VARCHAR(100),item_lclas_cd VARCHAR(2),item_lclas_nm VARCHAR(100),item_mclas_cd VARCHAR(2),item_mclas_nm VARCHAR(100),item_sclas_cd VARCHAR(2),item_sclas_nm VARCHAR(100),item_dtl_cd VARCHAR(2),item_dtl_nm VARCHAR(100),prod_val NUMERIC);
+CREATE TABLE td_irpos(std_date CHAR(8),org_code VARCHAR(6),con_sep_clcd VARCHAR(1),bo_item_code VARCHAR(100),biz_area_cd VARCHAR(4),biz_area_nm VARCHAR(100),item_code VARCHAR(100),item_name VARCHAR(200),fund_code VARCHAR(80),fund_name VARCHAR(100),cpty_code VARCHAR(50),cpty_name VARCHAR(500),market_amt NUMERIC,book_amt NUMERIC,notional_amt NUMERIC,eval_pl_amt NUMERIC,posi_amt NUMERIC,delta_posi_amt NUMERIC,gamma_posi_amt NUMERIC,vega_posi_amt NUMERIC,ir_risk_yn VARCHAR(1),fx_risk_yn VARCHAR(1),st_risk_yn VARCHAR(1),ncr_st_gbn VARCHAR(2),ncr_st_gbn_nm VARCHAR(100),ncr_bond_gbn VARCHAR(1),ncr_bond_gbn_nm VARCHAR(100),proc_risk_type VARCHAR(100));
+CREATE TABLE td_irriskcr(std_date CHAR(8),org_code VARCHAR(6),con_sep_clcd VARCHAR(1),port_no NUMERIC,ncr_stress_no NUMERIC,bo_item_code VARCHAR(100),cpty_code VARCHAR(50),cpty_name VARCHAR(500),ncr_grad_cd VARCHAR(10),ncr_grad_cd_nm VARCHAR(10),crdt_chng_amt NUMERIC,crdt_risk_val NUMERIC,crdt_risk_amt NUMERIC,crdt_mtgt_amt NUMERIC,crdt_mtgt_risk_amt NUMERIC,ccf_grp VARCHAR(10),ccf_grp_nm VARCHAR(100),ccf_rate NUMERIC,coll_allo_amt NUMERIC,grnt_amt NUMERIC);
+CREATE TABLE td_irriskmr(std_date CHAR(8),org_code VARCHAR(6),con_sep_clcd VARCHAR(1),port_no NUMERIC,ncr_stress_no NUMERIC,bo_item_code VARCHAR(100),item_code VARCHAR(100),item_name VARCHAR(200),cpty_code VARCHAR(50),cpty_name VARCHAR(500),ncr_grad_cd VARCHAR(10),ncr_grad_cd_nm VARCHAR(10),posi_amt NUMERIC,std_amt NUMERIC,st_specific_risk_val NUMERIC,st_specific_risk_amt NUMERIC,st_gen_risk_val NUMERIC,st_gen_risk_amt NUMERIC,ir_specific_risk_val NUMERIC,ir_specific_risk_amt NUMERIC,ir_gen_risk_val NUMERIC,ir_gen_risk_amt NUMERIC,fx_curr_risk_val NUMERIC,fx_curr_risk_amt NUMERIC,fx_gold_risk_amt NUMERIC,opt_gamma_risk_amt NUMERIC,opt_vega_risk_amt NUMERIC,ncr_ir_grp_gbn VARCHAR(1),ncr_ir_grp_nm VARCHAR(100),proc_risk_type VARCHAR(100));"""
 
 # ── SQLCoder 전용 시스템 프롬프트 ───────────────────────────────
 # Defog 공식 권장 포맷 기반 (Ollama sqlcoder:7b 및 Groq Llama 모두 호환)
@@ -103,16 +104,42 @@ _SQLCODER_SCHEMA = f"""
 ### Database Schema ({_DB_DIALECT}):
 {_COMPACT_DDL}"""
 
-# 범용 fallback 시스템 프롬프트 (간결 버전)
+# 범용 fallback 시스템 프롬프트 — 소형 모델(1~3B) 친화적 간결 버전
 _FALLBACK_SYSTEM = f"""\
-You are a {_DB_DIALECT} expert. Output ONLY valid {_DB_DIALECT} SELECT SQL, no explanation.
-Tables:
-{_COMPACT_DDL}
-Rules:
-- ORDER BY month/date for trends
-- LIMIT N for TOP-N queries; ORDER BY col DESC LIMIT 1 for latest value
-- Scalar tables (npl_summary, pd_lgd_ead, var_summary, lcr_gauge) have exactly 1 row
-- amount unit: 억원 (KRW 100M)"""
+You are a {_DB_DIALECT} SQL assistant.
+CRITICAL RULES:
+1. Output ONLY a single SELECT statement — nothing else.
+2. Do NOT output CREATE, DROP, INSERT, UPDATE, or any DDL.
+3. Do NOT add explanations or markdown.
+
+Available tables (columns):
+npl_trend(month,npl,substandard,doubtful,loss)
+credit_grades(grade,amount,count,pct)
+sector_exposure(sector,amount,pct,pd)
+concentration(name,x,y,z)
+npl_summary(total_loan,npl_amount,npl_ratio,substandard,doubtful,loss,provision_amount,provision_ratio,net_npl)
+pd_lgd_ead(pd,lgd,ead,expected_loss,unexpected_loss,rwa)
+var_trend(date,var,pnl,var_limit)
+stress_scenarios(name,credit_loss,market_loss,liquidity_loss,total,bis_after)
+sensitivity(factor,value,full_mark)
+var_summary(current,limit_val,utilization,avg_last20,max_last20,breach_count30d,delta,gamma,vega,rho)
+lcr_nsfr_trend(month,lcr,nsfr,hqla,outflow)
+maturity_gap(bucket,assets,liabilities,gap)
+liquidity_buffer(date,available,required,stress)
+funding_structure(source,amount,pct,stability)
+lcr_gauge(lcr,nsfr,hqla,net_outflow,level1,level2a,level2b,lcr_threshold,nsfr_threshold)
+td_irncr(std_date,org_code,con_sep_clcd,ncr_stress_no,port_no,obj_dtl_cd,item_lclas_cd,item_lclas_nm,item_mclas_cd,item_mclas_nm,item_sclas_cd,item_sclas_nm,item_dtl_cd,item_dtl_nm,prod_val)
+td_irpos(std_date,org_code,con_sep_clcd,bo_item_code,biz_area_cd,biz_area_nm,item_code,item_name,fund_code,fund_name,cpty_code,cpty_name,market_amt,book_amt,notional_amt,eval_pl_amt,posi_amt,delta_posi_amt,gamma_posi_amt,vega_posi_amt,ir_risk_yn,fx_risk_yn,st_risk_yn,ncr_st_gbn,ncr_st_gbn_nm,ncr_bond_gbn,ncr_bond_gbn_nm,proc_risk_type)
+td_irriskcr(std_date,org_code,con_sep_clcd,port_no,ncr_stress_no,bo_item_code,cpty_code,cpty_name,ncr_grad_cd,ncr_grad_cd_nm,crdt_chng_amt,crdt_risk_val,crdt_risk_amt,crdt_mtgt_amt,crdt_mtgt_risk_amt,ccf_grp,ccf_grp_nm,ccf_rate,coll_allo_amt,grnt_amt)
+td_irriskmr(std_date,org_code,con_sep_clcd,port_no,ncr_stress_no,bo_item_code,item_code,item_name,cpty_code,cpty_name,ncr_grad_cd,ncr_grad_cd_nm,posi_amt,std_amt,st_specific_risk_val,st_specific_risk_amt,st_gen_risk_val,st_gen_risk_amt,ir_specific_risk_val,ir_specific_risk_amt,ir_gen_risk_val,ir_gen_risk_amt,fx_curr_risk_val,fx_curr_risk_amt,fx_gold_risk_amt,opt_gamma_risk_amt,opt_vega_risk_amt,ncr_ir_grp_gbn,ncr_ir_grp_nm,proc_risk_type)
+
+SQL hints:
+- Trend queries: ORDER BY month/date ASC
+- Top-N: ORDER BY col DESC LIMIT N
+- Latest value: ORDER BY col DESC LIMIT 1
+- Scalar tables (npl_summary,pd_lgd_ead,var_summary,lcr_gauge): 1 row only
+- NCR queries: use td_irncr(prod_val), td_irriskcr(crdt_risk_amt), td_irriskmr(risk amt cols)
+- amount unit: 억원"""
 
 
 # ── SQL 후처리 ───────────────────────────────────────────────────

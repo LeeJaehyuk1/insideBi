@@ -69,18 +69,23 @@ SUGGESTIONS = [
 
 # ── SQL 캐시 ──────────────────────────────────────────────────────
 _sql_cache: dict[str, str] = {}
-CACHE_THRESHOLD = 0.78
+CACHE_THRESHOLD = 0.62
 
 
 def _load_golden_sql():
-    path = os.path.join(os.path.dirname(__file__), "training/golden_sql.json")
+    base = os.path.dirname(__file__)
+    # GOLDEN_SQL_FILE 환경변수로 명시 가능 (Railway: golden_sql_railway.json)
+    filename = os.getenv("GOLDEN_SQL_FILE", "golden_sql.json")
+    path = os.path.join(base, "training", filename)
+    if not os.path.exists(path):
+        path = os.path.join(base, "training/golden_sql.json")
     if not os.path.exists(path):
         return
     with open(path, encoding="utf-8") as f:
         pairs = json.load(f)
     for pair in pairs:
         _sql_cache[pair["question"]] = pair["sql"]
-    print(f"[cache] Golden SQL {len(pairs)}개 로드 완료")
+    print(f"[cache] Golden SQL {len(pairs)}개 로드 완료 ({os.path.basename(path)})")
 
 
 _load_golden_sql()
@@ -286,6 +291,25 @@ async def _startup():
         )
         print("[startup] Migration complete" if result.returncode == 0
               else f"[startup] Migration failed:\n{result.stderr}")
+
+    # ChromaDB에서 구형 NCR 테이블(ncr_summary, ncr_trend, risk_composition) 학습 데이터 자동 정리
+    _OBSOLETE_TABLES = ["ncr_summary", "ncr_trend", "risk_composition"]
+    try:
+        df = vn.get_training_data()
+        if df is not None and len(df) > 0:
+            pattern = "|".join(_OBSOLETE_TABLES)
+            old = df[df["content"].str.contains(pattern, case=False, na=False)]
+            if len(old) > 0:
+                for id_ in old["id"].tolist():
+                    try:
+                        vn.remove_training_data(id=id_)
+                    except Exception:
+                        pass
+                print(f"[startup] ChromaDB 구형 NCR 항목 {len(old)}개 제거 완료")
+            else:
+                print("[startup] ChromaDB 구형 NCR 항목 없음 (정리 불필요)")
+    except Exception as e:
+        print(f"[startup] ChromaDB 정리 실패(무시): {e}")
 
 
 # ── 피드백 I/O ────────────────────────────────────────────────────
