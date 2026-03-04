@@ -75,7 +75,7 @@ SUGGESTIONS = [
 
 # ── SQL 캐시 ──────────────────────────────────────────────────────
 _sql_cache: dict[str, str] = {}
-CACHE_THRESHOLD = 0.62
+CACHE_THRESHOLD = 0.92  # 거의 동일한 질문만 캐시 사용 (LLM SQL 생성 우선)
 
 
 def _load_golden_sql():
@@ -774,7 +774,9 @@ async def generate_narrative(req: NarrativeRequest):
             narrative = ". ".join(sentences[:2]) + ("." if sentences else "")
             return {"narrative": narrative}
     except Exception as e:
+        import traceback
         print(f"[narrative] LLM 실패, 템플릿 사용: {e}")
+        print(traceback.format_exc())
 
     # ── 템플릿 fallback ────────────────────────────────────────
     parts = []
