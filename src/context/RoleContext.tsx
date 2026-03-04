@@ -62,7 +62,7 @@ const RoleContext = React.createContext<RoleContextValue>({
     setRole: () => { },
 });
 
-const STORAGE_KEY = "insideBi_role_v1";
+const STORAGE_KEY = "InsightBi_role_v1";
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
     const [role, setRoleState] = React.useState<Role>("viewer");

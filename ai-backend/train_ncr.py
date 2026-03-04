@@ -48,7 +48,7 @@ def train_ddl():
 
 # ── 2. 비즈니스 문서 학습 ─────────────────────────────────────
 DOCUMENTATION = """
-## NCR(순자본비율) 관련 테이블 — insideBi 리스크관리 시스템
+## NCR(순자본비율) 관련 테이블 — InsightBi 리스크관리 시스템
 
 NCR(Net Capital Ratio, 순자본비율)은 금융투자업자의 자본 건전성 규제 지표입니다.
 4개 테이블 모두 공통 키 컬럼: std_date(기준일자 YYYYMMDD), org_code(사무소코드),

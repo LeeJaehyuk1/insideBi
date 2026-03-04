@@ -3,7 +3,7 @@
 import * as React from "react";
 import { WidgetConfig, SavedDashboard } from "@/types/builder";
 
-const STORAGE_KEY = "insidebi_dashboard_v1";
+const STORAGE_KEY = "insightbi_dashboard_v1";
 
 interface PersistedState {
     widgets: WidgetConfig[];

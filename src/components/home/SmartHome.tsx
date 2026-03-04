@@ -45,7 +45,7 @@ export function SmartHome() {
               <Bot className="h-7 w-7 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">안녕하세요, insideBi AI입니다</h1>
+              <h1 className="text-2xl font-bold text-foreground">안녕하세요, InsightBi AI입니다</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 금융 리스크 데이터에 대해 자연어로 질문하세요
               </p>

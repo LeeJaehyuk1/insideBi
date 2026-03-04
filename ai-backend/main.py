@@ -34,7 +34,7 @@ from vanna_setup import (
     DATABASE_URL,
 )
 
-app = FastAPI(title="insideBi AI API", version="2.0.0")
+app = FastAPI(title="InsightBi AI API", version="2.0.0")
 
 _extra_origins = [o.strip() for o in os.getenv("FRONTEND_URL", "").split(",") if o.strip()]
 _allowed_origins = ["http://localhost:3000"] + _extra_origins

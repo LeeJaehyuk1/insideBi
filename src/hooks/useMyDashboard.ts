@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { SavedDashboard } from "@/types/builder";
 
-const MY_KEY = "insidebi_my_dashboard";
+const MY_KEY = "insightbi_my_dashboard";
 
 export function useMyDashboard() {
   const [myDashboard, setMyDashboardState] = useState<SavedDashboard | null>(null);

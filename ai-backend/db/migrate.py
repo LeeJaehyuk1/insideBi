@@ -1,5 +1,5 @@
 """
-migrate.py – mock-data 값을 PostgreSQL insidebi DB 로 마이그레이션
+migrate.py – mock-data 값을 PostgreSQL insightbi DB 로 마이그레이션
 실행: python db/migrate.py
 """
 import psycopg2

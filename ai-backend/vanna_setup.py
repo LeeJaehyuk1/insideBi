@@ -34,7 +34,7 @@ load_dotenv()
 LLM_PROVIDER   = os.getenv("LLM_PROVIDER", "ollama")   # sqlcoder | groq | openai | ollama
 SQLCODER_MODE  = os.getenv("SQLCODER_MODE", "ollama")  # ollama | groq
 CHROMA_PATH    = os.getenv("CHROMA_PATH", "./chroma_db")
-DB_PATH        = os.getenv("DB_PATH", "./db/insidebi.db")
+DB_PATH        = os.getenv("DB_PATH", "./db/insightbi.db")
 DATABASE_URL   = os.getenv("DATABASE_URL", "")         # PostgreSQL (Railway 등 프로덕션)
 
 # SQLCoder via Ollama

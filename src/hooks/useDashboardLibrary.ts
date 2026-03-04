@@ -3,7 +3,7 @@
 import * as React from "react";
 import { SavedDashboard } from "@/types/builder";
 
-const LIB_KEY = "insidebi_dashboards_v1";
+const LIB_KEY = "insightbi_dashboards_v1";
 
 export function useDashboardLibrary() {
   const [library, setLibrary] = React.useState<SavedDashboard[]>([]);

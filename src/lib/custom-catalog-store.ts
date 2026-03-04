@@ -14,7 +14,7 @@ export interface CustomDatasetEntry {
     createdAt: string;
 }
 
-const STORAGE_KEY = "insideBi_custom_catalog_v1";
+const STORAGE_KEY = "InsightBi_custom_catalog_v1";
 
 /** localStorage에서 커스텀 카탈로그 목록 읽기 */
 export function loadCustomCatalog(): CustomDatasetEntry[] {

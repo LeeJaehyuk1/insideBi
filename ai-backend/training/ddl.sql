@@ -1,4 +1,4 @@
--- insideBi SQLite 스키마
+-- InsightBi SQLite 스키마
 -- 모든 amount 단위: 억원 (KRW 100 million)
 
 -- NPL 추이 (월별 부실여신 비율)
