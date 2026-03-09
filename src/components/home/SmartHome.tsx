@@ -8,6 +8,7 @@ import { AiChartResult } from "@/components/ai/AiChartResult";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAiChat } from "@/hooks/useAiChat";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 export function SmartHome() {
   const { messages, ask, submitFeedback, clearHistory } = useAiChat();
@@ -222,7 +223,7 @@ export function SmartHome() {
           <div className="flex items-center gap-3">
             <h2 className="text-base font-semibold text-foreground">오늘의 주요 인사이트</h2>
             <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">기준일 2026-02-26</span>
+            <span className="text-xs text-muted-foreground">기준일 {format(new Date(), "yyyy-MM-dd")}</span>
           </div>
           <InsightBriefing onSearch={handleSearch} />
         </div>

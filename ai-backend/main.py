@@ -17,7 +17,7 @@ from typing import Optional
 
 import pandas as pd
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException, Header, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -342,6 +342,27 @@ async def _startup():
         print(f"[startup] ChromaDB 정리 실패(무시): {e}")
 
 
+# ── 대시보드 I/O ──────────────────────────────────────────────────
+
+DASHBOARDS_FILE = os.path.join(os.path.dirname(__file__), "dashboards.json")
+MY_DASHBOARD_FILE = os.path.join(os.path.dirname(__file__), "my_dashboard.json")
+
+
+def _read_dashboards() -> list:
+    if not os.path.exists(DASHBOARDS_FILE):
+        return []
+    with open(DASHBOARDS_FILE, encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return []
+
+
+def _write_dashboards(records: list):
+    with open(DASHBOARDS_FILE, "w", encoding="utf-8") as f:
+        json.dump(records, f, ensure_ascii=False, indent=2)
+
+
 # ── 피드백 I/O ────────────────────────────────────────────────────
 
 def _read_feedback() -> list:
@@ -409,6 +430,58 @@ async def ask(req: AskRequest):
         "from_cache": from_cache,
         "backend": backend,   # 어느 LLM이 응답했는지 디버깅용
     }
+
+
+@app.get("/api/dashboards")
+async def get_dashboards():
+    return {"dashboards": _read_dashboards()}
+
+
+@app.post("/api/dashboards")
+async def save_dashboard(req: Request):
+    body = await req.json()
+    name = body.get("name", "")
+    records = _read_dashboards()
+    idx = next((i for i, d in enumerate(records) if d.get("name") == name), -1)
+    if idx >= 0:
+        records[idx] = body
+    else:
+        records.insert(0, body)
+    _write_dashboards(records)
+    return {"ok": True}
+
+
+@app.delete("/api/dashboards/{name}")
+async def delete_dashboard(name: str):
+    records = [d for d in _read_dashboards() if d.get("name") != name]
+    _write_dashboards(records)
+    return {"ok": True}
+
+
+@app.get("/api/my-dashboard")
+async def get_my_dashboard():
+    if not os.path.exists(MY_DASHBOARD_FILE):
+        return {"dashboard": None}
+    with open(MY_DASHBOARD_FILE, encoding="utf-8") as f:
+        try:
+            return {"dashboard": json.load(f)}
+        except Exception:
+            return {"dashboard": None}
+
+
+@app.post("/api/my-dashboard")
+async def save_my_dashboard(req: Request):
+    body = await req.json()
+    with open(MY_DASHBOARD_FILE, "w", encoding="utf-8") as f:
+        json.dump(body, f, ensure_ascii=False, indent=2)
+    return {"ok": True}
+
+
+@app.delete("/api/my-dashboard")
+async def delete_my_dashboard():
+    if os.path.exists(MY_DASHBOARD_FILE):
+        os.remove(MY_DASHBOARD_FILE)
+    return {"ok": True}
 
 
 @app.post("/api/feedback")

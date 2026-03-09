@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { AiPanel } from "@/components/ai/AiPanel";
 import { AiPanelProvider } from "@/context/AiPanelContext";
+import { AiChatProvider } from "@/context/AiChatContext";
 
 export default function DashboardLayout({
   children,
@@ -30,6 +31,7 @@ export default function DashboardLayout({
   );
 
   return (
+    <AiChatProvider>
     <AiPanelProvider value={contextValue}>
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar - hidden on mobile */}
@@ -56,5 +58,6 @@ export default function DashboardLayout({
         />
       </div>
     </AiPanelProvider>
+    </AiChatProvider>
   );
 }
