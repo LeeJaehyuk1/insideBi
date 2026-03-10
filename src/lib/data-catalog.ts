@@ -36,14 +36,25 @@ export const dataCatalog: DatasetMeta[] = [
     description: "조달원천별 비중", compatibleCharts: ["pie", "bar"], defaultChart: "pie" },
   { id: "lcr-gauge", label: "LCR / NSFR 게이지", category: "liquidity", categoryLabel: "유동성리스크",
     description: "규제비율 반원 게이지", compatibleCharts: ["gauge"], defaultChart: "gauge" },
+
+  // NCR리스크
+  { id: "ncr-trend", label: "NCR 추이", category: "ncr", categoryLabel: "NCR리스크",
+    description: "12개월 순자본비율 추이", compatibleCharts: ["line", "area", "bar"], defaultChart: "line" },
+  { id: "ncr-composition", label: "위험액 구성", category: "ncr", categoryLabel: "NCR리스크",
+    description: "시장·신용·운영 위험액 비중", compatibleCharts: ["pie", "bar"], defaultChart: "pie" },
+  { id: "ncr-capital", label: "순자본 구성요소", category: "ncr", categoryLabel: "NCR리스크",
+    description: "영업용순자본 항목별 분해", compatibleCharts: ["bar", "waterfall"], defaultChart: "bar" },
+  { id: "ncr-summary", label: "NCR 요약", category: "ncr", categoryLabel: "NCR리스크",
+    description: "NCR 핵심 지표 요약", compatibleCharts: ["kpi", "table"], defaultChart: "kpi" },
 ];
 
-export const CATEGORY_ORDER = ["credit", "market", "liquidity"] as const;
+export const CATEGORY_ORDER = ["credit", "market", "liquidity", "ncr"] as const;
 
 export const categoryMeta = {
-  credit: { label: "신용리스크", color: "text-orange-600 dark:text-orange-400" },
-  market: { label: "시장리스크", color: "text-blue-600 dark:text-blue-400" },
+  credit:    { label: "신용리스크",   color: "text-orange-600 dark:text-orange-400" },
+  market:    { label: "시장리스크",   color: "text-blue-600 dark:text-blue-400" },
   liquidity: { label: "유동성리스크", color: "text-teal-600 dark:text-teal-400" },
+  ncr:       { label: "NCR리스크",    color: "text-emerald-600 dark:text-emerald-400" },
 };
 
 export const chartTypeLabels: Record<string, string> = {

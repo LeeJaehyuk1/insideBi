@@ -10,7 +10,7 @@ export type ColSpan = 1 | 2 | 3;
 export interface DatasetMeta {
   id: string;
   label: string;
-  category: "credit" | "market" | "liquidity" | "custom";
+  category: "credit" | "market" | "liquidity" | "ncr" | "custom";
   categoryLabel: string;
   description: string;
   compatibleCharts: ChartType[];

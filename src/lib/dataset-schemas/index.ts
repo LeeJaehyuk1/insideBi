@@ -193,6 +193,54 @@ const lcrGaugeSchema: DatasetSchema = {
   ],
 };
 
+const ncrTrendSchema: DatasetSchema = {
+  id: "ncr-trend",
+  defaultDateColumn: "month",
+  defaultMeasure: "ncr",
+  columns: [
+    { key: "month", label: "월", type: "date", role: "dimension", aggregatable: false, filterable: true },
+    { key: "ncr", label: "순자본비율", type: "percent", role: "measure", unit: "%", aggregatable: true, filterable: true },
+    { key: "limit", label: "규제한도", type: "percent", role: "measure", unit: "%", aggregatable: false, filterable: false },
+  ],
+};
+
+const ncrCompositionSchema: DatasetSchema = {
+  id: "ncr-composition",
+  defaultMeasure: "value",
+  defaultDimension: "name",
+  columns: [
+    { key: "name", label: "위험유형", type: "string", role: "dimension", aggregatable: false, filterable: true },
+    { key: "value", label: "위험액", type: "currency", role: "measure", unit: "억원", aggregatable: true, filterable: true },
+    { key: "percentage", label: "비중", type: "percent", role: "measure", unit: "%", aggregatable: false, filterable: true },
+  ],
+};
+
+const ncrCapitalSchema: DatasetSchema = {
+  id: "ncr-capital",
+  defaultMeasure: "amount",
+  defaultDimension: "category",
+  columns: [
+    { key: "category", label: "항목", type: "string", role: "dimension", aggregatable: false, filterable: true },
+    { key: "type", label: "구분", type: "string", role: "dimension", aggregatable: false, filterable: true },
+    { key: "amount", label: "금액", type: "currency", role: "measure", unit: "억원", aggregatable: true, filterable: true },
+  ],
+};
+
+const ncrSummarySchema: DatasetSchema = {
+  id: "ncr-summary",
+  defaultMeasure: "currentNcr",
+  columns: [
+    { key: "currentNcr", label: "현재 NCR", type: "percent", role: "measure", unit: "%", aggregatable: false, filterable: false },
+    { key: "limitNcr", label: "규제한도", type: "percent", role: "measure", unit: "%", aggregatable: false, filterable: false },
+    { key: "netOperatingCapital", label: "영업용순자본", type: "currency", role: "measure", unit: "억원", aggregatable: false, filterable: false },
+    { key: "totalRisk", label: "총위험액", type: "currency", role: "measure", unit: "억원", aggregatable: false, filterable: false },
+    { key: "marketRisk", label: "시장위험액", type: "currency", role: "measure", unit: "억원", aggregatable: false, filterable: false },
+    { key: "creditRisk", label: "신용위험액", type: "currency", role: "measure", unit: "억원", aggregatable: false, filterable: false },
+    { key: "operationalRisk", label: "운영위험액", type: "currency", role: "measure", unit: "억원", aggregatable: false, filterable: false },
+    { key: "changeFromLastMonth", label: "전월대비", type: "percent", role: "measure", unit: "%p", aggregatable: false, filterable: false },
+  ],
+};
+
 export const datasetSchemas: Record<string, DatasetSchema> = {
   "npl-trend": nplTrendSchema,
   "credit-grades": creditGradesSchema,
@@ -209,6 +257,10 @@ export const datasetSchemas: Record<string, DatasetSchema> = {
   "liquidity-buffer": liquidityBufferSchema,
   "funding-structure": fundingStructureSchema,
   "lcr-gauge": lcrGaugeSchema,
+  "ncr-trend": ncrTrendSchema,
+  "ncr-composition": ncrCompositionSchema,
+  "ncr-capital": ncrCapitalSchema,
+  "ncr-summary": ncrSummarySchema,
 };
 
 export function getDatasetSchema(id: string): DatasetSchema | undefined {

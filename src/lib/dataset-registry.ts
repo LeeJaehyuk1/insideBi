@@ -18,6 +18,10 @@ import {
   liquidityBuffer,
   fundingStructure,
   lcrSummary,
+  ncrTrendData,
+  riskComposition,
+  netCapitalComponents,
+  ncrSummary,
 } from "@/lib/mock-data";
 
 type QueryFn = () => Record<string, unknown>[];
@@ -111,6 +115,26 @@ const registry: Record<string, DatasetRegistryEntry> = {
     meta: findMeta("lcr-gauge"),
     schema: datasetSchemas["lcr-gauge"],
     queryFn: wrapScalar(lcrSummary as unknown as Record<string, unknown>),
+  },
+  "ncr-trend": {
+    meta: findMeta("ncr-trend"),
+    schema: datasetSchemas["ncr-trend"],
+    queryFn: () => ncrTrendData as unknown as Record<string, unknown>[],
+  },
+  "ncr-composition": {
+    meta: findMeta("ncr-composition"),
+    schema: datasetSchemas["ncr-composition"],
+    queryFn: () => riskComposition as unknown as Record<string, unknown>[],
+  },
+  "ncr-capital": {
+    meta: findMeta("ncr-capital"),
+    schema: datasetSchemas["ncr-capital"],
+    queryFn: () => netCapitalComponents as unknown as Record<string, unknown>[],
+  },
+  "ncr-summary": {
+    meta: findMeta("ncr-summary"),
+    schema: datasetSchemas["ncr-summary"],
+    queryFn: wrapScalar(ncrSummary as unknown as Record<string, unknown>),
   },
 };
 

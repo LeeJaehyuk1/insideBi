@@ -19,9 +19,10 @@ import type { DatasetSchema } from "@/types/dataset";
 import type { DatasetMeta } from "@/types/builder";
 
 const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
-  credit:    { bg: "bg-blue-50 dark:bg-blue-950",    text: "text-blue-600 dark:text-blue-400" },
+  credit:    { bg: "bg-blue-50 dark:bg-blue-950",     text: "text-blue-600 dark:text-blue-400" },
   market:    { bg: "bg-violet-50 dark:bg-violet-950", text: "text-violet-600 dark:text-violet-400" },
-  liquidity: { bg: "bg-teal-50 dark:bg-teal-950",    text: "text-teal-600 dark:text-teal-400" },
+  liquidity: { bg: "bg-teal-50 dark:bg-teal-950",     text: "text-teal-600 dark:text-teal-400" },
+  ncr:       { bg: "bg-emerald-50 dark:bg-emerald-950", text: "text-emerald-600 dark:text-emerald-400" },
 };
 
 interface BrowseDatasetClientProps {
