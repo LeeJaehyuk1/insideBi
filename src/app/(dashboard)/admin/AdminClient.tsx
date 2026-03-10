@@ -7,13 +7,15 @@ import { GoldenSQLTab } from "@/components/admin/GoldenSQLTab";
 import { DocumentationTab } from "@/components/admin/DocumentationTab";
 import { DDLTab } from "@/components/admin/DDLTab";
 import { FeedbackTab } from "@/components/admin/FeedbackTab";
+import { MonitoringTab } from "@/components/admin/MonitoringTab";
 import { useRole } from "@/context/RoleContext";
 
 const TABS = [
-  { id: "golden-sql", label: "Golden SQL" },
+  { id: "golden-sql",    label: "Golden SQL" },
   { id: "documentation", label: "비즈니스 용어집" },
-  { id: "ddl", label: "DDL 관리" },
-  { id: "feedback", label: "피드백 검수" },
+  { id: "ddl",           label: "DDL 관리" },
+  { id: "feedback",      label: "피드백 검수" },
+  { id: "monitoring",    label: "모니터링" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -120,7 +122,8 @@ export function AdminClient() {
         {activeTab === "golden-sql" && <GoldenSQLTab password={password} />}
         {activeTab === "documentation" && <DocumentationTab password={password} />}
         {activeTab === "ddl" && <DDLTab password={password} />}
-        {activeTab === "feedback" && <FeedbackTab password={password} />}
+        {activeTab === "feedback"    && <FeedbackTab password={password} />}
+        {activeTab === "monitoring"  && <MonitoringTab password={password} />}
       </div>
     </div>
   );

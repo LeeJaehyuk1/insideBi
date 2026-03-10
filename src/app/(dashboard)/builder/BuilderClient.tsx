@@ -20,6 +20,7 @@ import { useMyDashboard } from "@/hooks/useMyDashboard";
 import { useRole, can, getRoleInfo } from "@/context/RoleContext";
 import { DefaultDashboard } from "@/components/dashboard/DefaultDashboard";
 import { hydrateCustomDatasets } from "@/lib/custom-dataset-runtime";
+import { TemplateGallery } from "@/components/builder/TemplateGallery";
 
 function generateId() {
   return Math.random().toString(36).slice(2, 9);
@@ -56,6 +57,22 @@ export function BuilderClient() {
   React.useEffect(() => {
     hydrateCustomDatasets();
   }, []);
+
+  // URL ?share= 파라미터로 공유된 대시보드 로드
+  React.useEffect(() => {
+    if (!hydrated) return;
+    const params = new URLSearchParams(window.location.search);
+    const share = params.get("share");
+    if (!share) return;
+    try {
+      const dashboard: SavedDashboard = JSON.parse(decodeURIComponent(escape(atob(share))));
+      setWidgets(dashboard.widgets ?? []);
+      setDashboardName((dashboard.name ?? "공유 대시보드") + " (불러옴)");
+      if (dashboard.layouts) setLayouts(dashboard.layouts);
+      window.history.replaceState({}, "", "/builder");
+    } catch { /* 잘못된 공유 링크 무시 */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
 
   // Normalize colSpan from layouts.w once after hydration (fixes stale localStorage data)
   React.useEffect(() => {
@@ -171,6 +188,12 @@ export function BuilderClient() {
     setLayouts({});
     setFilter(DEFAULT_FILTER);
     clearPersist();
+  };
+
+  const handleLoadTemplate = (dashboard: SavedDashboard) => {
+    setWidgets(dashboard.widgets);
+    setDashboardName(dashboard.name);
+    if (dashboard.layouts) setLayouts(dashboard.layouts);
   };
 
   const handleLayoutChange = (newLayouts: Record<string, GridItemLayout>) => {
@@ -308,15 +331,19 @@ export function BuilderClient() {
 
         {/* Right: Canvas or Default Dashboard */}
         <div className="flex-1 min-w-0">
-          {widgets.length === 0 && library.length === 0 ? (
-            <div>
-              <div className="mb-3 flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-muted-foreground">종합 리스크 현황</h2>
-                <span className="text-xs text-muted-foreground hidden sm:inline">
-                  좌측 카탈로그에서 + 버튼으로 지표를 추가해 커스텀 대시보드를 만들어보세요
-                </span>
-              </div>
-              <DefaultDashboard />
+          {widgets.length === 0 ? (
+            <div className="space-y-6">
+              <TemplateGallery onLoadTemplate={handleLoadTemplate} />
+              {library.length === 0 && (
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground px-2">또는 현황 보기</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                  <DefaultDashboard />
+                </div>
+              )}
             </div>
           ) : (
             <div>

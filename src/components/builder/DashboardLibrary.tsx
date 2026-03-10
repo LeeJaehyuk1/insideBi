@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Trash2, Home } from "lucide-react";
+import { Trash2, Home, Link2, Check } from "lucide-react";
 import { format } from "date-fns";
 import { SavedDashboard } from "@/types/builder";
 import {
@@ -25,6 +25,21 @@ interface DashboardLibraryProps {
   homeName: string | null;
 }
 
+function useCopyLink() {
+  const [copied, setCopied] = React.useState<string | null>(null);
+  const copy = (dashboard: SavedDashboard) => {
+    try {
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(dashboard))));
+      const url = `${window.location.origin}/builder?share=${encoded}`;
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(dashboard.name);
+        setTimeout(() => setCopied(null), 2000);
+      });
+    } catch {}
+  };
+  return { copied, copy };
+}
+
 export function DashboardLibrary({
   library,
   open,
@@ -35,6 +50,8 @@ export function DashboardLibrary({
   onClearHome,
   homeName,
 }: DashboardLibraryProps) {
+  const { copied, copy } = useCopyLink();
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-80 sm:max-w-sm flex flex-col p-0">
@@ -81,6 +98,17 @@ export function DashboardLibrary({
                         </p>
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={() => copy(dashboard)}
+                          title="공유 링크 복사"
+                        >
+                          {copied === dashboard.name
+                            ? <Check className="h-3.5 w-3.5 text-green-500" />
+                            : <Link2 className="h-3.5 w-3.5" />}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"

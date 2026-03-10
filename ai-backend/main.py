@@ -345,6 +345,7 @@ async def _startup():
 # ── 대시보드 I/O ──────────────────────────────────────────────────
 
 CHAT_HISTORY_FILE = os.path.join(os.path.dirname(__file__), "chat_history.json")
+REPORTS_FILE = os.path.join(os.path.dirname(__file__), "reports_user.json")
 DASHBOARDS_FILE = os.path.join(os.path.dirname(__file__), "dashboards.json")
 MY_DASHBOARD_FILE = os.path.join(os.path.dirname(__file__), "my_dashboard.json")
 
@@ -431,6 +432,68 @@ async def ask(req: AskRequest):
         "from_cache": from_cache,
         "backend": backend,   # 어느 LLM이 응답했는지 디버깅용
     }
+
+
+def _read_user_reports() -> list:
+    if not os.path.exists(REPORTS_FILE):
+        return []
+    with open(REPORTS_FILE, encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except Exception:
+            return []
+
+
+def _write_user_reports(records: list):
+    with open(REPORTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(records, f, ensure_ascii=False, indent=2)
+
+
+@app.get("/api/reports")
+async def get_reports():
+    return {"reports": _read_user_reports()}
+
+
+@app.get("/api/reports/{report_id}")
+async def get_report(report_id: str):
+    report = next((r for r in _read_user_reports() if r.get("id") == report_id), None)
+    if not report:
+        raise HTTPException(status_code=404, detail="보고서를 찾을 수 없습니다.")
+    return {"report": report}
+
+
+@app.post("/api/reports")
+async def save_report(req: Request):
+    body = await req.json()
+    rid = body.get("id", "")
+    records = _read_user_reports()
+    idx = next((i for i, r in enumerate(records) if r.get("id") == rid), -1)
+    if idx >= 0:
+        records[idx] = body
+    else:
+        records.insert(0, body)
+    _write_user_reports(records)
+    return {"ok": True}
+
+
+@app.patch("/api/reports/{report_id}/status")
+async def update_report_status(report_id: str, req: Request):
+    body = await req.json()
+    new_status = body.get("status")
+    records = _read_user_reports()
+    for r in records:
+        if r.get("id") == report_id:
+            r["status"] = new_status
+            break
+    _write_user_reports(records)
+    return {"ok": True}
+
+
+@app.delete("/api/reports/{report_id}")
+async def delete_report(report_id: str):
+    records = [r for r in _read_user_reports() if r.get("id") != report_id]
+    _write_user_reports(records)
+    return {"ok": True}
 
 
 @app.get("/api/chat-history")
@@ -654,6 +717,63 @@ async def admin_delete_feedback(req: FeedbackDeleteRequest, _=Depends(require_ad
 
 # ════════════════════════════════════════════════════════════════
 #  브리핑 엔드포인트 (LLM 호출 없음 — 직접 SQL 조회)
+@app.get("/admin/monitoring")
+async def admin_monitoring(_=Depends(require_admin)):
+    """피드백·채팅 히스토리 기반 모니터링 통계"""
+    from collections import Counter
+
+    # ── 피드백 통계 ─────────────────────────────────────────
+    feedback_data = _read_feedback()
+    up_count = sum(1 for f in feedback_data if f.get("rating") == "up")
+    down_count = sum(1 for f in feedback_data if f.get("rating") == "down")
+    question_counts = Counter(
+        f.get("question", "").strip()
+        for f in feedback_data
+        if f.get("question", "").strip()
+    )
+    top_feedback_questions = [
+        {"question": q, "count": c}
+        for q, c in question_counts.most_common(10)
+    ]
+
+    # ── 채팅 히스토리 통계 ──────────────────────────────────
+    chat_messages: list = []
+    if os.path.exists(CHAT_HISTORY_FILE):
+        with open(CHAT_HISTORY_FILE, encoding="utf-8") as f:
+            try:
+                chat_messages = json.load(f)
+            except Exception:
+                pass
+
+    user_msgs = [m for m in chat_messages if m.get("role") == "user"]
+    success_msgs = [m for m in chat_messages if m.get("status") == "success"]
+    error_msgs = [m for m in chat_messages if m.get("status") == "error"]
+    total_q = len(user_msgs)
+
+    top_chat_questions = [
+        {"question": q, "count": c}
+        for q, c in Counter(m.get("content", "").strip() for m in user_msgs if m.get("content", "").strip()).most_common(10)
+    ]
+
+    return {
+        "feedback": {
+            "total": len(feedback_data),
+            "up": up_count,
+            "down": down_count,
+            "satisfaction_rate": round(up_count / len(feedback_data) * 100, 1) if feedback_data else 0,
+        },
+        "chat": {
+            "total_queries": total_q,
+            "success": len(success_msgs),
+            "error": len(error_msgs),
+            "success_rate": round(len(success_msgs) / total_q * 100, 1) if total_q > 0 else 0,
+        },
+        "top_feedback_questions": top_feedback_questions,
+        "top_chat_questions": top_chat_questions,
+        "cache_size": len(_sql_cache),
+    }
+
+
 # ════════════════════════════════════════════════════════════════
 
 def _classify_npl(value: float) -> str:

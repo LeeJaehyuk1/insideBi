@@ -27,9 +27,11 @@ export function ReportCreateDialog({ open, onClose, onCreated }: Props) {
   const [period, setPeriod] = React.useState("");
   const [title, setTitle] = React.useState("");
   const [author, setAuthor] = React.useState("리스크관리부");
+  const [saving, setSaving] = React.useState(false);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!period.trim()) return;
+    setSaving(true);
     const typeName = typeOptions.find((o) => o.value === type)?.label ?? "";
     const id = `RPT-USR-${Date.now()}`;
     const today = new Date().toISOString().slice(0, 10);
@@ -45,16 +47,25 @@ export function ReportCreateDialog({ open, onClose, onCreated }: Props) {
       summary: `${period} ${typeName} 보고서 초안`,
     };
 
-    const stored: ReportMeta[] = JSON.parse(localStorage.getItem("insightbi_reports") || "[]");
-    stored.unshift(newReport);
-    localStorage.setItem("insightbi_reports", JSON.stringify(stored));
+    // 서버에 저장 (실패 시 localStorage 폴백)
+    try {
+      await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newReport),
+      });
+    } catch {
+      const stored: ReportMeta[] = JSON.parse(localStorage.getItem("insightbi_reports") || "[]");
+      stored.unshift(newReport);
+      localStorage.setItem("insightbi_reports", JSON.stringify(stored));
+    }
 
     onCreated(newReport);
-    // reset
     setType("monthly");
     setPeriod("");
     setTitle("");
     setAuthor("리스크관리부");
+    setSaving(false);
     onClose();
   };
 
@@ -69,23 +80,17 @@ export function ReportCreateDialog({ open, onClose, onCreated }: Props) {
           <div className="space-y-1.5">
             <Label htmlFor="rpt-type">보고서 유형</Label>
             <Select value={type} onValueChange={(v) => setType(v as ReportMeta["type"])}>
-              <SelectTrigger id="rpt-type">
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger id="rpt-type"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {typeOptions.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="rpt-period">
-              기간 <span className="text-destructive">*</span>
-            </Label>
+            <Label htmlFor="rpt-period">기간 <span className="text-destructive">*</span></Label>
             <Input
               id="rpt-period"
               placeholder="예: 2026년 3월"
@@ -115,11 +120,9 @@ export function ReportCreateDialog({ open, onClose, onCreated }: Props) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            취소
-          </Button>
-          <Button onClick={handleCreate} disabled={!period.trim()}>
-            생성
+          <Button variant="outline" onClick={onClose}>취소</Button>
+          <Button onClick={handleCreate} disabled={!period.trim() || saving}>
+            {saving ? "저장 중..." : "생성"}
           </Button>
         </DialogFooter>
       </DialogContent>

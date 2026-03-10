@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { X, TableProperties, ChevronUp, ChevronDown } from "lucide-react";
+import { X, TableProperties, ChevronUp, ChevronDown, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WidgetConfig } from "@/types/builder";
 import { ColumnMeta } from "@/types/dataset";
@@ -36,6 +36,28 @@ export function DrilldownTable({ widget, onClose }: DrilldownTableProps) {
     const schema = getDatasetSchema(widget.datasetId);
     const mergedParams = mergeGlobalFilter(widget.globalFilter, widget.queryParams, schema);
     const { data, isLoading } = useDataset({ datasetId: widget.datasetId, ...mergedParams });
+
+    const handleDownloadCSV = () => {
+        if (sorted.length === 0) return;
+        const headers = columns.length > 0 ? columns.map((c) => c.key) : Object.keys(sorted[0]);
+        const headerLabels = columns.length > 0 ? columns.map((c) => c.label) : headers;
+        const rows = sorted.map((row) =>
+            headers.map((h) => {
+                const val = row[h];
+                const s = val === null || val === undefined ? "" : String(val);
+                return s.includes(",") || s.includes('"') || s.includes("\n")
+                    ? `"${s.replace(/"/g, '""')}"` : s;
+            }).join(",")
+        );
+        const csv = [headerLabels.join(","), ...rows].join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${widget.title}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     const [sortKey, setSortKey] = React.useState<string | null>(null);
     const [sortDir, setSortDir] = React.useState<SortDir>(null);
@@ -83,6 +105,16 @@ export function DrilldownTable({ widget, onClose }: DrilldownTableProps) {
                         Drill-down · 전체 {data.length}건
                     </span>
                 </div>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+                    title="CSV 다운로드"
+                    onClick={handleDownloadCSV}
+                    disabled={sorted.length === 0}
+                >
+                    <Download className="h-3.5 w-3.5" />
+                </Button>
                 <Button
                     variant="ghost"
                     size="icon"
