@@ -14,6 +14,8 @@ import { useSavedQuestions } from "@/hooks/useSavedQuestions";
 import { dataCatalog } from "@/lib/data-catalog";
 import { WidgetRenderer } from "@/components/builder/WidgetRenderer";
 import { useDashboardLibrary } from "@/hooks/useDashboardLibrary";
+import { useCollectionFolders } from "@/hooks/useCollectionFolders";
+import type { FolderEntry } from "@/lib/mock-data/collection-folders";
 import type { WidgetConfig, ChartType } from "@/types/builder";
 
 /* ── 위젯 타입 ── */
@@ -304,6 +306,7 @@ export function DashboardEditorClient() {
   const collectionId = params.get("collection") ?? "analytics";
 
   const { saveDashboard, library, hydrated: libHydrated } = useDashboardLibrary();
+  const { addEntry } = useCollectionFolders();
   const [saveToast, setSaveToast] = React.useState(false);
 
   const [dashboardName, setDashboardName] = React.useState(initialName);
@@ -491,10 +494,26 @@ export function DashboardEditorClient() {
                 tabData,
               };
               saveDashboard(dashboard);
+
+              // 지정된 컬렉션에 항목 등록
+              if (collectionId) {
+                const entry: FolderEntry = {
+                  id: `db-${Date.now()}`,
+                  type: "dashboard",
+                  name: dashboardName,
+                  lastEditor: "나",
+                  lastModified: new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
+                  href: `/dashboards/new?name=${encodeURIComponent(dashboardName)}&collection=${collectionId}`,
+                };
+                addEntry(collectionId, entry);
+              }
+
               setSaveToast(true);
               setTimeout(() => {
                 setSaveToast(false);
-                router.push("/dashboards");
+                // 개인 컬렉션에서 왔으면 컬렉션으로, 아니면 대시보드 목록으로
+                const dest = collectionId ? `/collections/${collectionId}` : "/dashboards";
+                router.push(dest);
               }, 1200);
             }}
             className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"

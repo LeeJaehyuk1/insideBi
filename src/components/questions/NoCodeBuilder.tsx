@@ -12,6 +12,8 @@ import { dataCatalog, categoryMeta } from "@/lib/data-catalog";
 import { getDatasetSchema } from "@/lib/dataset-schemas";
 import { executeQuery } from "@/lib/query-engine";
 import { useSavedQuestions } from "@/hooks/useSavedQuestions";
+import { useCollectionFolders } from "@/hooks/useCollectionFolders";
+import type { FolderEntry } from "@/lib/mock-data/collection-folders";
 import { AddToCollectionDialog } from "@/components/collections/AddToCollectionDialog";
 import { DatasetPickerGrid } from "./DatasetPickerGrid";
 import { FilterPicker } from "./FilterPicker";
@@ -190,11 +192,13 @@ function FilterTag({
 /* ── 메인 컴포넌트 ── */
 interface NoCodeBuilderProps {
   initialDatasetId?: string;
+  collectionId?: string;
 }
 
-export function NoCodeBuilder({ initialDatasetId }: NoCodeBuilderProps) {
+export function NoCodeBuilder({ initialDatasetId, collectionId }: NoCodeBuilderProps) {
   const router = useRouter();
   const { saveQuestion } = useSavedQuestions();
+  const { addEntry } = useCollectionFolders();
 
   const [datasetId, setDatasetId] = React.useState(initialDatasetId ?? "");
   const [showPicker, setShowPicker] = React.useState(!initialDatasetId);
@@ -294,6 +298,20 @@ export function NoCodeBuilder({ initialDatasetId }: NoCodeBuilderProps) {
     if (!datasetId) return;
     const title = `${dataset?.label ?? "질문"} 분석`;
     const saved = saveQuestion({ title, datasetId, filters, chartType });
+
+    // 컬렉션에 저장
+    if (collectionId) {
+      const entry: FolderEntry = {
+        id: `q-${saved.id}`,
+        type: "question",
+        name: title,
+        lastEditor: "나",
+        lastModified: new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
+        href: `/questions/${saved.id}`,
+      };
+      addEntry(collectionId, entry);
+    }
+
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 2500);
     const now = new Date().toISOString().split("T")[0];

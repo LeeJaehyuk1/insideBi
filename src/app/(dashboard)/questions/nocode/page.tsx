@@ -8,6 +8,7 @@ import { NoCodeBuilder } from "@/components/questions/NoCodeBuilder";
 function NoCodePageInner() {
   const params = useSearchParams();
   const datasetId = params.get("dataset") ?? "";
+  const collectionId = params.get("collection") ?? "";
 
   return (
     <div className="space-y-6">
@@ -22,7 +23,7 @@ function NoCodePageInner() {
           </p>
         </div>
       </div>
-      <NoCodeBuilder initialDatasetId={datasetId} />
+      <NoCodeBuilder initialDatasetId={datasetId} collectionId={collectionId} />
     </div>
   );
 }

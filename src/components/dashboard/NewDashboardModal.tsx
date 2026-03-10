@@ -10,14 +10,20 @@ import { collections } from "@/lib/mock-data/collections";
 interface NewDashboardModalProps {
   open: boolean;
   onClose: () => void;
+  defaultCollectionId?: string;
 }
 
-export function NewDashboardModal({ open, onClose }: NewDashboardModalProps) {
+export function NewDashboardModal({ open, onClose, defaultCollectionId }: NewDashboardModalProps) {
   const router = useRouter();
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [submitted, setSubmitted] = React.useState(false);
-  const [collectionId, setCollectionId] = React.useState("analytics");
+  const [collectionId, setCollectionId] = React.useState(defaultCollectionId ?? "analytics");
+
+  // defaultCollectionId 변경 시 동기화
+  React.useEffect(() => {
+    if (defaultCollectionId) setCollectionId(defaultCollectionId);
+  }, [defaultCollectionId]);
   const [pickerOpen, setPickerOpen] = React.useState(false);
 
   const selectedCollection = collections.find((c) => c.id === collectionId) ?? collections[0];
