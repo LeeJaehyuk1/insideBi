@@ -63,18 +63,6 @@ const RISK_NAV: NavGroup[] = [
   },
 ];
 
-const ANALYTICS_NAV: NavGroup[] = [
-  {
-    label: "분석 도구",
-    color: "text-purple-400",
-    items: [
-      { title: "질문", href: "/questions/new", icon: Table2, description: "데이터셋 선택 → 필터 → 시각화" },
-      { title: "대시보드", href: "/dashboards", icon: BarChart3, description: "저장된 대시보드 목록" },
-      { title: "워크스페이스", href: "/builder", icon: LayoutTemplate, description: "커스텀 대시보드 구성" },
-      // { title: "보고서", href: "/reports", icon: FileText, description: "경영진 보고서" },
-    ],
-  },
-];
 
 const NEW_NAV: NavItem[] = [
   { title: "질문",      href: "/questions/pick", icon: Table2,         description: "테이블 또는 컬렉션 선택" },
@@ -270,12 +258,6 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
         <NavDropdown
           trigger={<><CreditCard className="h-3.5 w-3.5" /><span>리스크 관리</span></>}
           groups={RISK_NAV}
-        />
-
-        {/* 분석 드롭다운 */}
-        <NavDropdown
-          trigger={<><LayoutTemplate className="h-3.5 w-3.5" /><span>분석</span></>}
-          groups={ANALYTICS_NAV}
         />
 
         {/* 탐색 */}
