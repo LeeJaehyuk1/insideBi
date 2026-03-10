@@ -22,6 +22,8 @@ import { useRole, can, getRoleInfo } from "@/context/RoleContext";
 import { DefaultDashboard } from "@/components/dashboard/DefaultDashboard";
 import { hydrateCustomDatasets } from "@/lib/custom-dataset-runtime";
 import { TemplateGallery } from "@/components/builder/TemplateGallery";
+import { AutoRefreshSelector } from "@/components/builder/AutoRefreshSelector";
+import { useAutoRefresh, RefreshInterval } from "@/hooks/useAutoRefresh";
 
 function generateId() {
   return Math.random().toString(36).slice(2, 9);
@@ -53,7 +55,13 @@ export function BuilderClient() {
   const [saveToast, setSaveToast] = React.useState<"saved" | null>(null);
   const [libraryOpen, setLibraryOpen] = React.useState(false);
   const [isEditMode, setIsEditMode] = React.useState(false);
+  const [refreshInterval, setRefreshInterval] = React.useState<RefreshInterval>(0);
   const previewRef = React.useRef<HTMLDivElement>(null);
+
+  // 자동 새로고침 (mock 데이터이므로 강제 리렌더링으로 처리)
+  useAutoRefresh(refreshInterval, React.useCallback(() => {
+    setWidgets((prev) => [...prev]);
+  }, [setWidgets]));
 
   // 커스텀 데이터셋(Excel/SQL) 런타임 메모리에 로드
   React.useEffect(() => {
@@ -75,6 +83,22 @@ export function BuilderClient() {
     } catch { /* 잘못된 공유 링크 무시 */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
+
+  // URL ?load= 파라미터로 라이브러리 대시보드 로드
+  React.useEffect(() => {
+    if (!hydrated || library.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const loadName = params.get("load");
+    if (!loadName) return;
+    const dashboard = library.find((d) => d.name === decodeURIComponent(loadName));
+    if (dashboard) {
+      setWidgets(dashboard.widgets ?? []);
+      setDashboardName(dashboard.name);
+      if (dashboard.layouts) setLayouts(dashboard.layouts);
+    }
+    window.history.replaceState({}, "", "/builder");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, library]);
 
   // Normalize colSpan from layouts.w once after hydration (fixes stale localStorage data)
   React.useEffect(() => {
@@ -271,6 +295,11 @@ export function BuilderClient() {
         )}
 
         <div className="ml-auto flex items-center gap-2">
+          {/* 자동 새로고침 */}
+          {!isEditMode && widgets.length > 0 && (
+            <AutoRefreshSelector value={refreshInterval} onChange={setRefreshInterval} />
+          )}
+
           {/* 라이브러리 */}
           <Button variant="ghost" size="sm" onClick={() => setLibraryOpen(true)}>
             <BookOpen className="h-4 w-4 mr-1" />

@@ -1,20 +1,27 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { TopNav } from "@/components/layout/TopNav";
 import { AiPanel } from "@/components/ai/AiPanel";
 import { AiPanelProvider } from "@/context/AiPanelContext";
 import { AiChatProvider } from "@/context/AiChatContext";
 import { RoleProvider } from "@/context/RoleContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { recordVisit } from "@/hooks/useRecentlyViewed";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const [aiOpen, setAiOpen] = React.useState(false);
   const [defaultQuestion, setDefaultQuestion] = React.useState<string | undefined>();
+
+  React.useEffect(() => {
+    recordVisit(pathname);
+  }, [pathname]);
 
   const openWithQuestion = React.useCallback((question: string) => {
     setDefaultQuestion(question);

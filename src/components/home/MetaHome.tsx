@@ -30,6 +30,9 @@ import { AiChartResult } from "@/components/ai/AiChartResult";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAiChat } from "@/hooks/useAiChat";
 import { reports } from "@/lib/mock-data/reports";
+import { QuickActionBar } from "./QuickActionBar";
+import { RecentlyViewedSection } from "./RecentlyViewedSection";
+import { PinnedSection } from "./PinnedSection";
 
 /* ── 리스크 관리 네비게이션 카드 데이터 ── */
 const RISK_PAGES = [
@@ -355,6 +358,18 @@ export function MetaHome() {
       {/* ── 주요 지표 (검색 결과 없을 때만) ── */}
       {!hasMessages && (
         <>
+          {/* ── 빠른 액션 ── */}
+          <section>
+            <SectionHeader title="빠른 시작" />
+            <QuickActionBar />
+          </section>
+
+          {/* ── 즐겨찾기 ── */}
+          <PinnedSection />
+
+          {/* ── 최근 방문 ── */}
+          <RecentlyViewedSection />
+
           <section>
             <SectionHeader
               title="주요 리스크 지표"

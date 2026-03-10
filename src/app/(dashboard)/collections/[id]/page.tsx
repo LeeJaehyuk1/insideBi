@@ -3,9 +3,9 @@
 import * as React from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, Pin, LayoutTemplate, MessageSquare, BookOpen } from "lucide-react";
+import { ChevronRight, Pin, LayoutTemplate, MessageSquare, BookOpen, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getCollection } from "@/lib/mock-data/collections";
+import { useCollections } from "@/hooks/useCollections";
 import { CollectionIcon } from "@/components/collections/CollectionIcon";
 import { CollectionItemCard } from "@/components/collections/CollectionItemCard";
 import type { CollectionItemType } from "@/types/collection";
@@ -13,10 +13,10 @@ import type { CollectionItemType } from "@/types/collection";
 type FilterType = "all" | CollectionItemType;
 
 const FILTER_TABS: { value: FilterType; label: string; icon: React.ElementType }[] = [
-  { value: "all",       label: "전체",      icon: () => null },
-  { value: "dashboard", label: "대시보드",  icon: LayoutTemplate },
-  { value: "question",  label: "질문",      icon: MessageSquare },
-  { value: "report",    label: "보고서",    icon: BookOpen },
+  { value: "all",       label: "전체",     icon: () => null },
+  { value: "dashboard", label: "대시보드", icon: LayoutTemplate },
+  { value: "question",  label: "질문",     icon: MessageSquare },
+  { value: "report",    label: "보고서",   icon: BookOpen },
 ];
 
 export default function CollectionDetailPage({
@@ -24,10 +24,20 @@ export default function CollectionDetailPage({
 }: {
   params: { id: string };
 }) {
+  const { getCollection, togglePinned, removeItem, hydrated } = useCollections();
+  const [filter, setFilter] = React.useState<FilterType>("all");
+
+  if (!hydrated) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-4 pb-12 animate-pulse">
+        <div className="h-8 w-48 rounded bg-muted" />
+        {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-xl bg-muted" />)}
+      </div>
+    );
+  }
+
   const collection = getCollection(params.id);
   if (!collection) notFound();
-
-  const [filter, setFilter] = React.useState<FilterType>("all");
 
   const pinned = collection.items.filter((i) => i.pinned);
   const filtered =
@@ -36,7 +46,7 @@ export default function CollectionDetailPage({
       : collection.items.filter((i) => i.type === filter);
 
   const counts: Record<FilterType, number> = {
-    all: collection.items.length,
+    all:       collection.items.length,
     dashboard: collection.items.filter((i) => i.type === "dashboard").length,
     question:  collection.items.filter((i) => i.type === "question").length,
     report:    collection.items.filter((i) => i.type === "report").length,
@@ -57,7 +67,7 @@ export default function CollectionDetailPage({
       {/* 헤더 */}
       <div className="flex items-center gap-4">
         <CollectionIcon icon={collection.icon} color={collection.color} size="lg" />
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold text-foreground">{collection.name}</h1>
           {collection.description && (
             <p className="text-sm text-muted-foreground mt-0.5">{collection.description}</p>
@@ -76,7 +86,13 @@ export default function CollectionDetailPage({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {pinned.map((item) => (
-              <CollectionItemCard key={item.id} item={item} />
+              <CollectionItemCard
+                key={item.id}
+                item={item}
+                collectionId={collection.id}
+                onTogglePin={(id) => togglePinned(collection.id, id)}
+                onRemove={(id) => removeItem(collection.id, id)}
+              />
             ))}
           </div>
         </section>
@@ -84,7 +100,6 @@ export default function CollectionDetailPage({
 
       {/* 필터 탭 + 전체 목록 */}
       <section>
-        {/* 탭 */}
         <div className="flex items-center gap-1 mb-4 border-b border-border">
           {FILTER_TABS.map((tab) => {
             const count = counts[tab.value];
@@ -116,7 +131,6 @@ export default function CollectionDetailPage({
           })}
         </div>
 
-        {/* 항목 목록 */}
         {filtered.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
             해당 유형의 항목이 없습니다.
@@ -124,7 +138,13 @@ export default function CollectionDetailPage({
         ) : (
           <div className="space-y-2">
             {filtered.map((item) => (
-              <CollectionItemCard key={item.id} item={item} />
+              <CollectionItemCard
+                key={item.id}
+                item={item}
+                collectionId={collection.id}
+                onTogglePin={(id) => togglePinned(collection.id, id)}
+                onRemove={(id) => removeItem(collection.id, id)}
+              />
             ))}
           </div>
         )}

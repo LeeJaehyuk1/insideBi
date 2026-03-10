@@ -1,0 +1,211 @@
+INFO:     Will watch for changes in these directories: ['D:\\insideBi\\ai-backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [11072] using WatchFiles
+INFO:     Started server process [19136]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+[vanna] Primary: SQLCoder-Ollama  (sqlcoder:7b)
+[vanna] Fallback: Ollama generic  (qwen2.5-coder:1.5b)
+[cache] Golden SQL 154개 로드 완료 (golden_sql.json)
+[startup] ChromaDB 구형 NCR 항목 없음 (정리 불필요)
+INFO:     127.0.0.1:64832 - "GET /api/health HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'train.py'. Reloading...
+INFO:     127.0.0.1:58464 - "POST /admin/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58464 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58464 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50909 - "OPTIONS /api/ask HTTP/1.1" 200 OK
+[cache HIT] score=1.00  sql=SELECT std_date, SUM(prod_val) AS total_val FROM td_irncr WH
+INFO:     127.0.0.1:50909 - "POST /api/ask HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52812 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52812 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52812 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51797 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63835 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52125 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52125 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50428 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50428 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62355 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62355 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62355 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62355 - "GET /admin/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59347 - "GET /api/suggest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58851 - "GET /api/briefing HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58857 - "GET /api/briefing HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58856 - "GET /api/briefing HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58855 - "GET /api/briefing HTTP/1.1" 404 Not Found
+Add of existing embedding ID: ac520fac-1256-5cf8-8833-fa8f282fcdb1-sql
+Add of existing embedding ID: abbe6dda-6258-552c-bbb2-217b36d18f00-sql
+Add of existing embedding ID: 56eaf668-572c-5b04-b076-fa5af09af8d6-sql
+Add of existing embedding ID: 4aa6ea76-33ed-5c2a-b362-2857225dca5f-sql
+Add of existing embedding ID: c4ec8903-5847-57e4-ba33-fb9946220a15-sql
+Add of existing embedding ID: b17489fe-be83-512c-8ee7-c166f0fdd4c1-sql
+Add of existing embedding ID: 7f865f69-29b8-562b-bace-c412f1183769-sql
+Add of existing embedding ID: 0da489ab-a7cc-5f28-b72a-e76e05aaf92b-sql
+Add of existing embedding ID: f2901e88-c636-56c4-9b7f-744d568765fb-sql
+Add of existing embedding ID: 7fe00d90-d67e-531a-975a-6ddc6413da95-sql
+Add of existing embedding ID: c5f5dd60-e9d8-5c15-8391-1723f11c8156-sql
+Add of existing embedding ID: 63fb031a-a1f6-507d-a668-1011c744e804-sql
+Add of existing embedding ID: 45280eeb-e0fd-58fb-a816-3836104177e1-sql
+Add of existing embedding ID: 2d5a3a8e-31b1-588c-8757-8fe93c2c155f-sql
+Add of existing embedding ID: ff9a971e-8c3a-5b46-aeef-38b71565c469-sql
+Add of existing embedding ID: 123c412e-ac22-54ca-af5c-d2c3ec7fea37-sql
+Add of existing embedding ID: cf391f40-6b4f-547f-a4c3-3783f7bde90f-sql
+Add of existing embedding ID: 1ab898db-3b9a-505e-86f4-52fea36f0d6f-sql
+Add of existing embedding ID: f3d2f5c9-792c-5d93-b20e-3ac635762765-sql
+Add of existing embedding ID: 817ae9da-05e6-54c7-93ae-98a56958ebe4-sql
+Add of existing embedding ID: 9fbcaab0-d2d5-54d7-bf39-1f5091e4a2fa-sql
+Add of existing embedding ID: d5ba1f4f-06f0-5897-a6d8-3a5fec422558-sql
+Add of existing embedding ID: 99e30c7a-6fcc-5018-93fe-8fcf66c3c09f-sql
+Add of existing embedding ID: 32ebdf0c-f287-5d73-b3ad-5b7e24d2a31e-sql
+Add of existing embedding ID: 5c6c423e-b76d-5c65-9936-7010cfaa06a9-sql
+Add of existing embedding ID: ac520fac-1256-5cf8-8833-fa8f282fcdb1-sql
+Add of existing embedding ID: abbe6dda-6258-552c-bbb2-217b36d18f00-sql
+Add of existing embedding ID: 56eaf668-572c-5b04-b076-fa5af09af8d6-sql
+Add of existing embedding ID: 4aa6ea76-33ed-5c2a-b362-2857225dca5f-sql
+Add of existing embedding ID: c4ec8903-5847-57e4-ba33-fb9946220a15-sql
+Add of existing embedding ID: b17489fe-be83-512c-8ee7-c166f0fdd4c1-sql
+Add of existing embedding ID: 7f865f69-29b8-562b-bace-c412f1183769-sql
+Add of existing embedding ID: 0da489ab-a7cc-5f28-b72a-e76e05aaf92b-sql
+Add of existing embedding ID: f2901e88-c636-56c4-9b7f-744d568765fb-sql
+Add of existing embedding ID: 7fe00d90-d67e-531a-975a-6ddc6413da95-sql
+Add of existing embedding ID: c5f5dd60-e9d8-5c15-8391-1723f11c8156-sql
+Add of existing embedding ID: 63fb031a-a1f6-507d-a668-1011c744e804-sql
+Add of existing embedding ID: 45280eeb-e0fd-58fb-a816-3836104177e1-sql
+Add of existing embedding ID: 2d5a3a8e-31b1-588c-8757-8fe93c2c155f-sql
+Add of existing embedding ID: ff9a971e-8c3a-5b46-aeef-38b71565c469-sql
+Add of existing embedding ID: 123c412e-ac22-54ca-af5c-d2c3ec7fea37-sql
+Add of existing embedding ID: cf391f40-6b4f-547f-a4c3-3783f7bde90f-sql
+Add of existing embedding ID: 1ab898db-3b9a-505e-86f4-52fea36f0d6f-sql
+Add of existing embedding ID: f3d2f5c9-792c-5d93-b20e-3ac635762765-sql
+Add of existing embedding ID: 817ae9da-05e6-54c7-93ae-98a56958ebe4-sql
+Add of existing embedding ID: 9fbcaab0-d2d5-54d7-bf39-1f5091e4a2fa-sql
+Add of existing embedding ID: d5ba1f4f-06f0-5897-a6d8-3a5fec422558-sql
+Add of existing embedding ID: 99e30c7a-6fcc-5018-93fe-8fcf66c3c09f-sql
+Add of existing embedding ID: 32ebdf0c-f287-5d73-b3ad-5b7e24d2a31e-sql
+Add of existing embedding ID: 5c6c423e-b76d-5c65-9936-7010cfaa06a9-sql
+Add of existing embedding ID: f9b3a658-9415-5675-a702-384ba79caedf-sql
+Add of existing embedding ID: 1cb09559-2173-5d18-9139-f2d3364a957d-sql
+Add of existing embedding ID: 1c3cd042-0569-5a00-9d90-0e694e3b67f5-sql
+Add of existing embedding ID: 88cd5aa7-04dd-55d5-9955-436dfccad128-sql
+Add of existing embedding ID: f7a7a6f6-0141-5795-8ba2-79c0f093c333-sql
+Add of existing embedding ID: ac520fac-1256-5cf8-8833-fa8f282fcdb1-sql
+Add of existing embedding ID: abbe6dda-6258-552c-bbb2-217b36d18f00-sql
+Add of existing embedding ID: 56eaf668-572c-5b04-b076-fa5af09af8d6-sql
+Add of existing embedding ID: 4aa6ea76-33ed-5c2a-b362-2857225dca5f-sql
+Add of existing embedding ID: c4ec8903-5847-57e4-ba33-fb9946220a15-sql
+Add of existing embedding ID: b17489fe-be83-512c-8ee7-c166f0fdd4c1-sql
+Add of existing embedding ID: 7f865f69-29b8-562b-bace-c412f1183769-sql
+Add of existing embedding ID: 0da489ab-a7cc-5f28-b72a-e76e05aaf92b-sql
+Add of existing embedding ID: f2901e88-c636-56c4-9b7f-744d568765fb-sql
+Add of existing embedding ID: 7fe00d90-d67e-531a-975a-6ddc6413da95-sql
+Add of existing embedding ID: c5f5dd60-e9d8-5c15-8391-1723f11c8156-sql
+Add of existing embedding ID: 63fb031a-a1f6-507d-a668-1011c744e804-sql
+Add of existing embedding ID: 45280eeb-e0fd-58fb-a816-3836104177e1-sql
+Add of existing embedding ID: 2d5a3a8e-31b1-588c-8757-8fe93c2c155f-sql
+Add of existing embedding ID: ff9a971e-8c3a-5b46-aeef-38b71565c469-sql
+Add of existing embedding ID: 123c412e-ac22-54ca-af5c-d2c3ec7fea37-sql
+Add of existing embedding ID: cf391f40-6b4f-547f-a4c3-3783f7bde90f-sql
+Add of existing embedding ID: 1ab898db-3b9a-505e-86f4-52fea36f0d6f-sql
+Add of existing embedding ID: f3d2f5c9-792c-5d93-b20e-3ac635762765-sql
+Add of existing embedding ID: 817ae9da-05e6-54c7-93ae-98a56958ebe4-sql
+Add of existing embedding ID: 9fbcaab0-d2d5-54d7-bf39-1f5091e4a2fa-sql
+Add of existing embedding ID: d5ba1f4f-06f0-5897-a6d8-3a5fec422558-sql
+Add of existing embedding ID: 99e30c7a-6fcc-5018-93fe-8fcf66c3c09f-sql
+Add of existing embedding ID: 32ebdf0c-f287-5d73-b3ad-5b7e24d2a31e-sql
+Add of existing embedding ID: 5c6c423e-b76d-5c65-9936-7010cfaa06a9-sql
+Add of existing embedding ID: f9b3a658-9415-5675-a702-384ba79caedf-sql
+Add of existing embedding ID: 1cb09559-2173-5d18-9139-f2d3364a957d-sql
+Add of existing embedding ID: 1c3cd042-0569-5a00-9d90-0e694e3b67f5-sql
+Add of existing embedding ID: 88cd5aa7-04dd-55d5-9955-436dfccad128-sql
+Add of existing embedding ID: f7a7a6f6-0141-5795-8ba2-79c0f093c333-sql
+Add of existing embedding ID: 0128f553-2a96-590c-b81e-e13c66d5e443-sql
+Add of existing embedding ID: 9ff4098c-2a00-5387-9984-7e476a54c0ba-sql
+Add of existing embedding ID: 6cb68d8d-fe6b-5c46-b65c-2c23b38336ad-sql
+Add of existing embedding ID: e2c3b8b3-851a-5232-b6e0-53a8b81048be-sql
+Add of existing embedding ID: 39ea2efb-0b0b-51ad-93b9-be219785e58a-sql
+Add of existing embedding ID: fc39364a-e09f-537a-b4e3-ffb15b3be105-sql
+Add of existing embedding ID: 3a40dd3f-95ff-5f46-ae29-9d41432bcabe-sql
+Add of existing embedding ID: c29b2a18-6249-50bf-bbca-c3d344de427b-sql
+Add of existing embedding ID: 9d5c38af-b583-5376-b3d9-0a3918771d8f-sql
+Add of existing embedding ID: b4b612d3-7857-59fe-a898-8595e79dd324-sql
+Add of existing embedding ID: c234af29-44a2-5bf9-866a-5b1b952c6875-sql
+Add of existing embedding ID: 64711e6c-84c0-548d-b76d-6d3ab39218af-sql
+Add of existing embedding ID: ea203b36-efce-579d-9590-2853023c0631-sql
+Add of existing embedding ID: aaff64a6-3633-57a4-a34d-3c84bb360c90-sql
+Add of existing embedding ID: 61510fc0-d324-5549-b527-70302612af4b-sql
+Add of existing embedding ID: b0a1d1a8-f8ad-5b7e-82cb-66c58ba07011-sql
+Add of existing embedding ID: c5a60c48-6738-5820-a529-601d9b748bf0-sql
+Add of existing embedding ID: 077618ba-40cd-56fc-bdbb-02c1ad4f29cf-sql
+Add of existing embedding ID: d76d07ca-4b92-527a-beea-dcbfd2e78ad4-sql
+Add of existing embedding ID: 0c0132c1-2102-5954-92ae-449c8d14932e-sql
+Add of existing embedding ID: c9514067-81cd-58da-85c7-60e8e1a9faba-sql
+Add of existing embedding ID: 4b3f7ba8-b1d4-5d19-86d4-e28fb009b51d-sql
+Add of existing embedding ID: 669cc95e-eaf7-5c62-bbe9-fe870d37500c-sql
+Add of existing embedding ID: 50069946-ea1c-5482-a57e-28321f593014-sql
+Add of existing embedding ID: 8c7eff7d-c2ea-5809-bf2e-96e1dcb9932b-sql
+Add of existing embedding ID: 8844c84f-2422-583f-b36a-1ecfe0128564-sql
+Add of existing embedding ID: 377b46ac-2828-5ec1-851f-70f7719f5da1-sql
+Add of existing embedding ID: f8a2b928-489a-5b7c-9e39-70e94d2963a4-sql
+Add of existing embedding ID: 9768d6a4-02f4-5176-ab8a-69684474e95e-sql
+Add of existing embedding ID: 8c29df0a-cd5e-5c2c-ae16-11e733f0ed1f-sql
+Add of existing embedding ID: 4013be69-3b0e-57be-8998-e69bca7d1807-sql
+Add of existing embedding ID: 2b159535-05ed-5eaf-a8ae-3f397420dc6d-sql
+Add of existing embedding ID: 1f62346f-0fc8-56e9-b5a0-5e035e58382b-sql
+Add of existing embedding ID: cb8b649c-1e70-52c4-92ca-b9c7b931559a-sql
+Add of existing embedding ID: c59bd85e-0f87-58f7-936c-60936896950f-sql
+Add of existing embedding ID: 49a8428c-ec46-53a4-ba06-3d67e9e6f9f7-sql
+Add of existing embedding ID: 4a30a475-8070-5563-a3b8-fbb4ab8632f8-sql
+Add of existing embedding ID: dae9f32d-a807-5a13-b4fc-40f453323552-sql
+Add of existing embedding ID: 90599af0-b996-5f93-bcc0-692a45199f33-sql
+Add of existing embedding ID: 9de9eac7-5e57-5b77-a4d5-6a7e5c3cf232-sql
+Add of existing embedding ID: 8b55b9cb-10c1-5cbb-9d76-7d75a7609d56-sql
+Add of existing embedding ID: 16119fde-f37a-5f87-859c-f74e7e538e11-sql
+Add of existing embedding ID: 1c4b4fe3-67e4-55ab-b368-b93c75e00d6f-sql
+Add of existing embedding ID: 43f0a004-a878-5f73-9648-2cea525909ba-sql
+Add of existing embedding ID: 636692a6-52f2-5d25-b274-ea977f273c2e-sql
+Add of existing embedding ID: 735d4a37-1313-588f-9fac-0ed7a4982160-sql
+[primary] attempt=1 실패: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=120)
+[primary] attempt=2 실패: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=120)
+[fallback] Primary 실패 → Fallback LLM 시도
+[db] SQL 실행 실패 (시도 1/3): (psycopg2.errors.UndefinedColumn) 오류:  "crdt_risk_amt" 이름의 칼럼은 없습니다
+LINE 1: SELECT ncr_stress_no, SUM(crdt_risk_amt) / SUM(crdt_mtgt_amt...
+                                  ^
+
+[SQL: SELECT ncr_stress_no, SUM(crdt_risk_amt) / SUM(crdt_mtgt_amt) * 100 AS ncr_ratio FROM td_irriskmr WHERE ncr_stress_no = 0 GROUP BY ncr_stress_no ORDER BY ncr_ratio DESC]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[db] SQL 실행 실패 (시도 2/3): (psycopg2.errors.UndefinedColumn) 오류:  "crdt_risk_amt" 이름의 칼럼은 없습니다
+LINE 1: SELECT ncr_stress_no, SUM(crdt_risk_amt) / SUM(crdt_mtgt_amt...
+                                  ^
+
+[SQL: SELECT ncr_stress_no, SUM(crdt_risk_amt) / SUM(crdt_mtgt_amt) * 100 AS ncr_ratio FROM td_irriskmr WHERE ncr_stress_no = 0 GROUP BY ncr_stress_no ORDER BY ncr_ratio DESC]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[db] SQL 실행 실패 (시도 3/3): (psycopg2.errors.UndefinedColumn) 오류:  "crdt_risk_amt" 이름의 칼럼은 없습니다
+LINE 1: SELECT ncr_stress_no, SUM(crdt_risk_amt) / SUM(crdt_mtgt_amt...
+                                  ^
+
+[SQL: SELECT ncr_stress_no, SUM(crdt_risk_amt) / SUM(crdt_mtgt_amt) * 100 AS ncr_ratio FROM td_irriskmr WHERE ncr_stress_no = 0 GROUP BY ncr_stress_no ORDER BY ncr_ratio DESC]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[fallback] attempt=1 실패: (psycopg2.errors.UndefinedColumn) 오류:  "crdt_risk_amt" 이름의 칼럼은 없습니다
+LINE 1: SELECT ncr_stress_no, SUM(crdt_risk_amt) / S
+[db] SQL 실행 실패 (시도 1/3): (psycopg2.errors.UndefinedColumn) 오류:  "crdt_risk_amt" 이름의 칼럼은 없습니다
+LINE 1: SELECT ncr_stress_no, SUM(crdt_risk_amt) / SUM(crdt_mtgt_amt...
+                                  ^
+
+[SQL: SELECT ncr_stress_no, SUM(crdt_risk_amt) / SUM(crdt_mtgt_amt) * 100 AS ncr_ratio FROM td_irriskmr WHERE ncr_stress_no = 0 GROUP BY ncr_stress_no ORDER BY ncr_ratio DESC]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[db] SQL 실행 실패 (시도 2/3): (psycopg2.errors.UndefinedColumn) 오류:  "crdt_risk_amt" 이름의 칼럼은 없습니다
+LINE 1: SELECT ncr_stress_no, SUM(crdt_risk_amt) / SUM(crdt_mtgt_amt...
+                                  ^
+
+[SQL: SELECT ncr_stress_no, SUM(crdt_risk_amt) / SUM(crdt_mtgt_amt) * 100 AS ncr_ratio FROM td_irriskmr WHERE ncr_stress_no = 0 GROUP BY ncr_stress_no ORDER BY ncr_ratio DESC]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[db] SQL 실행 실패 (시도 3/3): (psycopg2.errors.UndefinedColumn) 오류:  "crdt_risk_amt" 이름의 칼럼은 없습니다
+LINE 1: SELECT ncr_stress_no, SUM(crdt_risk_amt) / SUM(crdt_mtgt_amt...
+                                  ^
+
+[SQL: SELECT ncr_stress_no, SUM(crdt_risk_amt) / SUM(crdt_mtgt_amt) * 100 AS ncr_ratio FROM td_irriskmr WHERE ncr_stress_no = 0 GROUP BY ncr_stress_no ORDER BY ncr_ratio DESC]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[fallback] attempt=2 실패: (psycopg2.errors.UndefinedColumn) 오류:  "crdt_risk_amt" 이름의 칼럼은 없습니다
+LINE 1: SELECT ncr_stress_no, SUM(crdt_risk_amt) / S
+INFO:     127.0.0.1:58685 - "POST /api/ask HTTP/1.1" 503 Service Unavailable
