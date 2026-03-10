@@ -54,4 +54,5 @@ export interface SavedDashboard {
   widgets: WidgetConfig[];
   savedAt: string;
   layouts?: Record<string, { i: string; x: number; y: number; w: number; h: number }>;
+  tabData?: { id: string; label: string; widgets: WidgetConfig[] }[];
 }

@@ -312,22 +312,41 @@ export function DashboardEditorClient() {
   const [tabs, setTabs] = React.useState<Tab[]>([{ id: "tab-1", label: "탭 1" }]);
   const [activeTab, setActiveTab] = React.useState("tab-1");
   const [rightPanelOpen, setRightPanelOpen] = React.useState(false);
-  const [widgets, setWidgets] = React.useState<DashWidget[]>([]);
+
+  // 탭별 독립 위젯 맵: { tabId: DashWidget[] }
+  const [tabWidgets, setTabWidgets] = React.useState<Record<string, DashWidget[]>>(
+    { "tab-1": [] }
+  );
   const [loaded, setLoaded] = React.useState(false);
+
+  // 현재 활성 탭의 위젯
+  const widgets = tabWidgets[activeTab] ?? [];
 
   // 라이브러리 hydration 완료 후 기존 저장 데이터 로드
   React.useEffect(() => {
     if (!libHydrated || loaded) return;
     const existing = library.find((d) => d.name === initialName);
-    if (existing?.widgets?.length) {
-      setWidgets(
-        existing.widgets.map((w) => ({
-          id: w.id,
-          title: w.title,
-          datasetId: w.datasetId,
-          chartType: w.chartType,
-        }))
-      );
+    if (existing) {
+      if (existing.tabData?.length) {
+        // 탭 구조 복원
+        const restoredTabs = existing.tabData.map((t) => ({ id: t.id, label: t.label }));
+        const restoredWidgets: Record<string, DashWidget[]> = {};
+        existing.tabData.forEach((t) => {
+          restoredWidgets[t.id] = t.widgets.map((w) => ({
+            id: w.id, title: w.title, datasetId: w.datasetId, chartType: w.chartType,
+          }));
+        });
+        setTabs(restoredTabs);
+        setActiveTab(restoredTabs[0].id);
+        setTabWidgets(restoredWidgets);
+      } else if (existing.widgets?.length) {
+        // 구버전 호환: 탭 없이 저장된 경우 첫 탭에 넣기
+        setTabWidgets({
+          "tab-1": existing.widgets.map((w) => ({
+            id: w.id, title: w.title, datasetId: w.datasetId, chartType: w.chartType,
+          })),
+        });
+      }
     }
     setLoaded(true);
   }, [libHydrated, library, initialName, loaded]);
@@ -343,21 +362,37 @@ export function DashboardEditorClient() {
   };
 
   const addTab = () => {
-    const t: Tab = { id: `tab-${Date.now()}`, label: `탭 ${tabs.length + 1}` };
+    const newId = `tab-${Date.now()}`;
+    const t: Tab = { id: newId, label: `탭 ${tabs.length + 1}` };
     setTabs((p) => [...p, t]);
-    setActiveTab(t.id);
+    setTabWidgets((prev) => ({ ...prev, [newId]: [] }));  // 새 탭은 빈 위젯
+    setActiveTab(newId);
   };
 
-  /** 우측 패널에서 항목 클릭 시 위젯 추가 */
+  /** 현재 탭에 위젯 추가 */
   const handleAddWidget = (title: string, datasetId: string, chartType: ChartType) => {
-    setWidgets((prev) => [...prev, { id: generateId(), title, datasetId, chartType }]);
-    setRightPanelOpen(false); // 패널 닫기 (선택사항: 열어두려면 제거)
+    setTabWidgets((prev) => ({
+      ...prev,
+      [activeTab]: [...(prev[activeTab] ?? []), { id: generateId(), title, datasetId, chartType }],
+    }));
+    setRightPanelOpen(false);
   };
 
-  const removeWidget = (id: string) => setWidgets((p) => p.filter((w) => w.id !== id));
+  /** 현재 탭에서 위젯 제거 */
+  const removeWidget = (id: string) => {
+    setTabWidgets((prev) => ({
+      ...prev,
+      [activeTab]: (prev[activeTab] ?? []).filter((w) => w.id !== id),
+    }));
+  };
 
-  const updateChartType = (id: string, chartType: ChartType) =>
-    setWidgets((p) => p.map((w) => w.id === id ? { ...w, chartType } : w));
+  /** 현재 탭 위젯 차트 타입 변경 */
+  const updateChartType = (id: string, chartType: ChartType) => {
+    setTabWidgets((prev) => ({
+      ...prev,
+      [activeTab]: (prev[activeTab] ?? []).map((w) => w.id === id ? { ...w, chartType } : w),
+    }));
+  };
 
   const isEmpty = widgets.length === 0;
 
@@ -441,10 +476,19 @@ export function DashboardEditorClient() {
           {/* 저장 */}
           <button
             onClick={() => {
+              // 모든 탭의 위젯을 tabData로 저장
+              const tabData = tabs.map((t) => ({
+                id: t.id,
+                label: t.label,
+                widgets: (tabWidgets[t.id] ?? []).map((w) => toWidgetConfig(w)),
+              }));
+              // widgets(하위호환용): 모든 탭 위젯 합산
+              const allWidgets = tabData.flatMap((t) => t.widgets);
               const dashboard = {
                 name: dashboardName,
-                widgets: widgets.map((w) => toWidgetConfig(w)),
+                widgets: allWidgets,
                 savedAt: new Date().toISOString(),
+                tabData,
               };
               saveDashboard(dashboard);
               setSaveToast(true);
