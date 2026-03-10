@@ -92,12 +92,12 @@ export const NAV_GROUPS = [
         icon: "LayoutTemplate",
         description: "커스텀 대시보드 구성",
       },
-      {
-        title: "보고서",
-        href: "/reports",
-        icon: "FileText",
-        description: "경영진 보고서",
-      },
+      // {
+      //   title: "보고서",
+      //   href: "/reports",
+      //   icon: "FileText",
+      //   description: "경영진 보고서",
+      // },
     ],
   },
   {

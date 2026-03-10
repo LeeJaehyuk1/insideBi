@@ -69,7 +69,7 @@ const ANALYTICS_NAV: NavGroup[] = [
     items: [
       { title: "질문", href: "/questions/new", icon: Table2, description: "데이터셋 선택 → 필터 → 시각화" },
       { title: "워크스페이스", href: "/builder", icon: LayoutTemplate, description: "커스텀 대시보드 구성" },
-      { title: "보고서", href: "/reports", icon: FileText, description: "경영진 보고서" },
+      // { title: "보고서", href: "/reports", icon: FileText, description: "경영진 보고서" },
     ],
   },
 ];
@@ -77,7 +77,7 @@ const ANALYTICS_NAV: NavGroup[] = [
 const NEW_NAV: NavItem[] = [
   { title: "새 질문", href: "/questions/new", icon: Table2, description: "데이터 탐색 및 시각화" },
   { title: "새 대시보드", href: "/builder", icon: BarChart3, description: "커스텀 대시보드 구성" },
-  { title: "새 보고서", href: "/reports", icon: BookOpen, description: "경영진 보고서" },
+  // { title: "새 보고서", href: "/reports", icon: BookOpen, description: "경영진 보고서" },
 ];
 
 /* ── 드롭다운 공통 ── */
