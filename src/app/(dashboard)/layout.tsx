@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { AppSidebar } from "@/components/layout/AppSidebar";
-import { TopBar } from "@/components/layout/TopBar";
+import { TopNav } from "@/components/layout/TopNav";
 import { AiPanel } from "@/components/ai/AiPanel";
 import { AiPanelProvider } from "@/context/AiPanelContext";
 import { AiChatProvider } from "@/context/AiChatContext";
@@ -36,21 +35,16 @@ export default function DashboardLayout({
     <RoleProvider>
     <AiChatProvider>
     <AiPanelProvider value={contextValue}>
-      <div className="flex h-screen overflow-hidden">
-        {/* Sidebar - hidden on mobile */}
-        <div className="hidden md:flex">
-          <AppSidebar onAiOpen={openPanel} />
-        </div>
+      <div className="flex flex-col min-h-screen">
+        {/* Metabase-style top navigation */}
+        <TopNav onAiOpen={openPanel} />
 
         {/* Main content */}
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <TopBar onAiOpen={openPanel} />
-          <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
-          </main>
-        </div>
+        <main className="flex-1 overflow-y-auto bg-background p-6">
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+        </main>
 
         {/* AI 분석 패널 */}
         <AiPanel

@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   Save, RotateCcw, Eye, EyeOff,
   PanelLeftClose, PanelLeft, CheckCircle2, Lock, BookOpen,
+  Pencil, X as XIcon,
 } from "lucide-react";
 import { WidgetConfig, SavedDashboard, DatasetMeta, GlobalFilter, ColSpan } from "@/types/builder";
 import { DataCatalogPanel } from "@/components/builder/DataCatalogPanel";
@@ -51,6 +52,7 @@ export function BuilderClient() {
   const [filter, setFilter] = React.useState<FilterState>(DEFAULT_FILTER);
   const [saveToast, setSaveToast] = React.useState<"saved" | null>(null);
   const [libraryOpen, setLibraryOpen] = React.useState(false);
+  const [isEditMode, setIsEditMode] = React.useState(false);
   const previewRef = React.useRef<HTMLDivElement>(null);
 
   // 커스텀 데이터셋(Excel/SQL) 런타임 메모리에 로드
@@ -228,35 +230,40 @@ export function BuilderClient() {
         </div>
       )}
 
-      {/* ── Toolbar ── */}
-      <div className="flex items-center gap-3 rounded-xl border bg-background px-4 py-2.5 mb-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={() => setCatalogOpen((p) => !p)}
-          title={catalogOpen ? "카탈로그 숨기기" : "카탈로그 보기"}
-        >
-          {catalogOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
-        </Button>
+      {/* ── Metabase-style Toolbar ── */}
+      <div className="flex items-center gap-3 border-b bg-card px-4 py-2.5 mb-4 -mx-6 -mt-6 px-6">
+        {/* 편집 모드: 카탈로그 토글 */}
+        {isEditMode && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => setCatalogOpen((p) => !p)}
+              title={catalogOpen ? "카탈로그 숨기기" : "카탈로그 보기"}
+            >
+              {catalogOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+            </Button>
+            <Separator orientation="vertical" className="h-5" />
+          </>
+        )}
 
-        <Separator orientation="vertical" className="h-5" />
-
+        {/* 대시보드 이름 */}
         <input
           value={dashboardName}
-          onChange={(e) => canEdit && setDashboardName(e.target.value)}
-          readOnly={!canEdit}
+          onChange={(e) => canEdit && isEditMode && setDashboardName(e.target.value)}
+          readOnly={!canEdit || !isEditMode}
           className={cn(
-            "w-48 rounded-md bg-transparent text-sm font-semibold focus:outline-none px-2 py-1",
-            canEdit
-              ? "focus:ring-1 focus:ring-ring"
-              : "cursor-not-allowed opacity-60"
+            "min-w-0 max-w-xs rounded-md bg-transparent text-sm font-bold focus:outline-none px-2 py-1",
+            isEditMode && canEdit
+              ? "focus:ring-1 focus:ring-ring hover:bg-muted/50 cursor-text"
+              : "cursor-default"
           )}
           placeholder="대시보드 이름"
         />
 
-        {/* localStorage 저장 상태 indicator */}
-        {widgets.length > 0 && (
+        {/* 자동저장 indicator — 편집 모드에서만 */}
+        {isEditMode && widgets.length > 0 && (
           <span className="text-[10px] text-muted-foreground flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-green-500 inline-block" />
             자동저장됨
@@ -264,46 +271,72 @@ export function BuilderClient() {
         )}
 
         <div className="ml-auto flex items-center gap-2">
-          {savedDashboard && (
+          {/* 라이브러리 */}
+          <Button variant="ghost" size="sm" onClick={() => setLibraryOpen(true)}>
+            <BookOpen className="h-4 w-4 mr-1" />
+            라이브러리
+          </Button>
+
+          {/* 미리보기 (저장 후) */}
+          {savedDashboard && !isEditMode && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => {
                 setShowPreview((p) => !p);
-                if (!showPreview) {
-                  setTimeout(() => previewRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-                }
+                if (!showPreview) setTimeout(() => previewRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
               }}
             >
               {showPreview ? <EyeOff className="h-4 w-4 mr-1.5" /> : <Eye className="h-4 w-4 mr-1.5" />}
               미리보기
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => setLibraryOpen(true)}>
-            <BookOpen className="h-4 w-4 mr-1" />
-            라이브러리
-          </Button>
-          {canReset && (
-            <Button variant="outline" size="sm" onClick={handleReset} disabled={widgets.length === 0}>
-              <RotateCcw className="h-4 w-4 mr-1.5" />
-              초기화
-            </Button>
-          )}
-          {canSave && (
-            <Button size="sm" onClick={handleSave} disabled={widgets.length === 0}>
-              <Save className="h-4 w-4 mr-1.5" />
-              저장
-            </Button>
+
+          {/* 편집 모드 전용 버튼 */}
+          {isEditMode ? (
+            <>
+              {canReset && (
+                <Button variant="ghost" size="sm" onClick={handleReset} disabled={widgets.length === 0}>
+                  <RotateCcw className="h-4 w-4 mr-1.5" />
+                  초기화
+                </Button>
+              )}
+              {canSave && (
+                <Button size="sm" onClick={handleSave} disabled={widgets.length === 0}>
+                  <Save className="h-4 w-4 mr-1.5" />
+                  저장
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditMode(false)}
+              >
+                <XIcon className="h-4 w-4 mr-1.5" />
+                편집 종료
+              </Button>
+            </>
+          ) : (
+            canEdit && (
+              <Button
+                size="sm"
+                onClick={() => setIsEditMode(true)}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Pencil className="h-4 w-4 mr-1.5" />
+                편집
+              </Button>
+            )
           )}
         </div>
       </div>
 
-      {/* ── Global FilterBar ── */}
+      {/* ── Global FilterBar (항상 표시, 편집 모드에서 변경 가능) ── */}
       {widgets.length > 0 && (
-        <div className="rounded-xl border bg-background px-4 py-2.5 mb-3">
+        <div className="rounded-lg border bg-card px-4 py-2.5 mb-4">
           <FilterBar
             filter={filter}
-            onChange={handleFilterChange}
+            onChange={isEditMode ? handleFilterChange : () => {}}
             widgetCount={widgets.length}
           />
         </div>
@@ -311,23 +344,25 @@ export function BuilderClient() {
 
       {/* ── Body: Catalog + Canvas ── */}
       <div className="flex gap-4 items-start">
-        {/* Left: Data Catalog */}
-        <div
-          className={cn(
-            "shrink-0 transition-all duration-200 overflow-hidden rounded-xl border bg-background",
-            catalogOpen ? "w-52" : "w-0 border-0"
-          )}
-          style={{ height: "calc(100vh - 240px)" }}
-        >
-          <div className="w-52 flex flex-col h-full overflow-hidden">
-            <DataCatalogPanel
-              addedIds={addedIds}
-              onAdd={canEdit ? handleAdd : () => { }}
-              readonly={!canEdit}
-              canAddCatalog={canAddCatalog}
-            />
+        {/* Left: Data Catalog — 편집 모드에서만 표시 */}
+        {isEditMode && (
+          <div
+            className={cn(
+              "shrink-0 transition-all duration-200 overflow-hidden rounded-lg border bg-card",
+              catalogOpen ? "w-52" : "w-0 border-0"
+            )}
+            style={{ height: "calc(100vh - 260px)" }}
+          >
+            <div className="w-52 flex flex-col h-full overflow-hidden">
+              <DataCatalogPanel
+                addedIds={addedIds}
+                onAdd={canEdit ? handleAdd : () => { }}
+                readonly={!canEdit}
+                canAddCatalog={canAddCatalog}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Right: Canvas or Default Dashboard */}
         <div className="flex-1 min-w-0">
@@ -347,17 +382,19 @@ export function BuilderClient() {
             </div>
           ) : (
             <div>
-              <div className="mb-3 flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-muted-foreground">캔버스</h2>
-                <span className="text-xs text-muted-foreground hidden sm:inline">
-                  드래그로 자유 배치 · 우측 하단 모서리로 크기 조절 · ⚙ 로 차트 설정
-                </span>
-              </div>
+              {isEditMode && (
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    드래그로 배치 이동 · 우측 하단 모서리로 크기 조절 · ⚙ 로 차트 설정
+                  </span>
+                </div>
+              )}
               <GridWidgetCanvas
                 widgets={widgets}
                 layouts={layouts}
                 onWidgetsChange={setWidgets}
                 onLayoutChange={handleLayoutChange}
+                isEditMode={isEditMode}
               />
             </div>
           )}

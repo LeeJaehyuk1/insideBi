@@ -5,3 +5,4 @@ export * from "./market-risk";
 export * from "./liquidity-risk";
 export * from "./ncr-risk";
 export * from "./reports";
+export * from "./collections";

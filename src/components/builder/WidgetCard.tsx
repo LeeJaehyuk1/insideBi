@@ -19,10 +19,12 @@ interface WidgetCardProps {
   onChangeColSpan: (id: string, span: ColSpan) => void;
   isPreview?: boolean;
   isGridMode?: boolean;  // react-grid-layout 내부에서 사용 시 dnd-kit transform 비활성화
+  isEditMode?: boolean;  // Metabase-style edit/view mode
 }
 
 export function WidgetCard({
-  widget, onRemove, onUpdateWidget, onChangeColSpan, isPreview = false, isGridMode = false,
+  widget, onRemove, onUpdateWidget, onChangeColSpan,
+  isPreview = false, isGridMode = false, isEditMode = false,
 }: WidgetCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: widget.id });
@@ -51,89 +53,88 @@ export function WidgetCard({
 
   const hasCustomMapping = !!(widget.axisMapping || widget.thresholds?.length);
 
+  const showControls = !isPreview && isEditMode;
+
   return (
-    <div ref={isGridMode ? undefined : setNodeRef} style={style}>
-      <Card className={cn("overflow-hidden h-full", !isGridMode && isDragging && "ring-2 ring-primary")}>
-        <CardHeader className="flex-row items-center gap-2 py-2 px-3 space-y-0 border-b bg-muted/30">
-          {/* Drag handle */}
-          {!isPreview && (
+    <div ref={isGridMode ? undefined : setNodeRef} style={style} className="group">
+      <Card className={cn(
+        "overflow-hidden h-full transition-shadow",
+        !isGridMode && isDragging && "ring-2 ring-primary shadow-lg",
+        isEditMode && "ring-1 ring-border"
+      )}>
+        {/* ── Metabase-style card header ── */}
+        <CardHeader className={cn(
+          "flex-row items-center gap-2 py-0 px-3 space-y-0 border-b",
+          isEditMode ? "bg-muted/20 min-h-[36px]" : "bg-card min-h-[40px]"
+        )}>
+          {/* 편집 모드: drag handle */}
+          {showControls && (
             <button
               {...attributes}
               {...listeners}
-              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+              className="drag-handle cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0 py-2"
+              title="드래그로 위치 이동"
             >
               <GripVertical className="h-4 w-4" />
             </button>
           )}
 
           {/* Title */}
-          <span className="flex-1 text-xs font-semibold truncate">{widget.title}</span>
+          <span className={cn(
+            "flex-1 truncate py-2.5",
+            isEditMode ? "text-xs font-semibold text-foreground" : "text-sm font-semibold text-foreground"
+          )}>
+            {widget.title}
+          </span>
 
-          {!isPreview && (
-            <div className="flex items-center gap-0.5">
-              {/* Col span controls */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={spanCycleDown}
-                disabled={widget.colSpan <= 1}
-              >
+          {/* 뷰 모드: 드릴다운 버튼만 */}
+          {!isPreview && !isEditMode && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity", drilldownOpen && "opacity-100 text-primary bg-primary/10")}
+              title="상세 데이터 보기"
+              onClick={() => setDrilldownOpen((p) => !p)}
+            >
+              <TableProperties className="h-3.5 w-3.5" />
+            </Button>
+          )}
+
+          {/* 편집 모드: 전체 컨트롤 */}
+          {showControls && (
+            <div className="flex items-center gap-0.5 shrink-0">
+              {/* Col span */}
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={spanCycleDown} disabled={widget.colSpan <= 1}>
                 <ChevronLeft className="h-3 w-3" />
               </Button>
-              <span className="text-[10px] text-muted-foreground w-4 text-center">
-                {widget.colSpan}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={spanCycleUp}
-                disabled={widget.colSpan >= 3}
-              >
+              <span className="text-[10px] text-muted-foreground w-4 text-center">{widget.colSpan}</span>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={spanCycleUp} disabled={widget.colSpan >= 3}>
                 <ChevronRight className="h-3 w-3" />
               </Button>
 
-              {/* Drill-down toggle */}
+              {/* Drill-down */}
               <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-6 w-6",
-                  drilldownOpen && "text-primary bg-primary/10"
-                )}
+                variant="ghost" size="icon"
+                className={cn("h-6 w-6", drilldownOpen && "text-primary bg-primary/10")}
                 title="상세 데이터 보기"
                 onClick={() => setDrilldownOpen((p) => !p)}
               >
                 <TableProperties className="h-3.5 w-3.5" />
               </Button>
 
-              {/* Mapping panel trigger */}
+              {/* Mapping */}
               <MappingPanel
                 widget={widget}
                 onUpdate={(updates) => onUpdateWidget(widget.id, updates)}
                 trigger={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                      "h-6 w-6",
-                      hasCustomMapping && "text-primary"
-                    )}
-                    title="위젯 설정"
-                  >
+                  <Button variant="ghost" size="icon" className={cn("h-6 w-6", hasCustomMapping && "text-primary")} title="위젯 설정">
                     <Settings2 className="h-3.5 w-3.5" />
                   </Button>
                 }
               />
 
               {/* Remove */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                onClick={() => onRemove(widget.id)}
-              >
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => onRemove(widget.id)}>
                 <X className="h-3.5 w-3.5" />
               </Button>
             </div>

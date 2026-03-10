@@ -53,6 +53,13 @@ const config: Config = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        /* Metabase nav palette */
+        nav: {
+          DEFAULT: "hsl(var(--nav-bg))",
+          foreground: "hsl(var(--nav-fg))",
+          hover: "hsl(var(--nav-hover))",
+          active: "hsl(var(--nav-active))",
+        },
         risk: {
           normal: "#22c55e",
           caution: "#eab308",

@@ -25,6 +25,7 @@ interface GridWidgetCanvasProps {
     layouts: Record<string, GridItemLayout>;
     onWidgetsChange: (widgets: WidgetConfig[]) => void;
     onLayoutChange: (layouts: Record<string, GridItemLayout>) => void;
+    isEditMode?: boolean;
 }
 
 const COLS = 3;
@@ -73,6 +74,7 @@ export function GridWidgetCanvas({
     layouts,
     onWidgetsChange,
     onLayoutChange,
+    isEditMode = false,
 }: GridWidgetCanvasProps) {
     const [containerWidth, setContainerWidth] = React.useState(900);
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -165,7 +167,8 @@ export function GridWidgetCanvas({
                 margin={[16, 16]}
                 containerPadding={[0, 0]}
                 draggableHandle=".drag-handle"
-                isResizable={true}
+                isDraggable={isEditMode}
+                isResizable={isEditMode}
                 resizeHandles={["se"]}
                 compactType={null}
                 preventCollision={true}
@@ -181,6 +184,7 @@ export function GridWidgetCanvas({
                             onRemove={handleRemove}
                             onUpdateWidget={handleUpdateWidget}
                             onChangeColSpan={handleChangeColSpan}
+                            isEditMode={isEditMode}
                         />
                     </div>
                 ))}
@@ -195,11 +199,13 @@ function WidgetCardGridWrapper({
     onRemove,
     onUpdateWidget,
     onChangeColSpan,
+    isEditMode,
 }: {
     widget: WidgetConfig;
     onRemove: (id: string) => void;
     onUpdateWidget: (id: string, updates: Partial<WidgetConfig>) => void;
     onChangeColSpan: (id: string, span: ColSpan) => void;
+    isEditMode?: boolean;
 }) {
     return (
         <div className="h-full">
@@ -209,6 +215,7 @@ function WidgetCardGridWrapper({
                 onUpdateWidget={onUpdateWidget}
                 onChangeColSpan={onChangeColSpan}
                 isGridMode={true}
+                isEditMode={isEditMode}
             />
         </div>
     );

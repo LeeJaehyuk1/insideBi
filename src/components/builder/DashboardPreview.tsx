@@ -71,8 +71,8 @@ export function DashboardPreview({ dashboard, hideHeader }: DashboardPreviewProp
           {dashboard.widgets.map((widget) => (
             <div key={widget.id} className="h-full">
               <Card className="overflow-hidden h-full">
-                <CardHeader className="flex-row items-center py-2 px-3 space-y-0 border-b bg-muted/30">
-                  <span className="text-xs font-semibold">{widget.title}</span>
+                <CardHeader className="flex-row items-center min-h-[40px] py-0 px-4 space-y-0 border-b bg-card">
+                  <span className="text-sm font-semibold py-2.5">{widget.title}</span>
                 </CardHeader>
                 <CardContent className="p-0 h-[calc(100%-40px)]">
                   <WidgetRenderer widget={widget} />
