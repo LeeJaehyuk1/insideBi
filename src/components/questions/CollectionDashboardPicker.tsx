@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useCollectionFolders } from "@/hooks/useCollectionFolders";
 import { useDashboardLibrary } from "@/hooks/useDashboardLibrary";
 import { ROOT_ID, PERSONAL_ID } from "@/lib/mock-data/collection-folders";
+import { useRole } from "@/context/RoleContext";
 
 type Tab = "recent" | "browse";
 
@@ -33,6 +34,7 @@ interface RightItem {
 export function CollectionDashboardPicker({ onSelect, onClose }: CollectionDashboardPickerProps) {
   const { folders, createFolder } = useCollectionFolders();
   const { library, saveDashboard } = useDashboardLibrary();
+  const { userName } = useRole();
 
   const [tab, setTab] = React.useState<Tab>("browse");
   const [search, setSearch] = React.useState("");
@@ -48,7 +50,7 @@ export function CollectionDashboardPicker({ onSelect, onClose }: CollectionDashb
   /* ── 왼쪽 컬렉션 목록 ── */
   const leftItems = [
     { id: ROOT_ID,     label: "우리의 분석",          icon: FolderOpen, hasArrow: true  },
-    { id: PERSONAL_ID, label: "이재혁님의 개인 컬렉션", icon: User2,      hasArrow: false },
+    { id: PERSONAL_ID, label: `${userName}님의 개인 컬렉션`, icon: User2,      hasArrow: false },
     { id: "all-personal", label: "모든 개인 컬렉션",   icon: Users,      hasArrow: true  },
   ];
 

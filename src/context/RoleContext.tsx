@@ -55,17 +55,23 @@ export const can = {
 interface RoleContextValue {
     role: Role;
     setRole: (role: Role) => void;
+    userName: string;
+    setUserName: (name: string) => void;
 }
 
 const RoleContext = React.createContext<RoleContextValue>({
     role: "viewer",
     setRole: () => { },
+    userName: "사용자",
+    setUserName: () => { },
 });
 
 const STORAGE_KEY = "InsightBi_role_v1";
+const USER_NAME_KEY = "insightbi_user_name_v1";
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
     const [role, setRoleState] = React.useState<Role>("viewer");
+    const [userName, setUserNameState] = React.useState<string>("사용자");
 
     // localStorage 복원
     React.useEffect(() => {
@@ -73,6 +79,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         if (saved && ["admin", "editor", "viewer"].includes(saved)) {
             setRoleState(saved);
         }
+        const savedName = localStorage.getItem(USER_NAME_KEY);
+        if (savedName) setUserNameState(savedName);
     }, []);
 
     const setRole = (next: Role) => {
@@ -80,8 +88,13 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(STORAGE_KEY, next);
     };
 
+    const setUserName = (name: string) => {
+        setUserNameState(name);
+        localStorage.setItem(USER_NAME_KEY, name);
+    };
+
     return (
-        <RoleContext.Provider value={{ role, setRole }}>
+        <RoleContext.Provider value={{ role, setRole, userName, setUserName }}>
             {children}
         </RoleContext.Provider>
     );

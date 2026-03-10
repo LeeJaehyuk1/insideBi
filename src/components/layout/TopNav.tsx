@@ -28,6 +28,7 @@ import {
   Check,
   FolderOpen,
   Database,
+  User2,
 } from "lucide-react";
 import { NewDashboardModal } from "@/components/dashboard/NewDashboardModal";
 import { useTheme } from "next-themes";
@@ -201,7 +202,9 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
     if (action === "new-dashboard") setNewDashboardOpen(true);
   }, []);
 
-  const { role, setRole } = useRole();
+  const { role, setRole, userName, setUserName } = useRole();
+  const [editingName, setEditingName] = React.useState(false);
+  const [nameInput, setNameInput] = React.useState("");
   const roleInfo = getRoleInfo(role);
   const RoleIcon = roleIcons[role];
 
@@ -356,6 +359,36 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
 
         {/* 구분선 */}
         <div className="h-6 w-px bg-nav-foreground/20 mx-1" />
+
+        {/* 사용자 이름 */}
+        {editingName ? (
+          <input
+            autoFocus
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            onBlur={() => {
+              if (nameInput.trim()) setUserName(nameInput.trim());
+              setEditingName(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (nameInput.trim()) setUserName(nameInput.trim());
+                setEditingName(false);
+              }
+              if (e.key === "Escape") setEditingName(false);
+            }}
+            className="w-20 rounded border border-nav-foreground/30 bg-transparent px-1.5 py-0.5 text-xs text-nav-foreground focus:outline-none"
+          />
+        ) : (
+          <button
+            onClick={() => { setNameInput(userName); setEditingName(true); }}
+            title="이름 변경"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-nav-foreground/80 hover:text-nav-foreground hover:bg-nav-hover transition-colors"
+          >
+            <User2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{userName}</span>
+          </button>
+        )}
 
         {/* 역할 스위처 */}
         <div ref={roleDropRef} className="relative">

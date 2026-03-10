@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import type { CollectionFolder, FolderEntry, EntryType } from "@/lib/mock-data/collection-folders";
-import { collectionFolders, ROOT_ID } from "@/lib/mock-data/collection-folders";
+import { collectionFolders, ROOT_ID, PERSONAL_ID } from "@/lib/mock-data/collection-folders";
 
 const LS_KEY = "insightbi_collection_folders_v2";
+const USER_NAME_KEY = "insightbi_user_name_v1";
 
 function load(): CollectionFolder[] {
   if (typeof window === "undefined") return JSON.parse(JSON.stringify(collectionFolders));
@@ -33,7 +34,11 @@ export function useCollectionFolders() {
   const [hydrated, setHydrated] = React.useState(false);
 
   React.useEffect(() => {
-    setFolders(load());
+    const userName = localStorage.getItem(USER_NAME_KEY) || "사용자";
+    const loaded = load().map((f) =>
+      f.id === PERSONAL_ID ? { ...f, name: `${userName}님의 개인 컬렉션` } : f
+    );
+    setFolders(loaded);
     setHydrated(true);
   }, []);
 
