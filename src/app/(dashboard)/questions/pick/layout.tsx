@@ -1,11 +1,4 @@
-/**
- * questions/pick 전용 레이아웃:
- * 모달 UI가 전체화면을 덮어야 하므로 부모 p-6 패딩 제거
- */
+/* pick 페이지는 fixed 모달을 직접 사용하므로 추가 레이아웃 불필요 */
 export default function PickLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="-m-6 h-[calc(100vh-3.5rem)] overflow-hidden">
-            {children}
-        </div>
-    );
+    return <>{children}</>;
 }

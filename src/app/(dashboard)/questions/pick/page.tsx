@@ -6,55 +6,61 @@ import { Search, X, Clock, Table2, FolderOpen, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ─────────────────────────────────────────
-   DB 목록
+   DB 목록 (스키마 정보 포함)
 ───────────────────────────────────────── */
 const DATABASES = [
-  { id: "railway", label: "railway" },
-  { id: "sample", label: "Sample Database" },
+  {
+    id: "railway",
+    label: "railway",
+    schema: "public",
+    description: "InsightBi 리스크 DB",
+  },
+  {
+    id: "sample",
+    label: "Sample Database",
+    schema: "PUBLIC",
+    description: "예제 데이터베이스",
+  },
 ];
 
 /* ─────────────────────────────────────────
-   테이블 목록 (영어 이름, 설명 없음, 알파벳 순)
+   실제 DB 테이블 목록 (현행화)
+   railway: backend-environments.md 기준 19개 테이블
+   sample: H2 인메모리 예제 테이블
 ───────────────────────────────────────── */
-const DB_TABLES: Record<string, string[]> = {
+const DB_TABLES: Record<string, { label: string; tableId: string }[]> = {
   railway: [
-    "Concentration",
-    "Credit Grades",
-    "Funding Structure",
-    "Lcr Gauge",
-    "Lcr Nsfr Trend",
-    "Liquidity Buffer",
-    "Maturity Gap",
-    "Ncr Capital",
-    "Ncr Composition",
-    "Ncr Summary",
-    "Ncr Trend",
-    "Npl Summary",
-    "Npl Trend",
-    "Pd Lgd Ead",
-    "Risk Composition",
-    "Sector Exposure",
-    "Sensitivity",
-    "Stress Scenarios",
-    "Var Summary",
-    "Var Trend",
-  ].sort(),
+    { label: "Concentration", tableId: "concentration" },
+    { label: "Credit Grades", tableId: "credit_grades" },
+    { label: "Funding Structure", tableId: "funding_structure" },
+    { label: "Lcr Gauge", tableId: "lcr_gauge" },
+    { label: "Lcr Nsfr Trend", tableId: "lcr_nsfr_trend" },
+    { label: "Liquidity Buffer", tableId: "liquidity_buffer" },
+    { label: "Maturity Gap", tableId: "maturity_gap" },
+    { label: "Npl Summary", tableId: "npl_summary" },
+    { label: "Npl Trend", tableId: "npl_trend" },
+    { label: "Pd Lgd Ead", tableId: "pd_lgd_ead" },
+    { label: "Sector Exposure", tableId: "sector_exposure" },
+    { label: "Sensitivity", tableId: "sensitivity" },
+    { label: "Stress Scenarios", tableId: "stress_scenarios" },
+    { label: "Td Irncr", tableId: "td_irncr" },
+    { label: "Td Irpos", tableId: "td_irpos" },
+    { label: "Td Irriskcr", tableId: "td_irriskcr" },
+    { label: "Td Irriskmr", tableId: "td_irriskmr" },
+    { label: "Var Summary", tableId: "var_summary" },
+    { label: "Var Trend", tableId: "var_trend" },
+  ].sort((a, b) => a.label.localeCompare(b.label)),
   sample: [
-    "Accounts",
-    "Analytic Events",
-    "Feedback",
-    "Invoices",
-    "Orders",
-    "People",
-    "Products",
-    "Reviews",
-  ].sort(),
+    { label: "Accounts", tableId: "accounts" },
+    { label: "Analytic Events", tableId: "analytic_events" },
+    { label: "Feedback", tableId: "feedback" },
+    { label: "Invoices", tableId: "invoices" },
+    { label: "Orders", tableId: "orders" },
+    { label: "People", tableId: "people" },
+    { label: "Products", tableId: "products" },
+    { label: "Reviews", tableId: "reviews" },
+  ].sort((a, b) => a.label.localeCompare(b.label)),
 };
-
-/* 테이블 이름 → dataset ID 변환 */
-function labelToId(label: string): string {
-  return label.toLowerCase().replace(/ /g, "-");
-}
 
 /* ─────────────────────────────────────────
    최근 기록
@@ -90,25 +96,31 @@ export default function QuestionPickPage() {
     const tables = DB_TABLES[dbId] ?? [];
     if (!search.trim()) return tables;
     const q = search.toLowerCase();
-    return tables.filter((t) => t.toLowerCase().includes(q));
+    return tables.filter((t) => t.label.toLowerCase().includes(q));
   }, [dbId, search]);
 
-  const handleSelect = (label: string) => {
-    const id = labelToId(label);
-    saveRecent(id, label, dbId);
-    router.push(`/questions/nocode?dataset=${id}`);
+  const handleSelect = (tableId: string, label: string) => {
+    saveRecent(tableId, label, dbId);
+    router.push(`/questions/nocode?dataset=${tableId}`);
   };
 
+  const selectedDb = DATABASES.find((d) => d.id === dbId)!;
+
   return (
-    /* 전체 화면 반투명 배경 */
+    /*
+     * fixed top-14: TopNav(3.5rem=56px)보다 아래서 시작
+     * inset-x-0 bottom-0: 좌우·하단은 꽉 채움
+     */
     <div
-      className="fixed inset-0 z-40 flex items-start justify-center bg-black/40 backdrop-blur-sm pt-[4vh]"
+      className="fixed inset-x-0 bottom-0 z-40 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-y-auto"
+      style={{ top: "3.5rem" }}
       onClick={(e) => { if (e.target === e.currentTarget) router.back(); }}
     >
       {/* ── 모달 카드 ── */}
       <div
-        className="relative flex flex-col w-full bg-white dark:bg-card rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200"
-        style={{ maxWidth: 900, maxHeight: "88vh" }}
+        className="relative flex flex-col w-full bg-white dark:bg-card rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-6"
+        style={{ maxWidth: 860, maxHeight: "calc(100vh - 7rem)" }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
         <div className="flex items-center justify-between px-6 py-4 shrink-0">
@@ -144,7 +156,7 @@ export default function QuestionPickPage() {
         </div>
 
         {/* 탭 */}
-        <div className="flex items-center gap-0 px-6 border-b border-border shrink-0">
+        <div className="flex items-center px-6 border-b border-border shrink-0">
           {([
             { id: "recent", label: "최근", icon: Clock },
             { id: "table", label: "테이블", icon: Table2 },
@@ -166,11 +178,11 @@ export default function QuestionPickPage() {
           ))}
         </div>
 
-        {/* 본문: 좌측 DB + 우측 테이블 목록 */}
+        {/* 본문 */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
 
-          {/* 좌측 DB 목록 */}
-          <div className="w-64 shrink-0 border-r border-border overflow-y-auto py-2">
+          {/* 좌측: DB 목록 (스키마명 포함) */}
+          <div className="w-64 shrink-0 border-r border-border overflow-y-auto py-2 bg-muted/5">
             {DATABASES.map((db) => {
               const isActive = dbId === db.id;
               return (
@@ -178,31 +190,44 @@ export default function QuestionPickPage() {
                   key={db.id}
                   onClick={() => { setDbId(db.id); setSearch(""); }}
                   className={cn(
-                    "flex items-center gap-3 w-full px-5 py-3 text-sm font-medium text-left transition-all rounded-none",
-                    isActive
-                      ? "bg-primary text-white"
-                      : "text-foreground hover:bg-muted/60"
+                    "flex items-center gap-3 w-full px-4 py-3 text-left transition-all",
+                    isActive ? "bg-primary text-white" : "text-foreground hover:bg-muted/60"
                   )}
                 >
                   {/* DB 아이콘 */}
                   <div className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded shrink-0 text-[10px] font-bold",
+                    "flex h-7 w-7 items-center justify-center rounded shrink-0 text-[10px] font-bold",
                     isActive ? "bg-white/20 text-white" : "bg-primary/10 text-primary"
                   )}>
-                    {db.id === "sample" ? (
-                      <span>S</span>
-                    ) : (
-                      <span className="text-[9px]">DB</span>
-                    )}
+                    {db.id === "sample" ? "S" : <span className="text-[9px]">DB</span>}
                   </div>
-                  <span className="truncate">{db.label}</span>
+                  {/* DB 이름 + 스키마 */}
+                  <div className="min-w-0">
+                    <p className={cn("text-sm font-medium truncate", isActive ? "text-white" : "text-foreground")}>
+                      {db.label}
+                    </p>
+                    <p className={cn("text-[11px] truncate", isActive ? "text-white/70" : "text-muted-foreground")}>
+                      schema: {db.schema}
+                    </p>
+                  </div>
                 </button>
               );
             })}
           </div>
 
-          {/* 우측 테이블 목록 */}
+          {/* 우측: 테이블 목록 */}
           <div className="flex-1 overflow-y-auto">
+
+            {/* 현재 DB/스키마 경로 표시 */}
+            {tab === "table" && (
+              <div className="px-5 py-2 border-b border-border/50 bg-muted/10 shrink-0">
+                <p className="text-xs text-muted-foreground font-mono">
+                  {selectedDb.label} / <span className="text-foreground font-semibold">{selectedDb.schema}</span>
+                  <span className="ml-2 text-muted-foreground">({filtered.length}개 테이블)</span>
+                </p>
+              </div>
+            )}
+
             {tab === "recent" && (
               recent.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted-foreground">
@@ -214,12 +239,12 @@ export default function QuestionPickPage() {
                   {recent.map((r) => (
                     <button
                       key={r.id}
-                      onClick={() => handleSelect(r.label)}
+                      onClick={() => handleSelect(r.id, r.label)}
                       className="flex items-center gap-3 w-full px-5 py-2.5 text-sm text-left hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors group"
                     >
                       <LayoutGrid className="h-4 w-4 text-primary shrink-0" />
                       <span className="text-primary font-medium">{r.label}</span>
-                      <span className="ml-auto text-xs text-muted-foreground">{r.dbId}</span>
+                      <span className="ml-auto text-xs text-muted-foreground font-mono">{r.id}</span>
                     </button>
                   ))}
                 </div>
@@ -233,15 +258,18 @@ export default function QuestionPickPage() {
                   <p className="text-sm">&quot;{search}&quot; 에 해당하는 테이블이 없습니다</p>
                 </div>
               ) : (
-                <div>
-                  {filtered.map((label) => (
+                <div className="py-1">
+                  {filtered.map((t) => (
                     <button
-                      key={label}
-                      onClick={() => handleSelect(label)}
+                      key={t.tableId}
+                      onClick={() => handleSelect(t.tableId, t.label)}
                       className="flex items-center gap-3 w-full px-5 py-2.5 text-sm text-left hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors group"
                     >
                       <LayoutGrid className="h-4 w-4 text-primary shrink-0" />
-                      <span className="text-primary font-medium">{label}</span>
+                      <span className="text-primary font-medium flex-1">{t.label}</span>
+                      <span className="text-[11px] text-muted-foreground font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                        {t.tableId}
+                      </span>
                     </button>
                   ))}
                 </div>
