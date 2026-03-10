@@ -19,6 +19,7 @@ import type { FolderEntry } from "@/lib/mock-data/collection-folders";
 import { AddToCollectionDialog } from "@/components/collections/AddToCollectionDialog";
 import { TablePickerModal } from "./TablePickerModal";
 import { FilterPicker } from "./FilterPicker";
+import { SaveQuestionModal } from "./SaveQuestionModal";
 import type { FilterParam, FilterOperator } from "@/types/query";
 import type { ChartType } from "@/types/builder";
 import type { CollectionItem } from "@/types/collection";
@@ -215,6 +216,7 @@ export function NoCodeBuilder({
   const [chartType, setChartType] = React.useState<ChartType>("bar");
   const [showTable, setShowTable] = React.useState(false);
   const [saveToast, setSaveToast] = React.useState(false);
+  const [saveModalOpen, setSaveModalOpen] = React.useState(false);
   const [collectionOpen, setCollectionOpen] = React.useState(false);
   const [pendingItem, setPendingItem] = React.useState<Omit<CollectionItem, "pinned"> | null>(null);
 
@@ -304,11 +306,17 @@ export function NoCodeBuilder({
     }
   };
 
-  /* 저장 */
+  /* 저장 버튼 → 모달 열기 */
   const handleSave = () => {
     const id = tableId || datasetId;
     if (!id) return;
-    const title = `${tableLabel || dataset?.label || "질문"} 분석`;
+    setSaveModalOpen(true);
+  };
+
+  /* 모달에서 실제 저장 */
+  const handleConfirmSave = (title: string, _desc: string, _colId: string) => {
+    const id = tableId || datasetId;
+    if (!id) return;
     const saved = saveQuestion({ title, datasetId: id, filters, chartType });
     if (collectionId) {
       const entry: FolderEntry = {
@@ -319,6 +327,7 @@ export function NoCodeBuilder({
       };
       addEntry(collectionId, entry);
     }
+    setSaveModalOpen(false);
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 2500);
     const now = new Date().toISOString().split("T")[0];
@@ -649,6 +658,17 @@ export function NoCodeBuilder({
           )}
         </div>
       </div>
+
+      {/* 새 질문 저장 모달 */}
+      <SaveQuestionModal
+        open={saveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
+        onSave={handleConfirmSave}
+        tableLabel={tableLabel || dataset?.label || "질문"}
+        filters={filters}
+        columnLabels={Object.fromEntries(columns.map((c) => [c.key, c.label]))}
+        defaultCollectionId={collectionId}
+      />
 
       {pendingItem && (
         <AddToCollectionDialog
