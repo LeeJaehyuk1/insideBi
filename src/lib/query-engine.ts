@@ -22,10 +22,62 @@ export async function executeQuery<T = Record<string, unknown>>(
   }
 
   if (!entry) {
+    let rawTableRows: Record<string, unknown>[] | undefined;
+    const { getTableData } = await import("@/lib/db-catalog");
+    
+    // Attempt to load from railway or sample mock tables
+    const railwayData = getTableData("railway", config.datasetId);
+    if (railwayData && railwayData.length > 0) rawTableRows = railwayData;
+    else {
+      const sampleData = getTableData("sample", config.datasetId);
+      if (sampleData && sampleData.length > 0) rawTableRows = sampleData;
+    }
+
+    if (!rawTableRows) {
+      return {
+        data: [],
+        meta: {
+          total: 0,
+          datasetId: config.datasetId,
+          executedAt: new Date().toISOString(),
+          params: config,
+        },
+      };
+    }
+
+    // Apply generic column filters for raw tables
+    let filteredRows = rawTableRows;
+    if (config.filters?.length) {
+      for (const f of config.filters) {
+        filteredRows = filteredRows.filter((row) => {
+          const val = row[f.column];
+          const sv = String(val ?? "");
+          const fv = String(f.value ?? "");
+          switch (f.operator) {
+            case "eq":           return sv === fv;
+            case "neq":          return sv !== fv;
+            case "contains":     return sv.toLowerCase().includes(fv.toLowerCase());
+            case "not_contains": return !sv.toLowerCase().includes(fv.toLowerCase());
+            case "starts":       return sv.toLowerCase().startsWith(fv.toLowerCase());
+            case "ends":         return sv.toLowerCase().endsWith(fv.toLowerCase());
+            case "empty":        return sv === "" || val == null;
+            case "not_empty":    return sv !== "" && val != null;
+            case "gte":          return Number(val) >= Number(f.value);
+            case "lte":          return Number(val) <= Number(f.value);
+            default:             return true;
+          }
+        });
+      }
+    }
+    
+    if (config.limit && config.limit > 0) {
+      filteredRows = filteredRows.slice(0, config.limit);
+    }
+
     return {
-      data: [],
+      data: filteredRows as unknown as T[],
       meta: {
-        total: 0,
+        total: rawTableRows.length,
         datasetId: config.datasetId,
         executedAt: new Date().toISOString(),
         params: config,

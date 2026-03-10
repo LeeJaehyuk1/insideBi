@@ -16,6 +16,7 @@ import { formatKRW, formatPct } from "@/lib/utils";
 import { WaterfallChart, WaterfallBarData } from "@/components/charts/WaterfallChart";
 import { BulletChart, BulletItem } from "@/components/charts/BulletChart";
 import { isCustomDataset } from "@/lib/custom-dataset-runtime";
+import { getRegistryEntry } from "@/lib/dataset-registry";
 
 
 const H = 240;
@@ -836,8 +837,9 @@ export function WidgetRenderer({ widget }: { widget: WidgetConfig }) {
 
   if (isLoading) return <DataSkeleton />;
 
-  // ── 커스텀 데이터셋 (custom-*) 전용 렌더러
-  if (isCustomDataset(datasetId)) {
+  // ── 커스텀 데이터셋 (custom-*) 또는 등록되지 않은 일반 DB 테이블 전용 렌더러
+  const isRegistered = !!getRegistryEntry(datasetId);
+  if (!isRegistered || isCustomDataset(datasetId)) {
     return (
       <CustomDatasetRenderer
         data={data}

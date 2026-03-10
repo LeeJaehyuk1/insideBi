@@ -17,6 +17,7 @@ import { useDashboardLibrary } from "@/hooks/useDashboardLibrary";
 import { useCollectionFolders } from "@/hooks/useCollectionFolders";
 import type { FolderEntry } from "@/lib/mock-data/collection-folders";
 import type { WidgetConfig, ChartType } from "@/types/builder";
+import type { FilterParam } from "@/types/query";
 
 /* ── 위젯 타입 ── */
 interface DashWidget {
@@ -24,13 +25,13 @@ interface DashWidget {
   title: string;
   datasetId: string;
   chartType: ChartType;
+  filters?: FilterParam[];
 }
 
 function generateId() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-/* ── 위젯을 WidgetConfig로 변환 ── */
 function toWidgetConfig(w: DashWidget): WidgetConfig {
   return {
     id: w.id,
@@ -38,6 +39,7 @@ function toWidgetConfig(w: DashWidget): WidgetConfig {
     chartType: w.chartType,
     title: w.title,
     colSpan: 2,
+    queryParams: w.filters ? { filters: w.filters } : undefined,
   };
 }
 
@@ -134,7 +136,7 @@ function WidgetCard({ widget, onRemove, onChartTypeChange }: {
 
 /* ── 우측 패널 ── */
 function RightPanel({ onAddWidget }: {
-  onAddWidget: (title: string, datasetId: string, chartType: ChartType) => void;
+  onAddWidget: (title: string, datasetId: string, chartType: ChartType, filters?: FilterParam[]) => void;
 }) {
   const { questions } = useSavedQuestions();
   const [search, setSearch] = React.useState("");
@@ -212,7 +214,7 @@ function RightPanel({ onAddWidget }: {
               return (
                 <button
                   key={q.id}
-                  onClick={() => onAddWidget(q.title, q.datasetId, defaultChart(q.datasetId))}
+                  onClick={() => onAddWidget(q.title, q.datasetId, defaultChart(q.datasetId), q.filters)}
                   className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-primary/5 hover:text-primary transition-colors group"
                 >
                   <Table2 className="h-4 w-4 text-primary shrink-0" />
@@ -336,7 +338,7 @@ export function DashboardEditorClient() {
         const restoredWidgets: Record<string, DashWidget[]> = {};
         existing.tabData.forEach((t) => {
           restoredWidgets[t.id] = t.widgets.map((w) => ({
-            id: w.id, title: w.title, datasetId: w.datasetId, chartType: w.chartType,
+            id: w.id, title: w.title, datasetId: w.datasetId, chartType: w.chartType, filters: w.queryParams?.filters
           }));
         });
         setTabs(restoredTabs);
@@ -346,7 +348,7 @@ export function DashboardEditorClient() {
         // 구버전 호환: 탭 없이 저장된 경우 첫 탭에 넣기
         setTabWidgets({
           "tab-1": existing.widgets.map((w) => ({
-            id: w.id, title: w.title, datasetId: w.datasetId, chartType: w.chartType,
+            id: w.id, title: w.title, datasetId: w.datasetId, chartType: w.chartType, filters: w.queryParams?.filters
           })),
         });
       }
@@ -372,11 +374,10 @@ export function DashboardEditorClient() {
     setActiveTab(newId);
   };
 
-  /** 현재 탭에 위젯 추가 */
-  const handleAddWidget = (title: string, datasetId: string, chartType: ChartType) => {
+  const handleAddWidget = (title: string, datasetId: string, chartType: ChartType, filters?: FilterParam[]) => {
     setTabWidgets((prev) => ({
       ...prev,
-      [activeTab]: [...(prev[activeTab] ?? []), { id: generateId(), title, datasetId, chartType }],
+      [activeTab]: [...(prev[activeTab] ?? []), { id: generateId(), title, datasetId, chartType, filters }],
     }));
     setRightPanelOpen(false);
   };
