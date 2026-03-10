@@ -170,11 +170,18 @@ export function NoCodeBuilder({
   const { saveQuestion } = useSavedQuestions();
   const { addEntry } = useCollectionFolders();
 
+  // initialDatasetId가 DB 테이블 ID인지 확인 (dataCatalog에 없으면 DB 테이블로 처리)
+  const isDbTableId = (id: string) =>
+    !!id && !dataCatalog.find((d) => d.id === id);
+
+  const resolvedTableId = initialTableId ?? (isDbTableId(initialDatasetId ?? "") ? (initialDatasetId ?? "") : "");
+  const resolvedDatasetId = !resolvedTableId ? (initialDatasetId ?? "") : "";
+
   /* 테이블 / 데이터셋 상태 */
-  const [tableId, setTableId] = React.useState(initialTableId ?? "");
+  const [tableId, setTableId] = React.useState(resolvedTableId);
   const [dbId, setDbId] = React.useState(initialDbId);
-  const [datasetId, setDatasetId] = React.useState(initialDatasetId ?? "");
-  const [showTablePicker, setShowTablePicker] = React.useState(!initialTableId && !initialDatasetId);
+  const [datasetId, setDatasetId] = React.useState(resolvedDatasetId);
+  const [showTablePicker, setShowTablePicker] = React.useState(!resolvedTableId && !resolvedDatasetId);
 
   /* 테이블 정보 */
   const tableLabel = tableId ? getTableLabel(tableId, dbId) : (dataCatalog.find((d) => d.id === datasetId)?.label ?? "");
@@ -388,22 +395,15 @@ export function NoCodeBuilder({
           <div>
             <p className="text-sm font-semibold text-primary mb-2">데이터</p>
             <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 px-4 py-3 flex items-center gap-3">
-              {/* 테이블 이름 + ∨ 버튼 */}
-              <div className="flex items-center gap-0 rounded-lg overflow-hidden border border-primary/40">
-                <button
-                  onClick={() => setShowTablePicker(true)}
-                  className="flex items-center gap-2 bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                  {tableLabel || "테이블 선택"}
-                </button>
-                <button
-                  onClick={() => setShowTablePicker(true)}
-                  className="flex items-center justify-center bg-primary/80 hover:bg-primary/90 px-2 py-2 text-white border-l border-white/20 transition-colors"
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-              </div>
+              {/* 테이블 이름 pill 버튼 */}
+              <button
+                onClick={() => setShowTablePicker(true)}
+                className="flex items-center gap-2 rounded-lg bg-primary/10 border border-primary/30 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/20 transition-colors"
+              >
+                <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
+                <span>{tableLabel || "테이블 선택"}</span>
+                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+              </button>
 
               <div className="flex-1" />
 
