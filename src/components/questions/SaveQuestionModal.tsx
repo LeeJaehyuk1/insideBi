@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { X, LayoutDashboard, ChevronDown } from "lucide-react";
+import { X, LayoutDashboard, FolderOpen, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CollectionPickerModal } from "@/components/dashboard/CollectionPickerModal";
 import { useDashboardLibrary } from "@/hooks/useDashboardLibrary";
+import { CollectionDashboardPicker } from "./CollectionDashboardPicker";
 import type { FilterParam } from "@/types/query";
 
 const OPERATOR_LABEL: Record<string, string> = {
@@ -44,21 +44,25 @@ export function SaveQuestionModal({
   const [description, setDescription] = React.useState("");
   const [collectionId, setCollectionId] = React.useState(defaultCollectionId ?? "our-analytics");
   const [pickerOpen, setPickerOpen] = React.useState(false);
-  const [selectedDash, setSelectedDash] = React.useState<string>("");
+
+  // 선택된 저장 위치 표시
+  const [saveTarget, setSaveTarget] = React.useState<{ type: "dashboard" | "collection"; name: string } | null>(null);
+
+  // 탭 선택
   const [selectedTab, setSelectedTab] = React.useState("탭 1");
 
-  // 이름 자동 생성 (모달 열릴 때마다)
+  // 선택된 대시보드의 탭 목록
+  const selectedDashboard = library.find((d) => d.name === saveTarget?.name);
+  const tabs = selectedDashboard?.tabData?.map((t) => t.label) ?? ["탭 1"];
+
   React.useEffect(() => {
     if (open) {
       setName(buildAutoName(tableLabel, filters, columnLabels));
       setDescription("");
-      setSelectedDash(library[0]?.name ?? "");
+      setSaveTarget(null);
       setSelectedTab("탭 1");
     }
   }, [open]); // eslint-disable-line
-
-  const selectedDashboard = library.find((d) => d.name === selectedDash);
-  const tabs = selectedDashboard?.tabData?.map((t) => t.label) ?? ["탭 1"];
 
   if (!open) return null;
 
@@ -81,10 +85,8 @@ export function SaveQuestionModal({
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-foreground">이름</label>
               <input
-                autoFocus
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) onSave(name.trim(), description, collectionId, selectedDash || undefined, selectedTab); }}
+                autoFocus value={name} onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) onSave(name.trim(), description, collectionId, saveTarget?.name, selectedTab); }}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
@@ -93,43 +95,39 @@ export function SaveQuestionModal({
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-foreground">비고</label>
               <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="이건 선택 사항인데 도움이 됩니다"
-                rows={3}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                value={description} onChange={(e) => setDescription(e.target.value)}
+                placeholder="이건 선택 사항인데 도움이 됩니다" rows={3}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
               />
             </div>
 
             {/* 어디에 저장 */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-foreground">어디에 저장하시겠습니까?</label>
-              {library.length > 0 ? (
-                <button
-                  onClick={() => setPickerOpen(true)}
-                  className="flex items-center justify-between w-full rounded-lg border border-input bg-background px-4 py-3 text-sm text-foreground hover:bg-muted/40 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <LayoutDashboard className="h-4 w-4 text-primary shrink-0" />
-                    <span className="font-medium">{selectedDash || "저장 위치 선택"}</span>
-                  </div>
-                  <span className="text-muted-foreground tracking-widest">···</span>
-                </button>
-              ) : (
-                <div className="rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
-                  저장된 대시보드가 없습니다
+              <button
+                onClick={() => setPickerOpen(true)}
+                className="flex items-center justify-between w-full rounded-lg border border-input bg-background px-4 py-3 text-sm text-foreground hover:bg-muted/40 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  {saveTarget?.type === "collection"
+                    ? <FolderOpen className="h-4 w-4 text-primary shrink-0" />
+                    : <LayoutDashboard className="h-4 w-4 text-primary shrink-0" />
+                  }
+                  <span className={cn("font-medium", !saveTarget && "text-muted-foreground")}>
+                    {saveTarget?.name ?? "저장 위치 선택"}
+                  </span>
                 </div>
-              )}
+                <span className="text-muted-foreground tracking-widest text-base">···</span>
+              </button>
             </div>
 
-            {/* 어느 탭 */}
-            {selectedDash && tabs.length > 0 && (
+            {/* 어느 탭 (대시보드 선택 시) */}
+            {saveTarget?.type === "dashboard" && tabs.length > 0 && (
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-foreground">어느 탭에 넣어야 하나요?</label>
                 <div className="relative">
                   <select
-                    value={selectedTab}
-                    onChange={(e) => setSelectedTab(e.target.value)}
+                    value={selectedTab} onChange={(e) => setSelectedTab(e.target.value)}
                     className="w-full appearance-none rounded-lg border border-input bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 pr-10 cursor-pointer"
                   >
                     {tabs.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -142,11 +140,9 @@ export function SaveQuestionModal({
 
           {/* 푸터 */}
           <div className="flex justify-end gap-2 px-6 py-4 border-t border-border">
-            <button onClick={onClose} className="rounded-lg border border-border px-5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors">
-              취소
-            </button>
+            <button onClick={onClose} className="rounded-lg border border-border px-5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors">취소</button>
             <button
-              onClick={() => { if (name.trim()) onSave(name.trim(), description, collectionId, selectedDash || undefined, selectedTab); }}
+              onClick={() => { if (name.trim()) onSave(name.trim(), description, collectionId, saveTarget?.name, selectedTab); }}
               disabled={!name.trim()}
               className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors"
             >
@@ -156,58 +152,16 @@ export function SaveQuestionModal({
         </div>
       </div>
 
-      {/* 대시보드 선택 피커 */}
+      {/* 컬렉션 또는 대시보드 선택 피커 */}
       {pickerOpen && (
-        <DashPickerModal
-          selected={selectedDash}
-          dashboards={library.map((d) => d.name)}
-          onSelect={(name) => { setSelectedDash(name); setPickerOpen(false); }}
+        <CollectionDashboardPicker
+          onSelect={(result) => {
+            setSaveTarget(result);
+            setPickerOpen(false);
+          }}
           onClose={() => setPickerOpen(false)}
         />
       )}
     </>
-  );
-}
-
-/* ── 대시보드 선택 미니 모달 ── */
-function DashPickerModal({ selected, dashboards, onSelect, onClose }: {
-  selected: string;
-  dashboards: string[];
-  onSelect: (name: string) => void;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-sm bg-background rounded-2xl shadow-2xl border border-border animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h3 className="text-base font-bold text-foreground">대시보드 선택</h3>
-          <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted transition-colors">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="py-2">
-          {dashboards.length === 0 ? (
-            <p className="px-5 py-4 text-sm text-muted-foreground">저장된 대시보드가 없습니다</p>
-          ) : (
-            dashboards.map((name) => (
-              <button
-                key={name}
-                onClick={() => onSelect(name)}
-                className={cn(
-                  "flex items-center gap-3 w-full px-5 py-3 text-left text-sm transition-colors",
-                  selected === name ? "bg-primary/5 text-primary font-medium" : "hover:bg-muted text-foreground"
-                )}
-              >
-                <LayoutDashboard className="h-4 w-4 shrink-0 text-primary" />
-                {name}
-              </button>
-            ))
-          )}
-        </div>
-        <div className="flex justify-end px-5 py-3 border-t border-border">
-          <button onClick={onClose} className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-muted transition-colors">닫기</button>
-        </div>
-      </div>
-    </div>
   );
 }
