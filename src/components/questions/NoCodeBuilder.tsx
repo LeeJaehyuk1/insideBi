@@ -16,13 +16,11 @@ import { getColumnsForTable, getTableLabel } from "@/lib/table-columns";
 import { useSavedQuestions } from "@/hooks/useSavedQuestions";
 import { useCollectionFolders } from "@/hooks/useCollectionFolders";
 import type { FolderEntry } from "@/lib/mock-data/collection-folders";
-import { AddToCollectionDialog } from "@/components/collections/AddToCollectionDialog";
 import { TablePickerModal } from "./TablePickerModal";
 import { FilterPicker } from "./FilterPicker";
 import { SaveQuestionModal } from "./SaveQuestionModal";
 import type { FilterParam, FilterOperator } from "@/types/query";
 import type { ChartType } from "@/types/builder";
-import type { CollectionItem } from "@/types/collection";
 import type { ColumnMeta } from "@/types/dataset";
 import {
   ResponsiveContainer, BarChart, Bar, LineChart as ReLineChart, Line,
@@ -217,8 +215,6 @@ export function NoCodeBuilder({
   const [showTable, setShowTable] = React.useState(false);
   const [saveToast, setSaveToast] = React.useState(false);
   const [saveModalOpen, setSaveModalOpen] = React.useState(false);
-  const [collectionOpen, setCollectionOpen] = React.useState(false);
-  const [pendingItem, setPendingItem] = React.useState<Omit<CollectionItem, "pinned"> | null>(null);
 
   const dataset = dataCatalog.find((d) => d.id === datasetId);
   const measureCols = columns.filter((c) => c.role === "measure");
@@ -330,9 +326,6 @@ export function NoCodeBuilder({
     setSaveModalOpen(false);
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 2500);
-    const now = new Date().toISOString().split("T")[0];
-    setPendingItem({ id: saved.id, title, type: "question", href: `/questions/${saved.id}`, createdAt: now, updatedAt: now, author: "나" });
-    setCollectionOpen(true);
   };
 
   const resultKeys = result.length ? Object.keys(result[0]) : [];
@@ -670,13 +663,6 @@ export function NoCodeBuilder({
         defaultCollectionId={collectionId}
       />
 
-      {pendingItem && (
-        <AddToCollectionDialog
-          open={collectionOpen}
-          onOpenChange={(o) => { setCollectionOpen(o); if (!o) setPendingItem(null); }}
-          item={pendingItem}
-        />
-      )}
     </>
   );
 }
