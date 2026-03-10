@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Plus, Type, Link2, LayoutGrid, SlidersHorizontal, MoreHorizontal,
@@ -13,6 +13,7 @@ import { collections } from "@/lib/mock-data/collections";
 import { useSavedQuestions } from "@/hooks/useSavedQuestions";
 import { dataCatalog } from "@/lib/data-catalog";
 import { WidgetRenderer } from "@/components/builder/WidgetRenderer";
+import { useDashboardLibrary } from "@/hooks/useDashboardLibrary";
 import type { WidgetConfig, ChartType } from "@/types/builder";
 
 /* ── 위젯 타입 ── */
@@ -298,8 +299,12 @@ function RightPanel({ onAddWidget }: {
 /* ── 메인 에디터 ── */
 export function DashboardEditorClient() {
   const params = useSearchParams();
+  const router = useRouter();
   const initialName = params.get("name") ?? "새 대시보드";
   const collectionId = params.get("collection") ?? "analytics";
+
+  const { saveDashboard } = useDashboardLibrary();
+  const [saveToast, setSaveToast] = React.useState(false);
 
   const [dashboardName, setDashboardName] = React.useState(initialName);
   const [editingName, setEditingName] = React.useState(false);
@@ -340,6 +345,14 @@ export function DashboardEditorClient() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] -m-6 bg-background">
+
+      {/* 저장 완료 토스트 */}
+      {saveToast && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 rounded-lg border bg-background shadow-lg px-4 py-2.5 text-sm font-medium animate-in slide-in-from-top-2">
+          <Check className="h-4 w-4 text-green-500" />
+          대시보드가 저장되었습니다
+        </div>
+      )}
 
       {/* ── 상단 툴바 ── */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0 bg-background">
@@ -410,8 +423,17 @@ export function DashboardEditorClient() {
           {/* 저장 */}
           <button
             onClick={() => {
-              // TODO: 실제 저장 로직 연결
-              window.history.back();
+              const dashboard = {
+                name: dashboardName,
+                widgets: widgets.map((w) => toWidgetConfig(w)),
+                savedAt: new Date().toISOString(),
+              };
+              saveDashboard(dashboard);
+              setSaveToast(true);
+              setTimeout(() => {
+                setSaveToast(false);
+                router.push("/dashboards");
+              }, 1200);
             }}
             className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
           >
