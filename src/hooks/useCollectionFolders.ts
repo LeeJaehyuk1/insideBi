@@ -4,13 +4,22 @@ import * as React from "react";
 import type { CollectionFolder, FolderEntry, EntryType } from "@/lib/mock-data/collection-folders";
 import { collectionFolders, ROOT_ID } from "@/lib/mock-data/collection-folders";
 
-const LS_KEY = "insightbi_collection_folders_v1";
+const LS_KEY = "insightbi_collection_folders_v2";
 
 function load(): CollectionFolder[] {
-  if (typeof window === "undefined") return collectionFolders;
+  if (typeof window === "undefined") return JSON.parse(JSON.stringify(collectionFolders));
   try {
     const s = localStorage.getItem(LS_KEY);
-    if (s) return JSON.parse(s);
+    if (s) {
+      const stored: CollectionFolder[] = JSON.parse(s);
+      // mock에 있는 폴더가 저장 데이터에 없으면 추가 (신규 폴더 보장)
+      const ids = new Set(stored.map((f) => f.id));
+      const merged = [...stored];
+      for (const f of collectionFolders) {
+        if (!ids.has(f.id)) merged.push(JSON.parse(JSON.stringify(f)));
+      }
+      return merged;
+    }
   } catch {}
   return JSON.parse(JSON.stringify(collectionFolders));
 }
