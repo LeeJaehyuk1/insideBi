@@ -303,7 +303,7 @@ export function DashboardEditorClient() {
   const initialName = params.get("name") ?? "새 대시보드";
   const collectionId = params.get("collection") ?? "analytics";
 
-  const { saveDashboard } = useDashboardLibrary();
+  const { saveDashboard, library, hydrated: libHydrated } = useDashboardLibrary();
   const [saveToast, setSaveToast] = React.useState(false);
 
   const [dashboardName, setDashboardName] = React.useState(initialName);
@@ -313,6 +313,24 @@ export function DashboardEditorClient() {
   const [activeTab, setActiveTab] = React.useState("tab-1");
   const [rightPanelOpen, setRightPanelOpen] = React.useState(false);
   const [widgets, setWidgets] = React.useState<DashWidget[]>([]);
+  const [loaded, setLoaded] = React.useState(false);
+
+  // 라이브러리 hydration 완료 후 기존 저장 데이터 로드
+  React.useEffect(() => {
+    if (!libHydrated || loaded) return;
+    const existing = library.find((d) => d.name === initialName);
+    if (existing?.widgets?.length) {
+      setWidgets(
+        existing.widgets.map((w) => ({
+          id: w.id,
+          title: w.title,
+          datasetId: w.datasetId,
+          chartType: w.chartType,
+        }))
+      );
+    }
+    setLoaded(true);
+  }, [libHydrated, library, initialName, loaded]);
 
   const nameInputRef = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => {
