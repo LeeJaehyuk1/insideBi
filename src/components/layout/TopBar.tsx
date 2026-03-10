@@ -20,7 +20,11 @@ const breadcrumbMap: Record<string, string[]> = {
   "/liquidity-risk": ["유동성리스크"],
   "/ncr-risk": ["NCR리스크"],
   // "/reports": ["보고서"],
+  "/dashboards": ["대시보드"],
   "/builder": ["대시보드 빌더"],
+  "/collections": ["컬렉션"],
+  "/browse": ["데이터 탐색"],
+  "/questions": ["질문"],
   "/admin": ["관리자"],
 };
 

@@ -15,6 +15,8 @@ import type { FilterParam, FilterOperator } from "@/types/query";
 import type { ChartType } from "@/types/builder";
 import type { SavedQuestion } from "@/types/question";
 import { Button } from "@/components/ui/button";
+import { AddToCollectionDialog } from "@/components/collections/AddToCollectionDialog";
+import type { CollectionItem } from "@/types/collection";
 
 /* ── 차트 타입별 아이콘/라벨 ── */
 const CHART_ICON_MAP: Record<string, string> = {
@@ -95,6 +97,8 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   const [isRunning, setIsRunning] = React.useState(false);
   const [runError, setRunError] = React.useState<string | null>(null);
   const [hasResult, setHasResult] = React.useState(!!initialQuestion);
+  const [collectionDialogOpen, setCollectionDialogOpen] = React.useState(false);
+  const [pendingItem, setPendingItem] = React.useState<Omit<CollectionItem, "pinned"> | null>(null);
   const [saveToast, setSaveToast] = React.useState(false);
 
   const selectedDataset = dataCatalog.find((d) => d.id === datasetId);
@@ -159,9 +163,22 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   const handleSave = () => {
     if (!datasetId) return;
     const title = questionTitle.trim() || `${selectedDataset?.label ?? "질문"} 분석`;
-    saveQuestion({ title, datasetId, filters, chartType });
+    const saved = saveQuestion({ title, datasetId, filters, chartType });
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 2500);
+    // 컬렉션 추가 다이얼로그 열기
+    const item: Omit<CollectionItem, "pinned"> = {
+      id: saved.id,
+      title: saved.title,
+      type: "question",
+      href: `/questions/${saved.id}`,
+      description: `${selectedDataset?.label ?? ""} 데이터셋 분석`,
+      createdAt: saved.savedAt.split("T")[0],
+      updatedAt: saved.savedAt.split("T")[0],
+      author: "나",
+    };
+    setPendingItem(item);
+    setCollectionDialogOpen(true);
   };
 
   /* ── 차트 미리보기: WidgetRenderer 대신 인라인 테이블 + 간단 메시지 ── */
@@ -238,6 +255,7 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   const toggleStep = (s: 1 | 2 | 3) => setOpenStep((prev) => (prev === s ? s : s));
 
   return (
+    <>
     <div className="max-w-3xl mx-auto space-y-4 pb-12">
       {/* 저장 토스트 */}
       {saveToast && (
@@ -471,5 +489,17 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
         </div>
       </div>
     </div>
+
+    {pendingItem && (
+      <AddToCollectionDialog
+        open={collectionDialogOpen}
+        onOpenChange={(open) => {
+          setCollectionDialogOpen(open);
+          if (!open) setPendingItem(null);
+        }}
+        item={pendingItem}
+      />
+    )}
+    </>
   );
 }

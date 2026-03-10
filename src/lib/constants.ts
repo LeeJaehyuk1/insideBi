@@ -87,6 +87,12 @@ export const NAV_GROUPS = [
     label: "분석",
     items: [
       {
+        title: "대시보드",
+        href: "/dashboards",
+        icon: "BarChart3",
+        description: "저장된 대시보드 목록",
+      },
+      {
         title: "워크스페이스",
         href: "/builder",
         icon: "LayoutTemplate",
