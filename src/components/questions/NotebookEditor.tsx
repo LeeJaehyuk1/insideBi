@@ -15,8 +15,9 @@ import type { FilterParam, FilterOperator } from "@/types/query";
 import type { ChartType } from "@/types/builder";
 import type { SavedQuestion } from "@/types/question";
 import { Button } from "@/components/ui/button";
-import { AddToCollectionDialog } from "@/components/collections/AddToCollectionDialog";
-import type { CollectionItem } from "@/types/collection";
+import { useCollectionFolders } from "@/hooks/useCollectionFolders";
+import type { FolderEntry } from "@/lib/mock-data/collection-folders";
+import { SaveQuestionModal } from "./SaveQuestionModal";
 
 /* ── 차트 타입별 아이콘/라벨 ── */
 const CHART_ICON_MAP: Record<string, string> = {
@@ -87,6 +88,7 @@ interface NotebookEditorProps {
 export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   const router = useRouter();
   const { saveQuestion } = useSavedQuestions();
+  const { addEntry } = useCollectionFolders();
 
   const [openStep, setOpenStep] = React.useState<1 | 2 | 3>(initialQuestion ? 3 : 1);
   const [datasetId, setDatasetId] = React.useState<string>(initialQuestion?.datasetId ?? "");
@@ -97,8 +99,7 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   const [isRunning, setIsRunning] = React.useState(false);
   const [runError, setRunError] = React.useState<string | null>(null);
   const [hasResult, setHasResult] = React.useState(!!initialQuestion);
-  const [collectionDialogOpen, setCollectionDialogOpen] = React.useState(false);
-  const [pendingItem, setPendingItem] = React.useState<Omit<CollectionItem, "pinned"> | null>(null);
+  const [saveModalOpen, setSaveModalOpen] = React.useState(false);
   const [saveToast, setSaveToast] = React.useState(false);
 
   const selectedDataset = dataCatalog.find((d) => d.id === datasetId);
@@ -162,23 +163,30 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
 
   const handleSave = () => {
     if (!datasetId) return;
-    const title = questionTitle.trim() || `${selectedDataset?.label ?? "질문"} 분석`;
-    const saved = saveQuestion({ title, datasetId, filters, chartType });
+    setSaveModalOpen(true);
+  };
+
+  /* 모달에서 실제 저장 */
+  const handleConfirmSave = (title: string, _desc: string, targetColId: string) => {
+    if (!datasetId) return;
+    const finalTitle = title || questionTitle.trim() || `${selectedDataset?.label ?? "질문"} 분석`;
+    const saved = saveQuestion({ title: finalTitle, datasetId, filters, chartType });
+
+    // useCollectionFolders에 엔트리 추가 (컬렉션 페이지와 동일한 저장소)
+    const finalColId = targetColId || "our-analytics";
+    const entry: FolderEntry = {
+      id: `q-${saved.id}`,
+      type: "question",
+      name: finalTitle,
+      lastEditor: "나",
+      lastModified: new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
+      href: `/questions/${saved.id}`,
+    };
+    addEntry(finalColId, entry);
+
+    setSaveModalOpen(false);
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 2500);
-    // 컬렉션 추가 다이얼로그 열기
-    const item: Omit<CollectionItem, "pinned"> = {
-      id: saved.id,
-      title: saved.title,
-      type: "question",
-      href: `/questions/${saved.id}`,
-      description: `${selectedDataset?.label ?? ""} 데이터셋 분석`,
-      createdAt: saved.savedAt.split("T")[0],
-      updatedAt: saved.savedAt.split("T")[0],
-      author: "나",
-    };
-    setPendingItem(item);
-    setCollectionDialogOpen(true);
   };
 
   /* ── 차트 미리보기: WidgetRenderer 대신 인라인 테이블 + 간단 메시지 ── */
@@ -490,16 +498,16 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
       </div>
     </div>
 
-    {pendingItem && (
-      <AddToCollectionDialog
-        open={collectionDialogOpen}
-        onOpenChange={(open) => {
-          setCollectionDialogOpen(open);
-          if (!open) setPendingItem(null);
-        }}
-        item={pendingItem}
-      />
-    )}
+    <SaveQuestionModal
+      open={saveModalOpen}
+      onClose={() => setSaveModalOpen(false)}
+      onSave={handleConfirmSave}
+      tableLabel={selectedDataset?.label ?? "질문"}
+      filters={filters}
+      columnLabels={Object.fromEntries(
+        (schema?.columns ?? []).map((c) => [c.key, c.label])
+      )}
+    />
     </>
   );
 }

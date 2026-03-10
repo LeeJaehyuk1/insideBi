@@ -24,8 +24,8 @@ import { hydrateCustomDatasets } from "@/lib/custom-dataset-runtime";
 import { TemplateGallery } from "@/components/builder/TemplateGallery";
 import { AutoRefreshSelector } from "@/components/builder/AutoRefreshSelector";
 import { useAutoRefresh, RefreshInterval } from "@/hooks/useAutoRefresh";
-import { AddToCollectionDialog } from "@/components/collections/AddToCollectionDialog";
-import type { CollectionItem } from "@/types/collection";
+import { useCollectionFolders } from "@/hooks/useCollectionFolders";
+import type { FolderEntry } from "@/lib/mock-data/collection-folders";
 
 function generateId() {
   return Math.random().toString(36).slice(2, 9);
@@ -58,9 +58,8 @@ export function BuilderClient() {
   const [libraryOpen, setLibraryOpen] = React.useState(false);
   const [isEditMode, setIsEditMode] = React.useState(false);
   const [refreshInterval, setRefreshInterval] = React.useState<RefreshInterval>(0);
-  const [collectionDialogOpen, setCollectionDialogOpen] = React.useState(false);
-  const [pendingCollectionItem, setPendingCollectionItem] = React.useState<Omit<CollectionItem, "pinned"> | null>(null);
   const previewRef = React.useRef<HTMLDivElement>(null);
+  const { addEntry } = useCollectionFolders();
 
   // 자동 새로고침 (mock 데이터이므로 강제 리렌더링으로 처리)
   useAutoRefresh(refreshInterval, React.useCallback(() => {
@@ -202,20 +201,17 @@ export function BuilderClient() {
     setTimeout(() => {
       previewRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
-    // 컬렉션 추가 다이얼로그 열기
-    const now = new Date().toISOString().split("T")[0];
-    const item: Omit<CollectionItem, "pinned"> = {
-      id: `dashboard-${Date.now()}`,
-      title: dashboard.name,
+
+    // useCollectionFolders에 대시보드 엔트리 추가 (컬렉션 페이지와 동일한 저장소)
+    const entry: FolderEntry = {
+      id: `db-${dashboard.name}`,
       type: "dashboard",
+      name: dashboard.name,
+      lastEditor: "나",
+      lastModified: new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
       href: `/builder?load=${encodeURIComponent(dashboard.name)}`,
-      description: `위젯 ${dashboard.widgets.length}개`,
-      createdAt: now,
-      updatedAt: now,
-      author: "나",
     };
-    setPendingCollectionItem(item);
-    setCollectionDialogOpen(true);
+    addEntry("our-analytics", entry);
   };
 
   const handleLoadDashboard = (dashboard: SavedDashboard) => {
@@ -473,16 +469,6 @@ export function BuilderClient() {
         homeName={myDashboard?.name ?? null}
       />
 
-      {pendingCollectionItem && (
-        <AddToCollectionDialog
-          open={collectionDialogOpen}
-          onOpenChange={(open) => {
-            setCollectionDialogOpen(open);
-            if (!open) setPendingCollectionItem(null);
-          }}
-          item={pendingCollectionItem}
-        />
-      )}
     </div>
   );
 }
