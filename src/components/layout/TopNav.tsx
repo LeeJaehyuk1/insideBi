@@ -77,7 +77,6 @@ const ANALYTICS_NAV: NavGroup[] = [
 
 const NEW_NAV: NavItem[] = [
   { title: "새 질문", href: "/questions/new", icon: Table2, description: "데이터 탐색 및 시각화" },
-  { title: "새 대시보드", href: "/builder", icon: BarChart3, description: "커스텀 대시보드 구성" },
   // { title: "새 보고서", href: "/reports", icon: BookOpen, description: "경영진 보고서" },
 ];
 

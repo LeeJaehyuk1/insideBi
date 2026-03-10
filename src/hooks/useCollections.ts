@@ -4,7 +4,7 @@ import * as React from "react";
 import type { Collection, CollectionItem } from "@/types/collection";
 import { collections as mockCollections } from "@/lib/mock-data/collections";
 
-const STORAGE_KEY = "insightbi_collections_v2";
+const STORAGE_KEY = "insightbi_collections_v3";
 
 function readLocal(): Collection[] {
   try {
