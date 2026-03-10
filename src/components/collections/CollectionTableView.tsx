@@ -231,7 +231,7 @@ export function CollectionTableView({
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12 w-full">
 
       {/* ── 상단 바 (우측 정렬) ── */}
       <div className="flex items-center justify-end gap-3">

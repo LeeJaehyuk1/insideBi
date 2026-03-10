@@ -17,8 +17,14 @@ export interface CollectionFolder {
 }
 
 export const ROOT_ID = "our-analytics";
+export const PERSONAL_ID = "personal";
 
 export const collectionFolders: CollectionFolder[] = [
+  {
+    id: PERSONAL_ID,
+    name: "이재혁님의 개인 컬렉션",
+    entries: [],
+  },
   {
     id: ROOT_ID,
     name: "우리의 분석",
