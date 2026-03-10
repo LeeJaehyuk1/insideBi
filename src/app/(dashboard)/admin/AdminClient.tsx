@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Shield } from "lucide-react";
+import { Shield, Lock } from "lucide-react";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { GoldenSQLTab } from "@/components/admin/GoldenSQLTab";
 import { DocumentationTab } from "@/components/admin/DocumentationTab";
 import { DDLTab } from "@/components/admin/DDLTab";
 import { FeedbackTab } from "@/components/admin/FeedbackTab";
+import { useRole } from "@/context/RoleContext";
 
 const TABS = [
   { id: "golden-sql", label: "Golden SQL" },
@@ -20,6 +21,7 @@ type TabId = (typeof TABS)[number]["id"];
 const SESSION_KEY = "admin_auth";
 
 export function AdminClient() {
+  const { role } = useRole();
   const [password, setPassword] = React.useState<string | null>(null);
   const [activeTab, setActiveTab] = React.useState<TabId>("golden-sql");
   const [hydrated, setHydrated] = React.useState(false);
@@ -50,6 +52,22 @@ export function AdminClient() {
   };
 
   if (!hydrated) return null;
+
+  if (role !== "admin") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+          <Lock className="h-7 w-7 text-muted-foreground/50" />
+        </div>
+        <div>
+          <p className="text-base font-semibold">관리자 역할이 필요합니다</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            사이드바 하단에서 역할을 <strong>관리자</strong>로 변경하세요.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!password) {
     return <AdminLogin onLogin={handleLogin} />;

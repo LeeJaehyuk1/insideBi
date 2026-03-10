@@ -344,6 +344,7 @@ async def _startup():
 
 # ── 대시보드 I/O ──────────────────────────────────────────────────
 
+CHAT_HISTORY_FILE = os.path.join(os.path.dirname(__file__), "chat_history.json")
 DASHBOARDS_FILE = os.path.join(os.path.dirname(__file__), "dashboards.json")
 MY_DASHBOARD_FILE = os.path.join(os.path.dirname(__file__), "my_dashboard.json")
 
@@ -430,6 +431,33 @@ async def ask(req: AskRequest):
         "from_cache": from_cache,
         "backend": backend,   # 어느 LLM이 응답했는지 디버깅용
     }
+
+
+@app.get("/api/chat-history")
+async def get_chat_history():
+    if not os.path.exists(CHAT_HISTORY_FILE):
+        return {"messages": []}
+    with open(CHAT_HISTORY_FILE, encoding="utf-8") as f:
+        try:
+            return {"messages": json.load(f)}
+        except Exception:
+            return {"messages": []}
+
+
+@app.post("/api/chat-history")
+async def save_chat_history(req: Request):
+    body = await req.json()
+    messages = body.get("messages", [])
+    with open(CHAT_HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(messages, f, ensure_ascii=False, indent=2)
+    return {"ok": True}
+
+
+@app.delete("/api/chat-history")
+async def clear_chat_history():
+    if os.path.exists(CHAT_HISTORY_FILE):
+        os.remove(CHAT_HISTORY_FILE)
+    return {"ok": True}
 
 
 @app.get("/api/dashboards")

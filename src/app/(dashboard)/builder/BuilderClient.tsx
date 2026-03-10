@@ -19,6 +19,7 @@ import { useDashboardLibrary } from "@/hooks/useDashboardLibrary";
 import { useMyDashboard } from "@/hooks/useMyDashboard";
 import { useRole, can, getRoleInfo } from "@/context/RoleContext";
 import { DefaultDashboard } from "@/components/dashboard/DefaultDashboard";
+import { hydrateCustomDatasets } from "@/lib/custom-dataset-runtime";
 
 function generateId() {
   return Math.random().toString(36).slice(2, 9);
@@ -50,6 +51,11 @@ export function BuilderClient() {
   const [saveToast, setSaveToast] = React.useState<"saved" | null>(null);
   const [libraryOpen, setLibraryOpen] = React.useState(false);
   const previewRef = React.useRef<HTMLDivElement>(null);
+
+  // 커스텀 데이터셋(Excel/SQL) 런타임 메모리에 로드
+  React.useEffect(() => {
+    hydrateCustomDatasets();
+  }, []);
 
   // Normalize colSpan from layouts.w once after hydration (fixes stale localStorage data)
   React.useEffect(() => {

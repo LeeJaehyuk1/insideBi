@@ -15,11 +15,20 @@ import {
   LayoutTemplate,
   Target,
   Bot,
+  Check,
+  ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_GROUPS } from "@/lib/constants";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useRole, getRoleInfo } from "@/context/RoleContext";
+import { useRole, getRoleInfo, ROLES } from "@/context/RoleContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { format } from "date-fns";
 
 const iconMap = {
   Home,
@@ -38,7 +47,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onAiOpen }: AppSidebarProps = {}) {
   const pathname = usePathname();
-  const { role } = useRole();
+  const { role, setRole } = useRole();
   const roleInfo = getRoleInfo(role);
 
   return (
@@ -121,20 +130,45 @@ export function AppSidebar({ onAiOpen }: AppSidebarProps = {}) {
       </ScrollArea>
 
       {/* Footer */}
-      <div className="border-t border-sidebar-border px-6 py-4 space-y-2">
-        {/* 현재 역할 배지 */}
-        <div className={cn(
-          "flex items-center gap-2 rounded-lg border px-3 py-2",
-          roleInfo.bgColor
-        )}>
-          <div className={cn("h-2 w-2 rounded-full bg-current shrink-0", roleInfo.color)} />
-          <div className="flex-1 min-w-0">
-            <p className={cn("text-xs font-semibold", roleInfo.color)}>{roleInfo.label}</p>
-            <p className="text-[10px] text-sidebar-foreground/40 truncate">{roleInfo.description}</p>
-          </div>
-        </div>
-        <p className="text-xs text-sidebar-foreground/40">기준일: 2026-02-26</p>
-        <p className="text-xs text-sidebar-foreground/40">v1.0.0</p>
+      <div className="border-t border-sidebar-border px-4 py-3 space-y-1.5">
+        {/* 역할 스위처 */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={cn(
+                "w-full flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer hover:opacity-80 transition-opacity",
+                roleInfo.bgColor
+              )}
+            >
+              <div className={cn("h-2 w-2 rounded-full bg-current shrink-0", roleInfo.color)} />
+              <div className="flex-1 min-w-0 text-left">
+                <p className={cn("text-xs font-semibold", roleInfo.color)}>{roleInfo.label}</p>
+                <p className="text-[10px] text-sidebar-foreground/40 truncate">{roleInfo.description}</p>
+              </div>
+              <ChevronUp className="h-3 w-3 opacity-40 shrink-0" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-48">
+            {ROLES.map((r) => (
+              <DropdownMenuItem
+                key={r.role}
+                onClick={() => setRole(r.role)}
+                className="gap-2 cursor-pointer"
+              >
+                <div className={cn("h-2 w-2 rounded-full shrink-0", r.color)} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{r.label}</p>
+                  <p className="text-xs text-muted-foreground">{r.description}</p>
+                </div>
+                {role === r.role && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <p className="text-xs text-sidebar-foreground/40 px-1">
+          기준일: {format(new Date(), "yyyy-MM-dd")}
+        </p>
+        <p className="text-xs text-sidebar-foreground/40 px-1">v1.0.0</p>
       </div>
     </aside>
   );

@@ -6,6 +6,8 @@ import { TopBar } from "@/components/layout/TopBar";
 import { AiPanel } from "@/components/ai/AiPanel";
 import { AiPanelProvider } from "@/context/AiPanelContext";
 import { AiChatProvider } from "@/context/AiChatContext";
+import { RoleProvider } from "@/context/RoleContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function DashboardLayout({
   children,
@@ -31,6 +33,7 @@ export default function DashboardLayout({
   );
 
   return (
+    <RoleProvider>
     <AiChatProvider>
     <AiPanelProvider value={contextValue}>
       <div className="flex h-screen overflow-hidden">
@@ -43,7 +46,9 @@ export default function DashboardLayout({
         <div className="flex flex-1 flex-col overflow-hidden">
           <TopBar onAiOpen={openPanel} />
           <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
-            {children}
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
           </main>
         </div>
 
@@ -59,5 +64,6 @@ export default function DashboardLayout({
       </div>
     </AiPanelProvider>
     </AiChatProvider>
+    </RoleProvider>
   );
 }
