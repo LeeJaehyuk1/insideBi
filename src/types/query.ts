@@ -3,7 +3,12 @@ export interface DateRangeParam {
   to: string;
 }
 
-export type FilterOperator = "eq" | "gte" | "lte" | "contains";
+export type FilterOperator =
+  | "eq" | "neq"
+  | "contains" | "not_contains"
+  | "starts" | "ends"
+  | "empty" | "not_empty"
+  | "gte" | "lte";
 
 export interface FilterParam {
   column: string;

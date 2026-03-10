@@ -55,17 +55,20 @@ export async function executeQuery<T = Record<string, unknown>>(
     for (const f of config.filters) {
       rows = rows.filter((row) => {
         const val = row[f.column];
+        const sv = String(val ?? "");
+        const fv = String(f.value ?? "");
         switch (f.operator) {
-          case "eq":
-            return val === f.value;
-          case "gte":
-            return (val as number) >= (f.value as number);
-          case "lte":
-            return (val as number) <= (f.value as number);
-          case "contains":
-            return String(val).toLowerCase().includes(String(f.value).toLowerCase());
-          default:
-            return true;
+          case "eq":           return sv === fv;
+          case "neq":          return sv !== fv;
+          case "contains":     return sv.toLowerCase().includes(fv.toLowerCase());
+          case "not_contains": return !sv.toLowerCase().includes(fv.toLowerCase());
+          case "starts":       return sv.toLowerCase().startsWith(fv.toLowerCase());
+          case "ends":         return sv.toLowerCase().endsWith(fv.toLowerCase());
+          case "empty":        return sv === "" || val == null;
+          case "not_empty":    return sv !== "" && val != null;
+          case "gte":          return Number(val) >= Number(f.value);
+          case "lte":          return Number(val) <= Number(f.value);
+          default:             return true;
         }
       });
     }
