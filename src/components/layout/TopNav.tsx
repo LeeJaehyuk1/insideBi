@@ -29,6 +29,7 @@ import {
   FolderOpen,
   Database,
 } from "lucide-react";
+import { NewDashboardModal } from "@/components/dashboard/NewDashboardModal";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { alerts } from "@/lib/mock-data";
@@ -46,7 +47,7 @@ const roleIcons: Record<Role, React.ElementType> = {
 };
 
 /* ── Dropdown 메뉴 아이템 타입 ── */
-type NavItem = { title: string; href: string; icon: React.ElementType; description?: string };
+type NavItem = { title: string; href?: string; icon: React.ElementType; description?: string; action?: string };
 type NavGroup = { label: string; items: NavItem[]; color?: string };
 
 const RISK_NAV: NavGroup[] = [
@@ -78,7 +79,7 @@ const ANALYTICS_NAV: NavGroup[] = [
 const NEW_NAV: NavItem[] = [
   { title: "질문",      href: "/questions/pick", icon: Table2,         description: "테이블 또는 컬렉션 선택" },
   { title: "SQL 쿼리", href: "/questions/new",  icon: FileText,        description: "SQL 에디터로 직접 작성" },
-  { title: "대시보드",  href: "/builder",        icon: LayoutTemplate,  description: "커스텀 대시보드 구성" },
+  { title: "대시보드",  icon: LayoutTemplate,    description: "커스텀 대시보드 구성", action: "new-dashboard" },
 ];
 
 /* ── 드롭다운 공통 ── */
@@ -87,11 +88,13 @@ function NavDropdown({
   groups,
   items,
   align = "left",
+  onAction,
 }: {
   trigger: React.ReactNode;
   groups?: NavGroup[];
   items?: NavItem[];
   align?: "left" | "right";
+  onAction?: (action: string) => void;
 }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
@@ -133,11 +136,11 @@ function NavDropdown({
               <div className="px-1.5 pb-1.5 space-y-0.5">
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                  const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href ?? "");
                   return (
                     <Link
                       key={item.href}
-                      href={item.href}
+                      href={item.href ?? "/"}
                       onClick={() => setOpen(false)}
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
@@ -164,12 +167,25 @@ function NavDropdown({
             <div className="px-1.5 py-1.5 space-y-0.5">
               {items.map((item) => {
                 const Icon = item.icon;
+                const cls = "flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-muted text-foreground transition-colors w-full text-left";
+                if (item.action) {
+                  return (
+                    <button
+                      key={item.action}
+                      onClick={() => { setOpen(false); onAction?.(item.action!); }}
+                      className={cls}
+                    >
+                      <Icon className="h-4 w-4 shrink-0 text-primary" />
+                      <p className="text-sm">{item.title}</p>
+                    </button>
+                  );
+                }
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={item.href!}
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-muted text-foreground transition-colors"
+                    className={cls}
                   >
                     <Icon className="h-4 w-4 shrink-0 text-primary" />
                     <p className="text-sm">{item.title}</p>
@@ -191,6 +207,11 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
   const [mounted, setMounted] = React.useState(false);
   const [roleDropOpen, setRoleDropOpen] = React.useState(false);
   const roleDropRef = React.useRef<HTMLDivElement>(null);
+  const [newDashboardOpen, setNewDashboardOpen] = React.useState(false);
+
+  const handleNavAction = React.useCallback((action: string) => {
+    if (action === "new-dashboard") setNewDashboardOpen(true);
+  }, []);
 
   const { role, setRole } = useRole();
   const roleInfo = getRoleInfo(role);
@@ -211,6 +232,7 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
   const isHome = pathname === "/";
 
   return (
+    <>
     <header
       data-topbar
       className="sticky top-0 z-50 flex h-14 items-center gap-2 bg-nav px-4 shadow-sm"
@@ -295,6 +317,7 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
             </span>
           }
           items={NEW_NAV}
+          onAction={handleNavAction}
         />
       </div>
 
@@ -403,5 +426,11 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
         </div>
       </div>
     </header>
+
+    <NewDashboardModal
+      open={newDashboardOpen}
+      onClose={() => setNewDashboardOpen(false)}
+    />
+    </>
   );
 }
