@@ -86,13 +86,12 @@ export default function QuestionPickPage() {
 
   React.useEffect(() => { setRecent(getRecent()); }, []);
 
-  const tables = DB_TABLES[dbId] ?? [];
-
   const filtered = React.useMemo(() => {
+    const tables = DB_TABLES[dbId] ?? [];
     if (!search.trim()) return tables;
     const q = search.toLowerCase();
     return tables.filter((t) => t.toLowerCase().includes(q));
-  }, [tables, search]);
+  }, [dbId, search]);
 
   const handleSelect = (label: string) => {
     const id = labelToId(label);
@@ -231,7 +230,7 @@ export default function QuestionPickPage() {
               filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted-foreground">
                   <Search className="h-8 w-8 opacity-30" />
-                  <p className="text-sm">"{search}" 에 해당하는 테이블이 없습니다</p>
+                  <p className="text-sm">&quot;{search}&quot; 에 해당하는 테이블이 없습니다</p>
                 </div>
               ) : (
                 <div>
