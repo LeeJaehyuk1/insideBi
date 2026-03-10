@@ -46,7 +46,7 @@ export function SaveQuestionModal({
   const [pickerOpen, setPickerOpen] = React.useState(false);
 
   // 선택된 저장 위치 표시
-  const [saveTarget, setSaveTarget] = React.useState<{ type: "dashboard" | "collection"; name: string } | null>(null);
+  const [saveTarget, setSaveTarget] = React.useState<{ type: "dashboard" | "collection"; id: string; name: string } | null>(null);
 
   // 탭 선택
   const [selectedTab, setSelectedTab] = React.useState("탭 1");
@@ -142,7 +142,14 @@ export function SaveQuestionModal({
           <div className="flex justify-end gap-2 px-6 py-4 border-t border-border">
             <button onClick={onClose} className="rounded-lg border border-border px-5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors">취소</button>
             <button
-              onClick={() => { if (name.trim()) onSave(name.trim(), description, collectionId, saveTarget?.name, selectedTab); }}
+              onClick={() => {
+                if (!name.trim()) return;
+                // saveTarget이 컬렉션이면 해당 ID, 대시보드면 루트 컬렉션
+                const targetColId = saveTarget?.type === "collection"
+                  ? saveTarget.id
+                  : (saveTarget ? "our-analytics" : collectionId);
+                onSave(name.trim(), description, targetColId, saveTarget?.name, selectedTab);
+              }}
               disabled={!name.trim()}
               className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors"
             >

@@ -310,19 +310,21 @@ export function NoCodeBuilder({
   };
 
   /* 모달에서 실제 저장 */
-  const handleConfirmSave = (title: string, _desc: string, _colId: string) => {
+  const handleConfirmSave = (title: string, _desc: string, targetColId: string) => {
     const id = tableId || datasetId;
     if (!id) return;
     const saved = saveQuestion({ title, datasetId: id, filters, chartType });
-    if (collectionId) {
-      const entry: FolderEntry = {
-        id: `q-${saved.id}`, type: "question", name: title,
-        lastEditor: "나",
-        lastModified: new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
-        href: `/questions/${saved.id}`,
-      };
-      addEntry(collectionId, entry);
-    }
+
+    // 모달에서 선택한 컬렉션 우선, 없으면 URL 파라미터, 그것도 없으면 우리의 분석(루트)
+    const finalColId = targetColId || collectionId || "our-analytics";
+    const entry: FolderEntry = {
+      id: `q-${saved.id}`, type: "question", name: title,
+      lastEditor: "나",
+      lastModified: new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
+      href: `/questions/${saved.id}`,
+    };
+    addEntry(finalColId, entry);
+
     setSaveModalOpen(false);
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 2500);
