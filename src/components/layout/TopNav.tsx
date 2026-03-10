@@ -76,8 +76,9 @@ const ANALYTICS_NAV: NavGroup[] = [
 ];
 
 const NEW_NAV: NavItem[] = [
-  { title: "새 질문", href: "/questions/new", icon: Table2, description: "데이터 탐색 및 시각화" },
-  // { title: "새 보고서", href: "/reports", icon: BookOpen, description: "경영진 보고서" },
+  { title: "질문",      href: "/questions/pick", icon: Table2,         description: "테이블 또는 컬렉션 선택" },
+  { title: "SQL 쿼리", href: "/questions/new",  icon: FileText,        description: "SQL 에디터로 직접 작성" },
+  { title: "대시보드",  href: "/builder",        icon: LayoutTemplate,  description: "커스텀 대시보드 구성" },
 ];
 
 /* ── 드롭다운 공통 ── */
