@@ -33,7 +33,7 @@ export function NewDashboardModal({ open, onClose }: NewDashboardModalProps) {
   const handleCreate = () => {
     setSubmitted(true);
     if (!name.trim()) return;
-    router.push(`/builder?name=${encodeURIComponent(name.trim())}`);
+    router.push(`/dashboards/new?name=${encodeURIComponent(name.trim())}&collection=${collectionId}`);
     handleClose();
   };
 
