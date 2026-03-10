@@ -396,6 +396,27 @@ export function DashboardEditorClient() {
           <button className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
             <MoreHorizontal className="h-4 w-4" />
           </button>
+
+          <div className="h-5 w-px bg-border mx-2" />
+
+          {/* 취소 */}
+          <button
+            onClick={() => window.history.back()}
+            className="rounded-lg border border-border px-4 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            취소
+          </button>
+
+          {/* 저장 */}
+          <button
+            onClick={() => {
+              // TODO: 실제 저장 로직 연결
+              window.history.back();
+            }}
+            className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            저장
+          </button>
         </div>
       </div>
 
