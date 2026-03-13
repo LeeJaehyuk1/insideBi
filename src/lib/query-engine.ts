@@ -22,67 +22,60 @@ export async function executeQuery<T = Record<string, unknown>>(
   }
 
   if (!entry) {
-    let rawTableRows: Record<string, unknown>[] | undefined;
-    const { getTableData } = await import("@/lib/db-catalog");
-    
-    // Attempt to load from railway or sample mock tables
-    const railwayData = getTableData("railway", config.datasetId);
-    if (railwayData && railwayData.length > 0) rawTableRows = railwayData;
-    else {
-      const sampleData = getTableData("sample", config.datasetId);
-      if (sampleData && sampleData.length > 0) rawTableRows = sampleData;
-    }
-
-    if (!rawTableRows) {
-      return {
-        data: [],
-        meta: {
-          total: 0,
-          datasetId: config.datasetId,
-          executedAt: new Date().toISOString(),
-          params: config,
-        },
-      };
-    }
-
-    // Apply generic column filters for raw tables
-    let filteredRows = rawTableRows;
-    if (config.filters?.length) {
-      for (const f of config.filters) {
-        filteredRows = filteredRows.filter((row) => {
-          const val = row[f.column];
-          const sv = String(val ?? "");
-          const fv = String(f.value ?? "");
-          switch (f.operator) {
-            case "eq":           return sv === fv;
-            case "neq":          return sv !== fv;
-            case "contains":     return sv.toLowerCase().includes(fv.toLowerCase());
-            case "not_contains": return !sv.toLowerCase().includes(fv.toLowerCase());
-            case "starts":       return sv.toLowerCase().startsWith(fv.toLowerCase());
-            case "ends":         return sv.toLowerCase().endsWith(fv.toLowerCase());
-            case "empty":        return sv === "" || val == null;
-            case "not_empty":    return sv !== "" && val != null;
-            case "gte":          return Number(val) >= Number(f.value);
-            case "lte":          return Number(val) <= Number(f.value);
-            default:             return true;
-          }
-        });
+    // 등록된 데이터셋이 없으면 실제 DB 테이블로 조회
+    const activeFilters = (config.filters ?? []).filter(
+      (f) => String(f.value).trim() !== "" || f.operator === "empty" || f.operator === "not_empty"
+    );
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    let idx = 1;
+    for (const f of activeFilters) {
+      const col = f.column;
+      const fv = f.value;
+      switch (f.operator) {
+        case "eq":           conditions.push(`${col} = $${idx++}`); params.push(fv); break;
+        case "neq":          conditions.push(`${col} != $${idx++}`); params.push(fv); break;
+        case "contains":     conditions.push(`${col}::text ILIKE $${idx++}`); params.push(`%${fv}%`); break;
+        case "not_contains": conditions.push(`${col}::text NOT ILIKE $${idx++}`); params.push(`%${fv}%`); break;
+        case "starts":       conditions.push(`${col}::text ILIKE $${idx++}`); params.push(`${fv}%`); break;
+        case "ends":         conditions.push(`${col}::text ILIKE $${idx++}`); params.push(`%${fv}`); break;
+        case "empty":        conditions.push(`(${col} IS NULL OR ${col}::text = '')`); break;
+        case "not_empty":    conditions.push(`(${col} IS NOT NULL AND ${col}::text != '')`); break;
+        case "gte":          conditions.push(`${col} >= $${idx++}`); params.push(fv); break;
+        case "lte":          conditions.push(`${col} <= $${idx++}`); params.push(fv); break;
+        case "between":      conditions.push(`${col} BETWEEN $${idx++} AND $${idx++}`); params.push(fv); params.push(f.value2 ?? fv); break;
       }
     }
-    
-    if (config.limit && config.limit > 0) {
-      filteredRows = filteredRows.slice(0, config.limit);
-    }
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const lim = config.limit && config.limit > 0 ? `LIMIT ${config.limit}` : "";
+    const sql = `SELECT * FROM ${config.datasetId} ${where} ${lim}`.trim();
 
-    return {
-      data: filteredRows as unknown as T[],
-      meta: {
-        total: rawTableRows.length,
-        datasetId: config.datasetId,
-        executedAt: new Date().toISOString(),
-        params: config,
-      },
-    };
+    try {
+      // 서버 환경에서는 직접 DB 사용, 클라이언트에서는 API 호출
+      let rows: Record<string, unknown>[];
+      if (typeof window === "undefined") {
+        const { getPool } = await import("@/lib/db");
+        const result = await getPool().query(sql, params);
+        rows = result.rows;
+      } else {
+        const res = await fetch("/api/db-query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sql, params }),
+        });
+        const json = await res.json();
+        rows = json.rows ?? [];
+      }
+      return {
+        data: rows as unknown as T[],
+        meta: { total: rows.length, datasetId: config.datasetId, executedAt: new Date().toISOString(), params: config },
+      };
+    } catch {
+      return {
+        data: [],
+        meta: { total: 0, datasetId: config.datasetId, executedAt: new Date().toISOString(), params: config },
+      };
+    }
   }
 
   const { schema, queryFn } = entry;

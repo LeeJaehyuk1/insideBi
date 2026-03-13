@@ -18,6 +18,51 @@ import { Button } from "@/components/ui/button";
 import { useCollectionFolders } from "@/hooks/useCollectionFolders";
 import type { FolderEntry } from "@/lib/mock-data/collection-folders";
 import { SaveQuestionModal } from "./SaveQuestionModal";
+import {
+  ResponsiveContainer, BarChart, Bar, LineChart, Line,
+  AreaChart, Area, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from "recharts";
+
+const CHART_COLORS = ["#3b82f6", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"];
+
+function ResultChart({ data, chartType, xKey, yKey }: {
+  data: Record<string, unknown>[]; chartType: ChartType; xKey: string; yKey: string;
+}) {
+  const tick = { fontSize: 11, fill: "var(--muted-foreground)" };
+  if (chartType === "pie") {
+    return (
+      <ResponsiveContainer width="100%" height={280}>
+        <PieChart>
+          <Pie data={data} dataKey={yKey} nameKey={xKey} cx="50%" cy="50%" outerRadius={110} label>
+            {data.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+          </Pie>
+          <Tooltip /><Legend />
+        </PieChart>
+      </ResponsiveContainer>
+    );
+  }
+  if (chartType === "line" || chartType === "area") {
+    return (
+      <ResponsiveContainer width="100%" height={280}>
+        <AreaChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis dataKey={xKey} tick={tick} /><YAxis tick={tick} /><Tooltip />
+          <Area dataKey={yKey} stroke="#3b82f6" fill="#3b82f620" strokeWidth={2} />
+        </AreaChart>
+      </ResponsiveContainer>
+    );
+  }
+  return (
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+        <XAxis dataKey={xKey} tick={tick} /><YAxis tick={tick} /><Tooltip />
+        <Bar dataKey={yKey} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
 
 /* ── 차트 타입별 아이콘/라벨 ── */
 const CHART_ICON_MAP: Record<string, string> = {
@@ -100,7 +145,6 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   const [runError, setRunError] = React.useState<string | null>(null);
   const [hasResult, setHasResult] = React.useState(!!initialQuestion);
   const [saveModalOpen, setSaveModalOpen] = React.useState(false);
-  const [saveToast, setSaveToast] = React.useState(false);
 
   const selectedDataset = dataCatalog.find((d) => d.id === datasetId);
   const schema = datasetId ? getDatasetSchema(datasetId) : null;
@@ -172,7 +216,6 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
     const finalTitle = title || questionTitle.trim() || `${selectedDataset?.label ?? "질문"} 분석`;
     const saved = saveQuestion({ title: finalTitle, datasetId, filters, chartType });
 
-    // useCollectionFolders에 엔트리 추가 (컬렉션 페이지와 동일한 저장소)
     const finalColId = targetColId || "our-analytics";
     const entry: FolderEntry = {
       id: `q-${saved.id}`,
@@ -185,8 +228,9 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
     addEntry(finalColId, entry);
 
     setSaveModalOpen(false);
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 2500);
+    // 저장 후 해당 컬렉션으로 이동
+    const dest = finalColId === "our-analytics" ? "/collections" : `/collections/${finalColId}`;
+    router.push(dest);
   };
 
   /* ── 차트 미리보기: WidgetRenderer 대신 인라인 테이블 + 간단 메시지 ── */
@@ -222,42 +266,47 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
       );
     }
 
-    /* 인라인 위젯 렌더링: WidgetConfig + WidgetRenderer */
-    // WidgetRenderer는 별도 import 필요 → 여기서는 데이터 테이블로 대체
-    const columns = Object.keys(previewData[0]);
-    const displayRows = previewData.slice(0, 10);
+    const resultKeys = Object.keys(previewData[0]);
+    const xKey = resultKeys.find((k) => {
+      const col = schema?.columns.find((c) => c.key === k);
+      return col?.role === "dimension" || col?.type === "date" || col?.type === "string";
+    }) ?? resultKeys[0] ?? "";
+    const yKey = resultKeys.find((k) => k !== xKey) ?? resultKeys[1] ?? resultKeys[0] ?? "";
 
-    return (
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b">
-              {columns.map((col) => (
-                <th key={col} className="text-left px-3 py-2 font-semibold text-muted-foreground">
-                  {schema?.columns.find((c) => c.key === col)?.label ?? col}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {displayRows.map((row, i) => (
-              <tr key={i} className="border-b border-border/50 hover:bg-muted/30">
-                {columns.map((col) => (
-                  <td key={col} className="px-3 py-2 text-foreground">
-                    {String(row[col] ?? "")}
-                  </td>
+    if (chartType === "table") {
+      const displayRows = previewData.slice(0, 10);
+      return (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b">
+                {resultKeys.map((col) => (
+                  <th key={col} className="text-left px-3 py-2 font-semibold text-muted-foreground">
+                    {schema?.columns.find((c) => c.key === col)?.label ?? col}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {previewData.length > 10 && (
-          <p className="text-[10px] text-muted-foreground text-center py-2">
-            전체 {previewData.length}행 중 10행 표시
-          </p>
-        )}
-      </div>
-    );
+            </thead>
+            <tbody>
+              {displayRows.map((row, i) => (
+                <tr key={i} className="border-b border-border/50 hover:bg-muted/30">
+                  {resultKeys.map((col) => (
+                    <td key={col} className="px-3 py-2 text-foreground">{String(row[col] ?? "")}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {previewData.length > 10 && (
+            <p className="text-[10px] text-muted-foreground text-center py-2">
+              전체 {previewData.length}행 중 10행 표시
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    return <ResultChart data={previewData} chartType={chartType} xKey={xKey} yKey={yKey} />;
   }
 
   const toggleStep = (s: 1 | 2 | 3) => setOpenStep((prev) => (prev === s ? s : s));
@@ -265,216 +314,8 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   return (
     <>
     <div className="max-w-3xl mx-auto space-y-4 pb-12">
-      {/* 저장 토스트 */}
-      {saveToast && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 rounded-lg border bg-background shadow-lg px-4 py-2.5 animate-in slide-in-from-top-2 duration-200 text-sm font-medium">
-          <Check className="h-4 w-4 text-green-500" />
-          질문이 저장되었습니다
-        </div>
-      )}
 
-      {/* 제목 입력 */}
-      <div className="flex items-center gap-3">
-        <input
-          value={questionTitle}
-          onChange={(e) => setQuestionTitle(e.target.value)}
-          placeholder="질문 제목 (선택)"
-          className="flex-1 rounded-lg border bg-card px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/40"
-        />
-        <Button
-          size="sm"
-          onClick={() => runQuery()}
-          disabled={!datasetId || isRunning}
-          className="gap-1.5 shrink-0"
-        >
-          {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-          실행
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSave}
-          disabled={!datasetId || !hasResult}
-          className="gap-1.5 shrink-0"
-        >
-          <Save className="h-4 w-4" />
-          저장
-        </Button>
-      </div>
 
-      {/* ── Notebook Steps ── */}
-      <div className="mb-card overflow-hidden divide-y divide-border">
-
-        {/* STEP 1: 데이터 선택 */}
-        <div>
-          <StepHeader
-            step={1} icon={Database}
-            title="데이터"
-            summary={selectedDataset ? `${selectedDataset.categoryLabel} › ${selectedDataset.label}` : undefined}
-            open={openStep === 1}
-            onToggle={() => setOpenStep(1)}
-            completed={!!datasetId}
-          />
-          {openStep === 1 && (
-            <div className="px-5 pb-5 pt-3 space-y-4">
-              {CATEGORY_ORDER.map((cat) => {
-                const catDs = dataCatalog.filter((d) => d.category === cat);
-                const meta = categoryMeta[cat];
-                return (
-                  <div key={cat}>
-                    <p className={cn("text-[10px] font-bold uppercase tracking-widest mb-2", meta.color)}>
-                      {meta.label}
-                    </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {catDs.map((ds) => (
-                        <button
-                          key={ds.id}
-                          onClick={() => handleSelectDataset(ds.id)}
-                          className={cn(
-                            "text-left rounded-lg border px-3 py-2.5 text-sm transition-all",
-                            "hover:border-primary/50 hover:bg-primary/5",
-                            datasetId === ds.id
-                              ? "border-primary bg-primary/10 font-semibold text-primary"
-                              : "bg-background text-foreground"
-                          )}
-                        >
-                          <p className="font-medium truncate">{ds.label}</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{ds.description}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* STEP 2: 필터 */}
-        <div>
-          <StepHeader
-            step={2} icon={Filter}
-            title="필터"
-            summary={filters.length > 0 ? `${filters.length}개 조건` : "조건 없음"}
-            open={openStep === 2}
-            onToggle={() => setOpenStep(2)}
-            completed={openStep > 2 && !!datasetId}
-          />
-          {openStep === 2 && (
-            <div className="px-5 pb-5 pt-3 space-y-3">
-              {!datasetId ? (
-                <p className="text-sm text-muted-foreground">먼저 데이터를 선택하세요.</p>
-              ) : (
-                <>
-                  {filters.length === 0 && (
-                    <p className="text-sm text-muted-foreground">필터 없음 — 전체 데이터를 표시합니다.</p>
-                  )}
-                  {filters.map((f, idx) => {
-                    const col = filterableColumns.find((c) => c.key === f.column);
-                    const ops = getOperators(col?.type ?? "string");
-                    return (
-                      <div key={idx} className="flex items-center gap-2 flex-wrap">
-                        {/* 컬럼 선택 */}
-                        <select
-                          value={f.column}
-                          onChange={(e) => updateFilter(idx, { column: e.target.value, value: "" })}
-                          className="rounded-md border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                        >
-                          {filterableColumns.map((c) => (
-                            <option key={c.key} value={c.key}>{c.label}</option>
-                          ))}
-                        </select>
-                        {/* 연산자 */}
-                        <select
-                          value={f.operator}
-                          onChange={(e) => updateFilter(idx, { operator: e.target.value as FilterOperator })}
-                          className="rounded-md border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                        >
-                          {ops.map((op) => (
-                            <option key={op.value} value={op.value}>{op.label}</option>
-                          ))}
-                        </select>
-                        {/* 값 입력 */}
-                        <input
-                          value={String(f.value)}
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            const num = Number(raw);
-                            updateFilter(idx, { value: col?.type === "string" ? raw : (isNaN(num) ? raw : num) });
-                          }}
-                          placeholder="값 입력"
-                          className="rounded-md border bg-background px-2 py-1.5 text-sm w-28 focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                        <button onClick={() => removeFilter(idx)} className="text-muted-foreground hover:text-destructive">
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                  <button
-                    onClick={addFilter}
-                    disabled={filterableColumns.length === 0}
-                    className="flex items-center gap-1.5 text-sm text-primary hover:underline disabled:opacity-40"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    필터 추가
-                  </button>
-                  <div className="pt-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => { setOpenStep(3); runQuery(); }}
-                      disabled={!datasetId}
-                    >
-                      다음: 시각화 →
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* STEP 3: 시각화 */}
-        <div>
-          <StepHeader
-            step={3} icon={BarChart3}
-            title="시각화"
-            summary={selectedDataset ? `${CHART_ICON_MAP[chartType] ?? ""} ${chartTypeLabels[chartType] ?? chartType}` : undefined}
-            open={openStep === 3}
-            onToggle={() => setOpenStep(3)}
-            completed={hasResult}
-          />
-          {openStep === 3 && (
-            <div className="px-5 pb-5 pt-3 space-y-3">
-              {!selectedDataset ? (
-                <p className="text-sm text-muted-foreground">먼저 데이터를 선택하세요.</p>
-              ) : (
-                <>
-                  <p className="text-xs text-muted-foreground mb-2">차트 타입 선택</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedDataset.compatibleCharts.map((ct) => (
-                      <button
-                        key={ct}
-                        onClick={() => setChartType(ct as ChartType)}
-                        className={cn(
-                          "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-all",
-                          chartType === ct
-                            ? "border-primary bg-primary/10 text-primary font-semibold"
-                            : "bg-background hover:border-primary/40 hover:bg-primary/5"
-                        )}
-                      >
-                        <span>{CHART_ICON_MAP[ct] ?? "📊"}</span>
-                        {chartTypeLabels[ct] ?? ct}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* ── 결과 미리보기 ── */}
       <div className="mb-card">

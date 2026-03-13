@@ -18,6 +18,11 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, Legend,
     ResponsiveContainer,
 } from "recharts";
+import { VizPickerPanel, VizSettingsPanel } from "./NoCodeBuilder";
+import { DEFAULT_VIZ_SETTINGS } from "./ChartSettingsSidebar";
+import type { VizSettings } from "./ChartSettingsSidebar";
+import type { ColumnMeta } from "@/types/dataset";
+import type { ChartType } from "@/types/builder";
 
 /* ─────────────────────────────────────────
    색상 팔레트
@@ -27,36 +32,7 @@ const CHART_COLORS = [
     "#E91E63", "#00BCD4", "#FF5722", "#607D8B",
 ];
 
-/* ─────────────────────────────────────────
-   차트 타입 목록 (스크린샷 기준)
-───────────────────────────────────────── */
-type ChartType =
-    | "table" | "bar" | "line" | "pie"
-    | "area" | "combo" | "scatter" | "radar"
-    | "number" | "pivot" | "gauge" | "waterfall" | "sankey";
-
-interface ChartTypeDef {
-    id: ChartType;
-    label: string;
-    icon: React.ElementType;
-    group: "기본" | "기타 차트";
-}
-
-const CHART_TYPES: ChartTypeDef[] = [
-    { id: "table", label: "테이블", icon: Grid, group: "기본" },
-    { id: "bar", label: "바", icon: BarChart2, group: "기본" },
-    { id: "line", label: "선", icon: LineChart, group: "기본" },
-    { id: "pie", label: "파이", icon: PieChart, group: "기본" },
-    { id: "area", label: "영역", icon: Activity, group: "기본" },
-    { id: "combo", label: "콤보", icon: Layers, group: "기본" },
-    { id: "scatter", label: "산포", icon: Crosshair, group: "기본" },
-    { id: "waterfall", label: "폭포", icon: TrendingUp, group: "기본" },
-    { id: "number", label: "숫자", icon: Hash, group: "기타 차트" },
-    { id: "pivot", label: "피벗 테이블", icon: Table, group: "기타 차트" },
-    { id: "radar", label: "경향", icon: CircleDot, group: "기타 차트" },
-    { id: "gauge", label: "계량기", icon: CircleDot, group: "기타 차트" },
-    { id: "sankey", label: "Sankey", icon: GitBranch, group: "기타 차트" },
-];
+/* ── 기존 자체 ChartType 정의 제거 (NoCodeBuilder와 동일한 타입 사용) ── */
 
 /* ─────────────────────────────────────────
    DB 정의
@@ -165,9 +141,9 @@ function ResultTable({ result }: { result: QueryResult }) {
 }
 
 /* ─────────────────────────────────────────
-   차트 렌더러
+   차트 렌더러 (Metabase 스타일 설정 지원 - 간단화 구현)
 ───────────────────────────────────────── */
-function ChartRenderer({ result, chartType }: { result: QueryResult; chartType: ChartType }) {
+function ChartRenderer({ result, chartType, settings }: { result: QueryResult; chartType: ChartType; settings: VizSettings }) {
     // 데이터 변환: rows → [{col0: v, col1: v, ...}]
     const data = result.rows.map((row) => {
         const obj: Record<string, string | number | null> = {};
@@ -181,18 +157,21 @@ function ChartRenderer({ result, chartType }: { result: QueryResult; chartType: 
     });
     if (valueKeys.length === 0) valueKeys.push(result.columns[1] ?? result.columns[0]);
 
+    const rx = settings.xKey || labelKey;
+    const ry = settings.yKey || valueKeys[0];
+    const color = settings.color || "#509EE3";
+
     const TICK_STYLE = { fontSize: 11, fill: "var(--muted-foreground)" };
 
-    /* 숫자 카드 */
-    if (chartType === "number") {
-        const firstNum = data[0]?.[valueKeys[0]];
+    /* 숫자 카드 (KPI) */
+    if (chartType === "kpi" || chartType === "number" as any) {
+        const val = data[0]?.[ry];
         return (
             <div className="flex flex-col items-center justify-center h-full gap-2">
-                <p className="text-xs text-muted-foreground uppercase tracking-widest">{valueKeys[0]}</p>
-                <p className="text-5xl font-bold text-primary tabular-nums">
-                    {typeof firstNum === "number" ? firstNum.toLocaleString() : String(firstNum ?? "—")}
+                <p className="text-4xl font-bold" style={{ color }}>
+                    {typeof val === "number" ? val.toLocaleString() : String(val ?? "—")}
                 </p>
-                <p className="text-xs text-muted-foreground">{result.rowCount}행 기준</p>
+                <p className="text-sm text-muted-foreground">{ry}</p>
             </div>
         );
     }
@@ -200,16 +179,17 @@ function ChartRenderer({ result, chartType }: { result: QueryResult; chartType: 
     /* 파이 */
     if (chartType === "pie") {
         const pieData = data.map((d) => ({
-            name: String(d[labelKey]),
-            value: Number(d[valueKeys[0]] ?? 0),
+            name: String(d[rx]),
+            value: Number(d[ry] ?? 0),
         }));
         return (
             <ResponsiveContainer width="100%" height="100%">
                 <RPieChart>
-                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine>
-                        {pieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={settings.showLabels ? undefined : false} labelLine={settings.showLabels}>
+                        {pieData.map((_, i) => <Cell key={i} fill={i === 0 ? color : CHART_COLORS[i % CHART_COLORS.length]} />)}
                     </Pie>
                     <Tooltip formatter={(v: number) => v.toLocaleString()} />
+                    {settings.showLegend && <Legend />}
                 </RPieChart>
             </ResponsiveContainer>
         );
@@ -220,178 +200,51 @@ function ChartRenderer({ result, chartType }: { result: QueryResult; chartType: 
         return (
             <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                    <defs>
-                        {valueKeys.map((k, i) => (
-                            <linearGradient key={k} id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={CHART_COLORS[i % CHART_COLORS.length]} stopOpacity={0.3} />
-                                <stop offset="95%" stopColor={CHART_COLORS[i % CHART_COLORS.length]} stopOpacity={0} />
-                            </linearGradient>
-                        ))}
-                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey={labelKey} tick={TICK_STYLE} />
-                    <YAxis tick={TICK_STYLE} />
+                    <XAxis dataKey={rx} tick={TICK_STYLE} label={settings.xLabel ? { value: settings.xLabel, position: "insideBottom", offset: -4, fontSize: 11 } : undefined} />
+                    <YAxis tick={TICK_STYLE} label={settings.yLabel ? { value: settings.yLabel, angle: -90, position: "insideLeft", fontSize: 11 } : undefined} />
                     <Tooltip />
-                    {valueKeys.length > 1 && <Legend />}
-                    {valueKeys.map((k, i) => (
-                        <Area key={k} type="monotone" dataKey={k} stroke={CHART_COLORS[i % CHART_COLORS.length]} fill={`url(#grad-${i})`} strokeWidth={2} />
-                    ))}
+                    {settings.showLegend && <Legend />}
+                    <Area type="monotone" dataKey={ry} stroke={color} fill={`${color}20`} strokeWidth={2} />
                 </AreaChart>
             </ResponsiveContainer>
         );
     }
 
     /* 선 */
-    if (chartType === "line" || chartType === "combo") {
+    if (chartType === "line" || chartType === "combo" as any) {
         return (
             <ResponsiveContainer width="100%" height="100%">
                 <RLineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey={labelKey} tick={TICK_STYLE} />
-                    <YAxis tick={TICK_STYLE} />
+                    <XAxis dataKey={rx} tick={TICK_STYLE} label={settings.xLabel ? { value: settings.xLabel, position: "insideBottom", offset: -4, fontSize: 11 } : undefined} />
+                    <YAxis tick={TICK_STYLE} label={settings.yLabel ? { value: settings.yLabel, angle: -90, position: "insideLeft", fontSize: 11 } : undefined} />
                     <Tooltip />
-                    {valueKeys.length > 1 && <Legend />}
-                    {valueKeys.map((k, i) => (
-                        <Line key={k} type="monotone" dataKey={k}
-                            stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                            strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                    ))}
+                    {settings.showLegend && <Legend />}
+                    <Line type="monotone" dataKey={ry} stroke={color} strokeWidth={2} dot={settings.showLabels} />
                 </RLineChart>
             </ResponsiveContainer>
         );
     }
 
-    /* 레이더 */
-    if (chartType === "radar") {
-        return (
-            <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={data} cx="50%" cy="50%" outerRadius={90}>
-                    <PolarGrid stroke="var(--border)" />
-                    <PolarAngleAxis dataKey={labelKey} tick={TICK_STYLE} />
-                    <PolarRadiusAxis tick={TICK_STYLE} />
-                    <Tooltip />
-                    {valueKeys.map((k, i) => (
-                        <Radar key={k} name={k} dataKey={k}
-                            stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                            fill={CHART_COLORS[i % CHART_COLORS.length]} fillOpacity={0.25} />
-                    ))}
-                    {valueKeys.length > 1 && <Legend />}
-                </RadarChart>
-            </ResponsiveContainer>
-        );
-    }
 
-    /* 산포 */
-    if (chartType === "scatter") {
-        const scatterData = data.map((d) => ({
-            x: Number(d[valueKeys[0]] ?? 0),
-            y: Number(d[valueKeys[1] ?? valueKeys[0]] ?? 0),
-            name: String(d[labelKey]),
-        }));
-        return (
-            <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="x" name={valueKeys[0]} tick={TICK_STYLE} />
-                    <YAxis dataKey="y" name={valueKeys[1] ?? valueKeys[0]} tick={TICK_STYLE} />
-                    <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                    <RScatter data={scatterData} fill={CHART_COLORS[0]} />
-                </ScatterChart>
-            </ResponsiveContainer>
-        );
-    }
 
-    /* 게이지 (간이 반원 파이) */
-    if (chartType === "gauge") {
-        const val = Number(data[0]?.[valueKeys[0]] ?? 0);
-        const max = Math.max(...data.map((d) => Number(d[valueKeys[0]] ?? 0)), 1);
-        const pct = Math.min(val / max, 1);
-        const gaugeData = [
-            { name: valueKeys[0], value: pct },
-            { name: "empty", value: 1 - pct },
-        ];
-        return (
-            <div className="flex flex-col items-center justify-center h-full gap-3">
-                <RPieChart width={220} height={120}>
-                    <Pie data={gaugeData} cx="50%" cy="90%" startAngle={180} endAngle={0}
-                        innerRadius={60} outerRadius={90} dataKey="value" paddingAngle={2}>
-                        <Cell fill={CHART_COLORS[0]} />
-                        <Cell fill="var(--border)" />
-                    </Pie>
-                </RPieChart>
-                <div className="text-center -mt-8">
-                    <p className="text-3xl font-bold text-primary">{val.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">{valueKeys[0]}</p>
-                </div>
-            </div>
-        );
-    }
-
-    /* 기본: 바 차트 (bar, waterfall, pivot, sankey 등 fallback) */
+    /* 기본: 바 차트 */
     return (
         <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey={labelKey} tick={TICK_STYLE} />
-                <YAxis tick={TICK_STYLE} />
+                <XAxis dataKey={rx} tick={TICK_STYLE} label={settings.xLabel ? { value: settings.xLabel, position: "insideBottom", offset: -4, fontSize: 11 } : undefined} />
+                <YAxis tick={TICK_STYLE} label={settings.yLabel ? { value: settings.yLabel, angle: -90, position: "insideLeft", fontSize: 11 } : undefined} />
                 <Tooltip />
-                {valueKeys.length > 1 && <Legend />}
-                {valueKeys.map((k, i) => (
-                    <Bar key={k} dataKey={k} fill={CHART_COLORS[i % CHART_COLORS.length]} radius={[3, 3, 0, 0]} />
-                ))}
+                {settings.showLegend && <Legend />}
+                <Bar dataKey={ry} fill={color} radius={[3, 3, 0, 0]} label={settings.showLabels ? { position: "top", fontSize: 10 } : false} />
             </BarChart>
         </ResponsiveContainer>
     );
 }
 
-/* ─────────────────────────────────────────
-   차트 타입 선택 패널 (좌측)
-───────────────────────────────────────── */
-function ChartTypePanel({ selected, onChange }: {
-    selected: ChartType;
-    onChange: (t: ChartType) => void;
-}) {
-    const groups = ["기본", "기타 차트"] as const;
-
-    return (
-        <div className="w-[100px] shrink-0 border-r border-border bg-card overflow-y-auto py-3 flex flex-col gap-4">
-            {groups.map((group) => {
-                const items = CHART_TYPES.filter((c) => c.group === group);
-                return (
-                    <div key={group}>
-                        {group === "기타 차트" && (
-                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-3 pb-1">
-                                기타 차트
-                            </p>
-                        )}
-                        <div className="grid grid-cols-2 gap-1 px-2">
-                            {items.map((ct) => {
-                                const Icon = ct.icon;
-                                const isActive = selected === ct.id;
-                                return (
-                                    <button
-                                        key={ct.id}
-                                        onClick={() => onChange(ct.id)}
-                                        title={ct.label}
-                                        className={cn(
-                                            "flex flex-col items-center gap-1 rounded-lg py-2 px-1 transition-all text-center",
-                                            isActive
-                                                ? "bg-primary text-white shadow-sm"
-                                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                                        )}
-                                    >
-                                        <Icon className={cn("h-5 w-5", isActive ? "text-white" : "")} />
-                                        <span className="text-[10px] leading-tight">{ct.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
-}
+/* (ChartTypePanel 삭제 - VizPickerPanel로 대체) */
 
 /* ─────────────────────────────────────────
    스키마 패널 (우측)
@@ -461,9 +314,11 @@ export function SqlEditor() {
     const [saveOpen, setSaveOpen] = React.useState(false);
     const [lineCount, setLineCount] = React.useState(1);
 
-    // 시각화 관련
-    const [viewMode, setViewMode] = React.useState<"table" | "viz">("table");
+    // 시각화 관련 (Metabase 스타일)
+    const [vizPanelMode, setVizPanelMode] = React.useState<"none" | "picker" | "settings">("none");
+    const [resultDisplayMode, setResultDisplayMode] = React.useState<"table" | "chart">("table");
     const [chartType, setChartType] = React.useState<ChartType>("bar");
+    const [vizSettings, setVizSettings] = React.useState<VizSettings>(DEFAULT_VIZ_SETTINGS);
 
     const dbDropRef = React.useRef<HTMLDivElement>(null);
 
@@ -558,7 +413,8 @@ export function SqlEditor() {
                 rowCount: 4, duration: 31,
             });
         }
-        setViewMode("table");
+        setResultDisplayMode("table");
+        setVizPanelMode("none");
     };
 
     const handleTableClick = (table: string) => {
@@ -649,7 +505,7 @@ export function SqlEditor() {
                                 schemaOpen ? "bg-primary/10 text-primary border-primary/30" : "text-muted-foreground hover:bg-muted")}>
                             <Table className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => { setResult(null); setError(null); setViewMode("table"); }} title="결과 지우기"
+                        <button onClick={() => { setResult(null); setError(null); setResultDisplayMode("table"); setVizPanelMode("none"); }} title="결과 지우기"
                             className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                             <RefreshCw className="h-3.5 w-3.5" />
                         </button>
@@ -698,19 +554,53 @@ export function SqlEditor() {
                         ) : result ? (
                             <>
                                 {/* 결과 본문: 시각화 패널 + 차트/테이블 */}
-                                <div className="flex flex-1 min-h-0">
-                                    {/* 시각화 모드일 때 좌측 차트 타입 패널 */}
-                                    {viewMode === "viz" && (
-                                        <ChartTypePanel selected={chartType} onChange={setChartType} />
+                                <div className="flex flex-1 min-h-0 bg-background">
+                                    {/* 시각화 모드일 때 좌측 차트 설정/타입 패널 */}
+                                    {vizPanelMode !== "none" && (
+                                        <div className="w-[260px] shrink-0 border-r border-border bg-card flex flex-col overflow-hidden">
+                                            {vizPanelMode === "picker" && (
+                                                <VizPickerPanel
+                                                    selected={chartType}
+                                                    onSelect={(type) => {
+                                                        setChartType(type);
+                                                        if (type === "table") {
+                                                            setResultDisplayMode("table");
+                                                            setVizPanelMode("none");
+                                                        } else {
+                                                            setResultDisplayMode("chart");
+                                                            setVizPanelMode("settings");
+                                                        }
+                                                    }}
+                                                    onDone={() => setVizPanelMode("none")}
+                                                />
+                                            )}
+                                            {vizPanelMode === "settings" && (
+                                                <VizSettingsPanel
+                                                    chartType={chartType}
+                                                    settings={vizSettings}
+                                                    onSettingsChange={(s) => setVizSettings((p) => ({ ...p, ...s }))}
+                                                    columns={result.columns.map(k => ({ key: k, label: k, type: "string", role: "dimension", aggregatable: true, filterable: true }))}
+                                                    data={result.rows.map((row) => {
+                                                        const obj: Record<string, unknown> = {};
+                                                        result.columns.forEach((col, i) => { obj[col] = row[i]; });
+                                                        return obj;
+                                                    })}
+                                                    xKey={result.columns[0]}
+                                                    yKey={result.columns[1] ?? result.columns[0]}
+                                                    onBack={() => setVizPanelMode("picker")}
+                                                    onDone={() => setVizPanelMode("none")}
+                                                />
+                                            )}
+                                        </div>
                                     )}
 
                                     {/* 결과 표시 영역 */}
                                     <div className="flex-1 min-w-0 overflow-hidden p-2">
-                                        {viewMode === "table" ? (
+                                        {resultDisplayMode === "table" ? (
                                             <ResultTable result={result} />
                                         ) : (
                                             <div className="h-full w-full">
-                                                <ChartRenderer result={result} chartType={chartType} />
+                                                <ChartRenderer result={result} chartType={chartType} settings={vizSettings} />
                                             </div>
                                         )}
                                     </div>
@@ -718,32 +608,50 @@ export function SqlEditor() {
 
                                 {/* 결과 하단 바 */}
                                 <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-muted/20 shrink-0">
-                                    {/* 좌측: 시각화 / 테이블 토글 */}
-                                    <div className="flex items-center gap-1">
+                                    {/* 좌측: 시각화 버튼 + 표/차트 토글 */}
+                                    <div className="flex items-center gap-3">
                                         <button
-                                            onClick={() => setViewMode("table")}
+                                            onClick={() => setVizPanelMode((p) => p === "none" ? "picker" : "none")}
                                             className={cn(
-                                                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all",
-                                                viewMode === "table"
-                                                    ? "bg-primary text-white shadow-sm"
-                                                    : "text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
-                                            )}
-                                        >
-                                            <Grid className="h-3.5 w-3.5" />
-                                            테이블
-                                        </button>
-                                        <button
-                                            onClick={() => setViewMode("viz")}
-                                            className={cn(
-                                                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all",
-                                                viewMode === "viz"
-                                                    ? "bg-primary text-white shadow-sm"
-                                                    : "text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
+                                                "flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors",
+                                                vizPanelMode !== "none"
+                                                    ? "bg-primary text-white"
+                                                    : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary border border-border"
                                             )}
                                         >
                                             <BarChart2 className="h-3.5 w-3.5" />
                                             시각화
                                         </button>
+
+                                        <div className="flex items-center border border-border rounded-lg overflow-hidden">
+                                            <button
+                                                onClick={() => setResultDisplayMode("table")}
+                                                className={cn(
+                                                    "flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors",
+                                                    resultDisplayMode === "table"
+                                                        ? "bg-primary text-white"
+                                                        : "text-muted-foreground hover:bg-muted"
+                                                )}
+                                                title="표"
+                                            >
+                                                <Grid className="h-3.5 w-3.5" />
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setResultDisplayMode("chart");
+                                                    if (chartType === "table") setChartType("bar");
+                                                }}
+                                                className={cn(
+                                                    "flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors",
+                                                    resultDisplayMode === "chart"
+                                                        ? "bg-primary text-white"
+                                                        : "text-muted-foreground hover:bg-muted"
+                                                )}
+                                                title="차트"
+                                            >
+                                                <BarChart2 className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {/* 우측: CSV + 행수/시간 */}

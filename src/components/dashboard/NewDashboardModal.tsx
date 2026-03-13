@@ -18,7 +18,7 @@ export function NewDashboardModal({ open, onClose, defaultCollectionId }: NewDas
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [submitted, setSubmitted] = React.useState(false);
-  const [collectionId, setCollectionId] = React.useState(defaultCollectionId ?? "analytics");
+  const [collectionId, setCollectionId] = React.useState(defaultCollectionId ?? "our-analytics");
 
   // defaultCollectionId 변경 시 동기화
   React.useEffect(() => {

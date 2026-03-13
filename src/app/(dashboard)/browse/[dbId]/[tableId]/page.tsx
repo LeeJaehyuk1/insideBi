@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { getDbInfo, getTableInfo, getTableData } from "@/lib/db-catalog";
-import { getRegistryEntry } from "@/lib/dataset-registry";
+import { getDbInfo, getTableInfo } from "@/lib/db-catalog";
+import { getPool } from "@/lib/db";
 import { TableDetailClient } from "./TableDetailClient";
 
-export default function TableDetailPage({
+export default async function TableDetailPage({
   params,
 }: {
   params: { dbId: string; tableId: string };
@@ -12,14 +12,14 @@ export default function TableDetailPage({
   const table = getTableInfo(params.dbId, params.tableId);
   if (!db || !table) notFound();
 
-  // registry 연결된 테이블은 mock-data에서, 아니면 db-catalog에서
   let rows: Record<string, unknown>[] = [];
-  if (table.datasetId) {
-    const entry = getRegistryEntry(table.datasetId);
-    if (entry) rows = entry.queryFn() as Record<string, unknown>[];
-  }
-  if (rows.length === 0) {
-    rows = getTableData(params.dbId, params.tableId);
+  try {
+    const pool = getPool();
+    const result = await pool.query(`SELECT * FROM ${params.tableId} LIMIT 1000`);
+    rows = result.rows;
+  } catch {
+    // DB 연결 실패 시 빈 배열
+    rows = [];
   }
 
   return (

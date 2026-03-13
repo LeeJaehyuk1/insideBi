@@ -8,12 +8,14 @@ export type FilterOperator =
   | "contains" | "not_contains"
   | "starts" | "ends"
   | "empty" | "not_empty"
-  | "gte" | "lte";
+  | "gte" | "lte"
+  | "between";
 
 export interface FilterParam {
   column: string;
   operator: FilterOperator;
   value: string | number;
+  value2?: string | number; // between 연산자용 두 번째 값
 }
 
 export interface QueryConfig {

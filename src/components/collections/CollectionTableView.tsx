@@ -293,7 +293,7 @@ export function CollectionTableView({
       </div>
 
       {/* ── 테이블 ── */}
-      <div className="rounded-xl border border-border bg-background overflow-hidden">
+      <div className="rounded-xl border border-border bg-background overflow-visible">
         <table className="w-full text-sm border-collapse">
           {/* 헤더 */}
           <thead>

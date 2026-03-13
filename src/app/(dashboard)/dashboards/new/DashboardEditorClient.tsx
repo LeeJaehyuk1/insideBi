@@ -305,10 +305,10 @@ export function DashboardEditorClient() {
   const params = useSearchParams();
   const router = useRouter();
   const initialName = params.get("name") ?? "새 대시보드";
-  const collectionId = params.get("collection") ?? "analytics";
+  const collectionId = params.get("collection") || "";
 
   const { saveDashboard, library, hydrated: libHydrated } = useDashboardLibrary();
-  const { addEntry } = useCollectionFolders();
+  const { addEntry, getFolder } = useCollectionFolders();
   const [saveToast, setSaveToast] = React.useState(false);
 
   const [dashboardName, setDashboardName] = React.useState(initialName);
@@ -512,8 +512,9 @@ export function DashboardEditorClient() {
               setSaveToast(true);
               setTimeout(() => {
                 setSaveToast(false);
-                // 개인 컬렉션에서 왔으면 컬렉션으로, 아니면 대시보드 목록으로
-                const dest = collectionId ? `/collections/${collectionId}` : "/dashboards";
+                // 유효한 collectionFolder ID면 해당 컬렉션으로, 아니면 대시보드 목록으로
+                const validFolder = collectionId && getFolder(collectionId);
+                const dest = validFolder ? `/collections/${collectionId}` : "/dashboards";
                 router.push(dest);
               }, 1200);
             }}

@@ -1,39 +1,46 @@
 import type { ColumnMeta } from "@/types/dataset";
-import { getDatasetSchema } from "@/lib/dataset-schemas";
-import { DB_TABLES, getTableData } from "@/lib/db-catalog";
+import { DB_TABLES } from "@/lib/db-catalog";
 
-/**
- * tableId (snake_case) → ColumnMeta[]
- * 우선순위: dataCatalog schema → 실제 데이터 첫 행에서 동적 추출
- */
-export function getColumnsForTable(tableId: string, dbId = "railway"): ColumnMeta[] {
-  // 1) registry 연결된 dataset schema 있으면 우선 사용
-  const tableInfo = DB_TABLES[dbId]?.find((t) => t.tableId === tableId);
-  if (tableInfo?.datasetId) {
-    const schema = getDatasetSchema(tableInfo.datasetId);
-    if (schema?.columns?.length) return schema.columns;
+/** 서버 환경에서 DB information_schema로 컬럼 조회 */
+export async function getColumnsForTableAsync(tableId: string): Promise<ColumnMeta[]> {
+  if (typeof window === "undefined") {
+    // 서버: 직접 DB 쿼리
+    try {
+      const { getPool } = await import("@/lib/db");
+      const result = await getPool().query(
+        `SELECT column_name, data_type
+         FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = $1
+         ORDER BY ordinal_position`,
+        [tableId]
+      );
+      return result.rows.map((row) => {
+        const dt = row.data_type as string;
+        const isNum = ["integer","bigint","smallint","numeric","decimal","real","double precision"].some((t) => dt.includes(t));
+        const isDate = ["date","timestamp","time"].some((t) => dt.includes(t));
+        const type = isNum ? "number" : isDate ? "date" : "string";
+        return {
+          key: row.column_name,
+          label: (row.column_name as string).replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+          type,
+          role: isNum ? "measure" : "dimension",
+          aggregatable: isNum,
+          filterable: true,
+        } as ColumnMeta;
+      });
+    } catch {
+      return [];
+    }
+  } else {
+    // 클라이언트: API 호출
+    try {
+      const res = await fetch(`/api/db-columns?table=${encodeURIComponent(tableId)}`);
+      const json = await res.json();
+      return json.columns ?? [];
+    } catch {
+      return [];
+    }
   }
-
-  // 2) 실제 데이터 첫 행에서 컬럼 동적 추출
-  const rows = getTableData(dbId, tableId);
-  if (rows.length > 0) {
-    return Object.entries(rows[0]).map(([key, val]) => {
-      const type: ColumnMeta["type"] =
-        typeof val === "number" ? "number" :
-        typeof val === "string" && /^\d{4}-?\d{2}-?\d{2}/.test(val) ? "date" :
-        "string";
-      return {
-        key,
-        label: key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-        type,
-        role: type === "number" ? "measure" : "dimension",
-        aggregatable: type === "number",
-        filterable: true,
-      } as ColumnMeta;
-    });
-  }
-
-  return [];
 }
 
 /** tableId → 표시용 레이블 (Pascal Case) */
@@ -42,4 +49,9 @@ export function getTableLabel(tableId: string, dbId = "railway"): string {
     DB_TABLES[dbId]?.find((t) => t.tableId === tableId)?.label ??
     tableId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
   );
+}
+
+/** @deprecated mock 데이터 기반 - 실제 DB가 있으면 getColumnsForTableAsync 사용 */
+export function getColumnsForTable(_tableId: string, _dbId = "railway"): ColumnMeta[] {
+  return [];
 }
