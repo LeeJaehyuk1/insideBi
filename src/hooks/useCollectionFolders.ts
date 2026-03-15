@@ -77,18 +77,21 @@ export function useCollectionFolders() {
     [mutate]
   );
 
-  /** 엔트리 추가 */
+  /** 엔트리 추가 — router.push 전에도 반드시 반영되도록 localStorage에 직접 동기 저장 */
   const addEntry = React.useCallback(
     (folderId: string, entry: FolderEntry) => {
-      mutate((prev) =>
-        prev.map((f) =>
-          f.id === folderId
-            ? { ...f, entries: [entry, ...f.entries.filter((e) => e.id !== entry.id)] }
-            : f
-        )
+      // 1) localStorage에서 최신 데이터를 직접 읽어 동기적으로 저장 (React 배치 업데이트보다 먼저 실행)
+      const current = load();
+      const next = current.map((f) =>
+        f.id === folderId
+          ? { ...f, entries: [entry, ...f.entries.filter((e) => e.id !== entry.id)] }
+          : f
       );
+      save(next);
+      // 2) React 상태도 동기화
+      setFolders(next);
     },
-    [mutate]
+    [] // load/save는 모듈 스코프 순수함수이므로 deps 불필요
   );
 
   /** 엔트리 제거 */

@@ -29,12 +29,14 @@ import {
   FolderOpen,
   Database,
   User2,
+  LogOut,
 } from "lucide-react";
 import { NewDashboardModal } from "@/components/dashboard/NewDashboardModal";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-import { alerts } from "@/lib/mock-data";
+import { useAlerts } from "@/hooks/useAlerts";
 import { useRole, ROLES, Role, getRoleInfo } from "@/context/RoleContext";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 
 interface TopNavProps {
@@ -202,9 +204,18 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
     if (action === "new-dashboard") setNewDashboardOpen(true);
   }, []);
 
-  const { role, setRole, userName, setUserName } = useRole();
+  const { role, setRole, userName, setUserName, logout } = useRole();
+  const router = useRouter();
+  const { alerts, unreadCount, markRead, markAllRead } = useAlerts();
   const [editingName, setEditingName] = React.useState(false);
   const [nameInput, setNameInput] = React.useState("");
+  const [alertOpen, setAlertOpen] = React.useState(false);
+  const alertRef = React.useRef<HTMLDivElement>(null);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
   const roleInfo = getRoleInfo(role);
   const RoleIcon = roleIcons[role];
 
@@ -214,12 +225,12 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
     const handler = (e: MouseEvent) => {
       if (roleDropRef.current && !roleDropRef.current.contains(e.target as Node))
         setRoleDropOpen(false);
+      if (alertRef.current && !alertRef.current.contains(e.target as Node))
+        setAlertOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-
-  const unreadCount = alerts.filter((a) => !a.isRead).length;
   const isHome = pathname === "/";
 
   return (
@@ -336,16 +347,80 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
         </Link>
 
         {/* 알림 */}
-        <button
-          className="relative flex h-8 w-8 items-center justify-center rounded-md text-nav-foreground/70 hover:text-nav-foreground hover:bg-nav-hover transition-colors"
-        >
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <Badge className="absolute -right-0.5 -top-0.5 h-4 w-4 justify-center p-0 text-[10px] bg-red-500 text-white border-0">
-              {unreadCount}
-            </Badge>
+        <div ref={alertRef} className="relative">
+          <button
+            onClick={() => setAlertOpen((p) => !p)}
+            className="relative flex h-8 w-8 items-center justify-center rounded-md text-nav-foreground/70 hover:text-nav-foreground hover:bg-nav-hover transition-colors"
+          >
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <Badge className="absolute -right-0.5 -top-0.5 h-4 w-4 justify-center p-0 text-[10px] bg-red-500 text-white border-0">
+                {unreadCount}
+              </Badge>
+            )}
+          </button>
+
+          {alertOpen && (
+            <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-xl border border-border bg-background shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150">
+              {/* 헤더 */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                <p className="text-sm font-semibold text-foreground">알림</p>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    className="text-xs text-primary hover:underline transition-colors"
+                  >
+                    모두 읽음
+                  </button>
+                )}
+              </div>
+              {/* 알림 목록 */}
+              <div className="max-h-[360px] overflow-y-auto divide-y divide-border">
+                {alerts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                    <Bell className="h-6 w-6 opacity-30 mb-2" />
+                    <p className="text-sm">알림이 없습니다</p>
+                  </div>
+                ) : (
+                  alerts.map((alert) => {
+                    const severityColor = {
+                      danger:  "bg-red-500",
+                      warning: "bg-orange-400",
+                      caution: "bg-yellow-400",
+                      normal:  "bg-green-400",
+                    }[alert.severity] ?? "bg-gray-400";
+                    return (
+                      <div
+                        key={alert.id}
+                        onClick={() => markRead(alert.id)}
+                        className={cn(
+                          "flex gap-3 px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors",
+                          !alert.isRead && "bg-primary/5"
+                        )}
+                      >
+                        <div className={cn("mt-1.5 h-2 w-2 rounded-full shrink-0", severityColor)} />
+                        <div className="flex-1 min-w-0">
+                          <p className={cn("text-xs font-semibold text-foreground leading-snug", !alert.isRead && "font-bold")}>
+                            {alert.title}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
+                            {alert.message}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground/60 mt-1">
+                            {new Date(alert.timestamp).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                        {!alert.isRead && (
+                          <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           )}
-        </button>
+        </div>
 
         {/* 테마 토글 */}
         {mounted && (
@@ -359,6 +434,15 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
 
         {/* 구분선 */}
         <div className="h-6 w-px bg-nav-foreground/20 mx-1" />
+
+        {/* 로그아웃 */}
+        <button
+          onClick={handleLogout}
+          title="로그아웃"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-nav-foreground/70 hover:text-red-400 hover:bg-nav-hover transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
 
         {/* 사용자 이름 */}
         {editingName ? (

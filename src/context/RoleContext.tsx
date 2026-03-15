@@ -51,12 +51,24 @@ export const can = {
     deleteCatalog: (role: Role) => role === "admin",
 };
 
+/* ─── 내장 사용자 목록 (데모용) ─── */
+interface UserDef { password: string; role: Role; displayName: string; }
+const USERS: Record<string, UserDef> = {
+    admin:  { password: "admin123",  role: "admin",  displayName: "관리자" },
+    editor: { password: "edit123",   role: "editor", displayName: "편집자" },
+    viewer: { password: "view123",   role: "viewer", displayName: "뷰어"   },
+};
+
 /* ─── Context ─── */
 interface RoleContextValue {
     role: Role;
     setRole: (role: Role) => void;
     userName: string;
     setUserName: (name: string) => void;
+    isLoggedIn: boolean;
+    hydrated: boolean;
+    login: (username: string, password: string) => boolean;
+    logout: () => void;
 }
 
 const RoleContext = React.createContext<RoleContextValue>({
@@ -64,37 +76,80 @@ const RoleContext = React.createContext<RoleContextValue>({
     setRole: () => { },
     userName: "사용자",
     setUserName: () => { },
+    isLoggedIn: false,
+    hydrated: false,
+    login: () => false,
+    logout: () => { },
 });
 
-const STORAGE_KEY = "InsightBi_role_v1";
+const SESSION_KEY = "insightbi_session_v1";
 const USER_NAME_KEY = "insightbi_user_name_v1";
+
+interface Session { userName: string; role: Role; displayName: string; }
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
     const [role, setRoleState] = React.useState<Role>("viewer");
     const [userName, setUserNameState] = React.useState<string>("사용자");
+    const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+    const [hydrated, setHydrated] = React.useState(false);
 
-    // localStorage 복원
     React.useEffect(() => {
-        const saved = localStorage.getItem(STORAGE_KEY) as Role | null;
-        if (saved && ["admin", "editor", "viewer"].includes(saved)) {
-            setRoleState(saved);
-        }
-        const savedName = localStorage.getItem(USER_NAME_KEY);
-        if (savedName) setUserNameState(savedName);
+        try {
+            const s = localStorage.getItem(SESSION_KEY);
+            if (s) {
+                const session: Session = JSON.parse(s);
+                setRoleState(session.role);
+                setUserNameState(session.displayName);
+                setIsLoggedIn(true);
+            }
+        } catch { /* 세션 없으면 로그인 필요 */ }
+        setHydrated(true); // 복원 완료 — 이제 AuthGuard가 판단 가능
     }, []);
 
     const setRole = (next: Role) => {
         setRoleState(next);
-        localStorage.setItem(STORAGE_KEY, next);
+        try {
+            const s = localStorage.getItem(SESSION_KEY);
+            if (s) {
+                const session: Session = JSON.parse(s);
+                localStorage.setItem(SESSION_KEY, JSON.stringify({ ...session, role: next }));
+            }
+        } catch { }
     };
 
     const setUserName = (name: string) => {
         setUserNameState(name);
         localStorage.setItem(USER_NAME_KEY, name);
+        try {
+            const s = localStorage.getItem(SESSION_KEY);
+            if (s) {
+                const session: Session = JSON.parse(s);
+                localStorage.setItem(SESSION_KEY, JSON.stringify({ ...session, displayName: name }));
+            }
+        } catch { }
+    };
+
+    const login = (username: string, password: string): boolean => {
+        const user = USERS[username.toLowerCase()];
+        if (!user || user.password !== password) return false;
+        const session: Session = { userName: username, role: user.role, displayName: user.displayName };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        localStorage.setItem(USER_NAME_KEY, user.displayName);
+        setRoleState(user.role);
+        setUserNameState(user.displayName);
+        setIsLoggedIn(true);
+        return true;
+    };
+
+    const logout = () => {
+        localStorage.removeItem(SESSION_KEY);
+        setIsLoggedIn(false);
+        setRoleState("viewer");
+        setUserNameState("사용자");
     };
 
     return (
-        <RoleContext.Provider value={{ role, setRole, userName, setUserName }}>
+        <RoleContext.Provider value={{ role, setRole, userName, setUserName, isLoggedIn, hydrated, login, logout }}>
             {children}
         </RoleContext.Provider>
     );

@@ -150,6 +150,10 @@
 }
 
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 20mm 15mm;
+  }
   [data-topbar] {
     display: none !important;
   }
@@ -162,5 +166,9 @@
   }
   .print-break {
     page-break-before: always;
+  }
+  /* 카드/테이블이 페이지 경계에서 끊기지 않도록 */
+  .bg-card, table {
+    break-inside: avoid;
   }
 }

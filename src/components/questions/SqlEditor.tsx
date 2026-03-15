@@ -21,6 +21,10 @@ import {
 import { VizPickerPanel, VizSettingsPanel } from "./NoCodeBuilder";
 import { DEFAULT_VIZ_SETTINGS } from "./ChartSettingsSidebar";
 import type { VizSettings } from "./ChartSettingsSidebar";
+import { SaveQuestionModal } from "./SaveQuestionModal";
+import { useSavedQuestions } from "@/hooks/useSavedQuestions";
+import { useCollectionFolders } from "@/hooks/useCollectionFolders";
+import type { FolderEntry } from "@/lib/mock-data/collection-folders";
 import type { ColumnMeta } from "@/types/dataset";
 import type { ChartType } from "@/types/builder";
 
@@ -69,44 +73,7 @@ interface QueryResult {
     duration: number;
 }
 
-/* ─────────────────────────────────────────
-   저장 모달
-───────────────────────────────────────── */
-function SaveModal({ open, onClose, onSave }: {
-    open: boolean; onClose: () => void; onSave: (t: string) => void;
-}) {
-    const [title, setTitle] = React.useState("");
-    if (!open) return null;
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-base font-semibold text-foreground">질문 저장</h2>
-                    <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted transition-colors">
-                        <X className="h-4 w-4" />
-                    </button>
-                </div>
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">제목</label>
-                    <input
-                        autoFocus value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter" && title.trim()) onSave(title.trim()); }}
-                        placeholder="질문 제목을 입력하세요"
-                        className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    />
-                </div>
-                <div className="flex justify-end gap-2 pt-1">
-                    <button onClick={onClose} className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors">취소</button>
-                    <button onClick={() => { if (title.trim()) onSave(title.trim()); }} disabled={!title.trim()}
-                        className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                        저장
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
+/* SaveModal 제거 — SaveQuestionModal로 대체 */
 
 /* ─────────────────────────────────────────
    결과 테이블
@@ -302,6 +269,8 @@ function SchemaPanel({ dbId, onClose, onTableClick }: {
 ───────────────────────────────────────── */
 export function SqlEditor() {
     const router = useRouter();
+    const { saveQuestion } = useSavedQuestions();
+    const { addEntry } = useCollectionFolders();
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
     const [dbId, setDbId] = React.useState("insightbi");
@@ -433,12 +402,20 @@ export function SqlEditor() {
         if ((e.ctrlKey || e.metaKey) && e.key === "Enter") handleRun();
     };
 
-    const handleSave = (title: string) => {
-        const saved = JSON.parse(localStorage.getItem("insightbi_sql_questions_v1") || "[]");
-        saved.unshift({ id: Date.now().toString(), title, sql, dbId, savedAt: new Date().toISOString() });
-        localStorage.setItem("insightbi_sql_questions_v1", JSON.stringify(saved));
+    const handleConfirmSave = (title: string, _desc: string, targetColId: string) => {
+        const datasetId = `sql:${dbId}`;
+        const saved = saveQuestion({ title, datasetId, filters: [], chartType });
+        const finalColId = targetColId || "our-analytics";
+        const entry: FolderEntry = {
+            id: `q-${saved.id}`, type: "question", name: title,
+            lastEditor: "나",
+            lastModified: new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
+            href: `/questions/${saved.id}`,
+        };
+        addEntry(finalColId, entry);
         setSaveOpen(false);
-        router.push("/questions");
+        const dest = finalColId === "our-analytics" ? "/collections" : `/collections/${finalColId}`;
+        router.push(dest);
     };
 
     const selectedDb = DATABASES.find((d) => d.id === dbId) ?? DATABASES[0];
@@ -692,7 +669,16 @@ export function SqlEditor() {
                 )}
             </div>
 
-            <SaveModal open={saveOpen} onClose={() => setSaveOpen(false)} onSave={handleSave} />
+            <SaveQuestionModal
+                open={saveOpen}
+                onClose={() => setSaveOpen(false)}
+                onSave={handleConfirmSave}
+                tableLabel={`SQL — ${DATABASES.find((d) => d.id === dbId)?.label ?? dbId}`}
+                filters={[]}
+                columnLabels={Object.fromEntries(
+                    (result?.columns ?? []).map((c) => [c, c])
+                )}
+            />
         </div>
     );
 }
