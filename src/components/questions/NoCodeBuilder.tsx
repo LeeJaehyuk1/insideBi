@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import {
   Play, Plus, X, BarChart3, BarChart2,
   Save, ChevronDown, Eye, LayoutGrid, Terminal,
-  ArrowUpDown, Rows3, Info, Table2, ChevronLeft,
+  ArrowUpDown, Rows3, Info, Table2, ChevronLeft, Key,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { dataCatalog } from "@/lib/data-catalog";
 import { getDatasetSchema } from "@/lib/dataset-schemas";
 import { executeQuery } from "@/lib/query-engine";
-import { getTableLabel } from "@/lib/table-columns";
+import { getTableLabel, getDbLabel } from "@/lib/table-columns";
 import { useSavedQuestions } from "@/hooks/useSavedQuestions";
 import { useCollectionFolders } from "@/hooks/useCollectionFolders";
 import type { FolderEntry } from "@/lib/mock-data/collection-folders";
@@ -22,6 +22,8 @@ import { CHART_DEFS } from "./ChartTypeSelector";
 import { DEFAULT_VIZ_SETTINGS } from "./ChartSettingsSidebar";
 import type { VizSettings } from "./ChartSettingsSidebar";
 import { SaveQuestionModal } from "./SaveQuestionModal";
+import { SummarySidebar } from "../browse/SummarySidebar";
+import { FilterSidebar } from "../browse/FilterSidebar";
 import type { FilterParam, FilterOperator } from "@/types/query";
 import type { ChartType } from "@/types/builder";
 import type { ColumnMeta } from "@/types/dataset";
@@ -218,31 +220,50 @@ function ResultChart({ data, chartType, xKey, yKey, settings }: {
 }
 
 /* ── 결과 테이블 ── */
-function ResultTable({ data }: { data: Record<string, unknown>[] }) {
+function ResultTable({ data, columns }: { data: Record<string, unknown>[], columns: ColumnMeta[] }) {
   if (!data.length) return (
     <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">결과가 없습니다</div>
   );
-  const cols = Object.keys(data[0]);
+  const colKeys = Object.keys(data[0]);
   return (
     <div className="overflow-auto h-full">
       <table className="w-full text-xs border-collapse">
         <thead>
-          <tr className="border-b bg-muted/50 sticky top-0">
-            {cols.map((c) => (
-              <th key={c} className="px-3 py-2.5 text-left font-semibold text-muted-foreground whitespace-nowrap">{c}</th>
-            ))}
+          <tr className="border-b bg-muted/50 sticky top-0 z-10 backdrop-blur-sm">
+            {colKeys.map((k) => {
+              const meta = columns.find((c) => c.key === k);
+              const isPk = meta?.role === "identifier";
+              return (
+                <th key={k} className={cn(
+                  "px-3 py-2.5 text-left font-bold whitespace-nowrap border-r border-border/50",
+                  isPk ? "text-primary bg-primary/5" : "text-muted-foreground"
+                )}>
+                  <div className="flex items-center gap-1.5">
+                    {isPk && <Key className="h-3 w-3 text-primary" />}
+                    {meta?.label || k}
+                  </div>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
           {data.slice(0, 2000).map((row, i) => (
-            <tr key={i} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-              {cols.map((c) => (
-                <td key={c} className="px-3 py-2 text-foreground whitespace-nowrap">
-                  {row[c] === null || row[c] === undefined
-                    ? <span className="text-muted-foreground/40 italic">—</span>
-                    : String(row[c])}
-                </td>
-              ))}
+            <tr key={i} className="border-b border-border/50 hover:bg-muted/30 transition-colors group">
+              {colKeys.map((k) => {
+                const meta = columns.find((c) => c.key === k);
+                const isPk = meta?.role === "identifier";
+                return (
+                  <td key={k} className={cn(
+                    "px-3 py-2 whitespace-nowrap border-r border-border/30",
+                    isPk ? "font-bold text-primary bg-primary/[0.02] group-hover:bg-primary/[0.05]" : "text-foreground"
+                  )}>
+                    {row[k] === null || row[k] === undefined
+                      ? <span className="text-muted-foreground/40 italic">—</span>
+                      : String(row[k])}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
@@ -693,14 +714,17 @@ export function NoCodeBuilder({
   /* 결과 상태 */
   const [result, setResult] = React.useState<Record<string, unknown>[]>([]);
   const [isRunning, setIsRunning] = React.useState(false);
+  const [runError, setRunError] = React.useState<string | null>(null);
   const [hasResult, setHasResult] = React.useState(false);
   const [chartType, setChartType] = React.useState<ChartType>("bar");
   const [saveModalOpen, setSaveModalOpen] = React.useState(false);
+  const [summarySidebarOpen, setSummarySidebarOpen] = React.useState(false);
+  const [filterSidebarOpen, setFilterSidebarOpen] = React.useState(false);
   const [generatedSql, setGeneratedSql] = React.useState<string | null>(null);
   const [vizSettings, setVizSettings] = React.useState<VizSettings>(DEFAULT_VIZ_SETTINGS);
 
   /* 뷰 상태 */
-  const [editMode, setEditMode] = React.useState<EditMode>("builder");
+  const [editMode, setEditMode] = React.useState<EditMode>(initialTableId || initialDatasetId ? "result" : "builder");
   const [vizPanelMode, setVizPanelMode] = React.useState<VizPanelMode>("none");
   const [resultDisplayMode, setResultDisplayMode] = React.useState<ResultDisplayMode>("table");
 
@@ -784,7 +808,7 @@ export function NoCodeBuilder({
       handleRun();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, aggregations, breakouts, sortColumn, sortDir, limit, mode]);
+  }, [filters, aggregations, breakouts, sortColumn, sortDir, limit, mode, columns.length]);
 
   /* 실행 */
   const handleRun = async () => {
@@ -845,7 +869,18 @@ export function NoCodeBuilder({
   const handleConfirmSave = (title: string, _desc: string, targetColId: string) => {
     const id = tableId || datasetId;
     if (!id) return;
-    const saved = saveQuestion({ title, datasetId: id, filters, chartType, vizSettings });
+    // 저장 시점에 표를 보고 있으면 "table"로 저장 (chartType이 bar 등으로 남아있어도 무관)
+    const savedChartType = resultDisplayMode === "table" ? "table" : chartType;
+    const saved = saveQuestion({
+      title,
+      datasetId: id,
+      filters,
+      aggregations,
+      breakouts,
+      mode,
+      chartType: savedChartType,
+      vizSettings
+    });
     const finalColId = targetColId || collectionId || "our-analytics";
     const entry: FolderEntry = {
       id: `q-${saved.id}`, type: "question", name: title,
@@ -873,7 +908,7 @@ export function NoCodeBuilder({
   }
 
   /* ── 결과 뷰 (Metabase 스타일 풀스크린) ── */
-  if (hasResult && editMode === "result") {
+  if (editMode === "result") {
     return (
       <>
         {showTablePicker && (
@@ -910,17 +945,20 @@ export function NoCodeBuilder({
             <div className="flex items-center gap-1">
               {/* 필터 */}
               <button
-                onClick={() => setEditMode("builder")}
+                onClick={() => {
+                  setFilterSidebarOpen((p) => !p);
+                  setSummarySidebarOpen(false);
+                }}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors",
-                  filters.length > 0
-                    ? "border-primary/50 bg-primary/5 text-primary"
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold border transition-colors",
+                  filterSidebarOpen || filters.length > 0
+                    ? "bg-primary text-white border-primary shadow-sm"
                     : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
                 필터
                 {filters.length > 0 && (
-                  <span className="flex items-center justify-center h-4 w-4 rounded-full bg-primary text-white text-[9px] font-bold">
+                  <span className="flex items-center justify-center h-4 w-4 rounded-full bg-white text-primary text-[9px] font-bold ml-0.5">
                     {filters.length}
                   </span>
                 )}
@@ -928,11 +966,14 @@ export function NoCodeBuilder({
 
               {/* 요약 */}
               <button
-                onClick={() => { setEditMode("builder"); setMode("summarize"); }}
+                onClick={() => {
+                  setSummarySidebarOpen((p) => !p);
+                  setFilterSidebarOpen(false);
+                }}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors",
-                  mode === "summarize"
-                    ? "border-emerald-500/50 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold border transition-colors",
+                  summarySidebarOpen || mode === "summarize"
+                    ? "bg-emerald-500 text-white border-emerald-600 shadow-sm"
                     : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
@@ -1012,9 +1053,14 @@ export function NoCodeBuilder({
             )}
 
             {/* 데이터 영역 */}
-            <div className="flex-1 min-w-0 overflow-auto">
-              {resultDisplayMode === "table" || chartType === "table" ? (
-                <ResultTable data={result} />
+            <div className="flex-1 min-w-0 overflow-auto relative">
+              {(isRunning || !hasResult) ? (
+                <div className="flex flex-col items-center justify-center h-full gap-4 bg-background">
+                  <div className="h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                  <p className="text-sm font-medium text-muted-foreground animate-pulse">데이터를 불러오는 중입니다...</p>
+                </div>
+              ) : resultDisplayMode === "table" || chartType === "table" ? (
+                <ResultTable data={result} columns={columns} />
               ) : (
                 <div className="p-6">
                   <ResultChart
@@ -1027,6 +1073,43 @@ export function NoCodeBuilder({
                 </div>
               )}
             </div>
+
+            {/* 요약 사이드바 */}
+            {summarySidebarOpen && (
+              <div className="z-20 border-l bg-background shadow-xl">
+                <SummarySidebar
+                  tableLabel={tableLabel || "데이터"}
+                  columns={columns.map((c) => c.key)}
+                  columnLabels={Object.fromEntries(columns.map((c) => [c.key, c.label]))}
+                  numericColumns={columns.filter((c) => c.type === "number" || c.role === "measure").map((c) => c.key)}
+                  aggregations={aggregations}
+                  breakouts={breakouts}
+                  onAggChange={(newAggs) => {
+                    setAggregations(newAggs);
+                    if (newAggs.length > 0 || breakouts.length > 0) setMode("summarize");
+                    else setMode("raw");
+                  }}
+                  onBreakoutChange={(newBreakouts) => {
+                    setBreakouts(newBreakouts);
+                    if (newBreakouts.length > 0 || aggregations.length > 0) setMode("summarize");
+                    else setMode("raw");
+                  }}
+                  onClose={() => setSummarySidebarOpen(false)}
+                />
+              </div>
+            )}
+
+            {/* 필터 사이드바 */}
+            {filterSidebarOpen && (
+              <div className="z-20 border-l bg-background shadow-xl">
+                <FilterSidebar
+                  tableLabel={tableLabel || "데이터"}
+                  columns={columns}
+                  onAdd={(f) => setFilters((p) => [...p, f])}
+                  onClose={() => setFilterSidebarOpen(false)}
+                />
+              </div>
+            )}
           </div>
 
           {/* ── 하단 바 ── */}
@@ -1049,7 +1132,7 @@ export function NoCodeBuilder({
               {/* 표/차트 토글 */}
               <div className="flex items-center border border-border rounded-lg overflow-hidden">
                 <button
-                  onClick={() => setResultDisplayMode("table")}
+                  onClick={() => { setResultDisplayMode("table"); setChartType("table"); }}
                   title="표"
                   className={cn(
                     "flex items-center justify-center px-2.5 py-1.5 transition-colors",

@@ -10,6 +10,8 @@ import {
 import { cn } from "@/lib/utils";
 import type { FolderEntry, EntryType, CollectionFolder } from "@/lib/mock-data/collection-folders";
 import { NewDashboardModal } from "@/components/dashboard/NewDashboardModal";
+import { BookmarkButton } from "@/components/ui/BookmarkButton";
+import type { BookmarkType } from "@/hooks/useBookmarks";
 
 /* ── 타입 아이콘 ── */
 function EntryIcon({ type }: { type: EntryType }) {
@@ -373,6 +375,16 @@ export function CollectionTableView({
                         >
                           {entry.name}
                         </Link>
+                        <BookmarkButton
+                          item={{
+                            id: entry.id,
+                            type: (entry.type === "question" || entry.type === "dashboard" || entry.type === "collection"
+                              ? entry.type : "question") as BookmarkType,
+                            name: entry.name,
+                            href: entry.href,
+                          }}
+                          className="opacity-0 group-hover:opacity-100"
+                        />
                         <button
                           title="정보"
                           className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"

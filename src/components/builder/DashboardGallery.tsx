@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SavedDashboard } from "@/types/builder";
+import { BookmarkButton } from "@/components/ui/BookmarkButton";
 
 interface DashboardGalleryProps {
   items: SavedDashboard[];
@@ -91,6 +92,11 @@ export function DashboardGallery({
                 <ExternalLink className="h-3.5 w-3.5" />
                 열기
               </Link>
+              <BookmarkButton
+                item={{ id: `dashboard-${dashboard.name}`, type: "dashboard", name: dashboard.name, href: `/dashboards/new?name=${encodeURIComponent(dashboard.name)}` }}
+                className="rounded-lg border p-1.5 h-auto w-auto"
+                size="sm"
+              />
               <button
                 onClick={() => isHome ? onClearHome() : onSetHome(dashboard)}
                 title={isHome ? "홈에서 제거" : "홈으로 설정"}

@@ -30,6 +30,9 @@ import {
   Database,
   User2,
   LogOut,
+  Bookmark,
+  MessageSquare,
+  X,
 } from "lucide-react";
 import { NewDashboardModal } from "@/components/dashboard/NewDashboardModal";
 import { useTheme } from "next-themes";
@@ -38,6 +41,7 @@ import { useAlerts } from "@/hooks/useAlerts";
 import { useRole, ROLES, Role, getRoleInfo } from "@/context/RoleContext";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { useBookmarks, BookmarkType } from "@/hooks/useBookmarks";
 
 interface TopNavProps {
   onAiOpen?: () => void;
@@ -199,6 +203,9 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
   const [roleDropOpen, setRoleDropOpen] = React.useState(false);
   const roleDropRef = React.useRef<HTMLDivElement>(null);
   const [newDashboardOpen, setNewDashboardOpen] = React.useState(false);
+  const { bookmarks, toggle } = useBookmarks();
+  const [bmOpen, setBmOpen] = React.useState(false);
+  const bmRef = React.useRef<HTMLDivElement>(null);
 
   const handleNavAction = React.useCallback((action: string) => {
     if (action === "new-dashboard") setNewDashboardOpen(true);
@@ -227,6 +234,8 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
         setRoleDropOpen(false);
       if (alertRef.current && !alertRef.current.contains(e.target as Node))
         setAlertOpen(false);
+      if (bmRef.current && !bmRef.current.contains(e.target as Node))
+        setBmOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -301,6 +310,63 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
           <FolderOpen className="h-3.5 w-3.5" />
           <span className="hidden lg:inline">컬렉션</span>
         </Link>
+
+        {/* 북마크 — 하나 이상일 때만 표시 */}
+        {bookmarks.length > 0 && (
+          <div ref={bmRef} className="relative">
+            <button
+              onClick={() => setBmOpen((p) => !p)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                bmOpen
+                  ? "bg-nav-hover text-nav-foreground"
+                  : "text-nav-foreground/80 hover:text-nav-foreground hover:bg-nav-hover"
+              )}
+            >
+              <Bookmark className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">북마크</span>
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-150", bmOpen && "rotate-180")} />
+            </button>
+
+            {bmOpen && (
+              <div className="absolute left-0 top-full mt-1 z-50 w-64 rounded-xl border bg-background shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
+                {/* 타입별 그룹 */}
+                {(["question", "dashboard", "collection"] as BookmarkType[]).map((type) => {
+                  const items = bookmarks.filter((b) => b.type === type);
+                  if (!items.length) return null;
+                  const typeLabel = type === "question" ? "질문" : type === "dashboard" ? "대시보드" : "컬렉션";
+                  const TypeIcon = type === "question" ? MessageSquare : type === "dashboard" ? LayoutTemplate : FolderOpen;
+                  return (
+                    <div key={type} className="first:pt-1 border-t first:border-t-0">
+                      <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{typeLabel}</p>
+                      <div className="px-1.5 pb-1.5 space-y-0.5">
+                        {items.map((bm) => (
+                          <div key={bm.id} className="group/bm flex items-center rounded-lg hover:bg-muted transition-colors">
+                            <Link
+                              href={bm.href}
+                              onClick={() => setBmOpen(false)}
+                              className="flex flex-1 items-center gap-2.5 px-3 py-2 text-sm text-foreground min-w-0"
+                            >
+                              <TypeIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                              <span className="truncate">{bm.name}</span>
+                            </Link>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggle(bm); }}
+                              title="북마크 삭제"
+                              className="mr-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 group-hover/bm:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* ── + 새로 만들기 ── */}

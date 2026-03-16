@@ -8,6 +8,7 @@ import { useSavedQuestions } from "@/hooks/useSavedQuestions";
 import { chartTypeLabels } from "@/lib/data-catalog";
 import { dataCatalog } from "@/lib/data-catalog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BookmarkButton } from "@/components/ui/BookmarkButton";
 
 export default function QuestionsPage() {
   const { questions, hydrated, deleteQuestion } = useSavedQuestions();
@@ -90,6 +91,10 @@ export default function QuestionsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  <BookmarkButton
+                    item={{ id: q.id, type: "question", name: q.title, href: `/questions/${q.id}` }}
+                    className="opacity-0 group-hover:opacity-100"
+                  />
                   <button
                     onClick={(e) => { e.preventDefault(); deleteQuestion(q.id); }}
                     className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
