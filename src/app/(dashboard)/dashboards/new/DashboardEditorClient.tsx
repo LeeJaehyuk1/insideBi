@@ -9,14 +9,15 @@ import {
   ChevronRight, Table2, Pencil, Check, BarChart2, Maximize2, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { collections } from "@/lib/mock-data/collections";
 import { useSavedQuestions } from "@/hooks/useSavedQuestions";
+import type { VizSettings } from "@/components/questions/ChartSettingsSidebar";
 import { dataCatalog } from "@/lib/data-catalog";
 import { WidgetRenderer } from "@/components/builder/WidgetRenderer";
 import { useDashboardLibrary } from "@/hooks/useDashboardLibrary";
 import { useCollectionFolders } from "@/hooks/useCollectionFolders";
+import { ROOT_ID, PERSONAL_ID } from "@/lib/mock-data/collection-folders";
 import type { FolderEntry } from "@/lib/mock-data/collection-folders";
-import type { WidgetConfig, ChartType } from "@/types/builder";
+import type { WidgetConfig, ChartType, AxisMapping } from "@/types/builder";
 import type { FilterParam } from "@/types/query";
 
 /* ── 위젯 타입 ── */
@@ -26,6 +27,8 @@ interface DashWidget {
   datasetId: string;
   chartType: ChartType;
   filters?: FilterParam[];
+  vizSettings?: VizSettings;
+  axisMapping?: AxisMapping;
 }
 
 function generateId() {
@@ -33,6 +36,12 @@ function generateId() {
 }
 
 function toWidgetConfig(w: DashWidget): WidgetConfig {
+  // vizSettings에서 axisMapping 파생 (이미 axisMapping이 있으면 그것 우선)
+  const axisMapping: WidgetConfig["axisMapping"] =
+    w.axisMapping ??
+    (w.vizSettings?.xKey || w.vizSettings?.yKey
+      ? { x: w.vizSettings!.xKey || undefined, y: w.vizSettings!.yKey ? [w.vizSettings!.yKey] : [] }
+      : undefined);
   return {
     id: w.id,
     datasetId: w.datasetId,
@@ -40,6 +49,7 @@ function toWidgetConfig(w: DashWidget): WidgetConfig {
     title: w.title,
     colSpan: 2,
     queryParams: w.filters ? { filters: w.filters } : undefined,
+    axisMapping,
   };
 }
 
@@ -136,9 +146,10 @@ function WidgetCard({ widget, onRemove, onChartTypeChange }: {
 
 /* ── 우측 패널 ── */
 function RightPanel({ onAddWidget }: {
-  onAddWidget: (title: string, datasetId: string, chartType: ChartType, filters?: FilterParam[]) => void;
+  onAddWidget: (title: string, datasetId: string, chartType: ChartType, filters?: FilterParam[], vizSettings?: VizSettings) => void;
 }) {
   const { questions } = useSavedQuestions();
+  const { folders } = useCollectionFolders();
   const [search, setSearch] = React.useState("");
   const [expandedCols, setExpandedCols] = React.useState<Set<string>>(new Set());
 
@@ -152,8 +163,9 @@ function RightPanel({ onAddWidget }: {
   const savedQs = questions.filter(
     (q) => !search || q.title.toLowerCase().includes(search.toLowerCase())
   );
-  const cols = collections.filter(
-    (c) => !search || c.name.toLowerCase().includes(search.toLowerCase())
+  // 컬렉션 폴더에서 질문 항목만 필터링 (live data)
+  const cols = folders.filter(
+    (f) => !search || f.name.toLowerCase().includes(search.toLowerCase())
   );
   const catalogItems = dataCatalog.filter(
     (d) => !search || d.label.toLowerCase().includes(search.toLowerCase())
@@ -214,7 +226,7 @@ function RightPanel({ onAddWidget }: {
               return (
                 <button
                   key={q.id}
-                  onClick={() => onAddWidget(q.title, q.datasetId, defaultChart(q.datasetId), q.filters)}
+                  onClick={() => onAddWidget(q.title, q.datasetId, q.chartType ?? defaultChart(q.datasetId), q.filters, q.vizSettings)}
                   className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-primary/5 hover:text-primary transition-colors group"
                 >
                   <Table2 className="h-4 w-4 text-primary shrink-0" />
@@ -250,25 +262,25 @@ function RightPanel({ onAddWidget }: {
 
             {expandedCols.has(col.id) && (
               <div className="pl-4">
-                {col.items.map((item) => {
-                  // 컬렉션 아이템의 datasetId 추론: href에서 dataset 파라미터 또는 id 매핑
-                  const dsId = dataCatalog.find((d) =>
-                    item.title.toLowerCase().includes(d.label.toLowerCase())
-                  )?.id ?? "npl-trend";
+                {col.entries.filter((e) => e.type === "question").map((entry) => {
+                  const qId = entry.href?.split("/questions/")?.[1];
+                  const matchedQ = qId ? questions.find((q) => q.id === qId) : undefined;
+                  const dsId = matchedQ?.datasetId ?? "npl-trend";
+                  const ct = matchedQ?.chartType ?? defaultChart(dsId);
                   return (
                     <button
-                      key={item.id}
-                      onClick={() => onAddWidget(item.title, dsId, defaultChart(dsId))}
+                      key={entry.id}
+                      onClick={() => onAddWidget(entry.name, dsId, ct, matchedQ?.filters, matchedQ?.vizSettings)}
                       className="flex items-center gap-3 w-full px-4 py-2 text-left hover:bg-primary/5 hover:text-primary transition-colors group"
                     >
                       <Table2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                      <span className="flex-1 text-sm text-foreground group-hover:text-primary truncate">{item.title}</span>
+                      <span className="flex-1 text-sm text-foreground group-hover:text-primary truncate">{entry.name}</span>
                       <Plus className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
                     </button>
                   );
                 })}
-                {col.items.length === 0 && (
-                  <p className="px-4 py-2 text-xs text-muted-foreground">항목 없음</p>
+                {col.entries.filter((e) => e.type === "question").length === 0 && (
+                  <p className="px-4 py-2 text-xs text-muted-foreground">저장된 질문 없음</p>
                 )}
               </div>
             )}
@@ -305,7 +317,7 @@ export function DashboardEditorClient() {
   const params = useSearchParams();
   const router = useRouter();
   const initialName = params.get("name") ?? "새 대시보드";
-  const collectionId = params.get("collection") || "";
+  const collectionId = params.get("collection") || ROOT_ID;
 
   const { saveDashboard, library, hydrated: libHydrated } = useDashboardLibrary();
   const { addEntry, getFolder } = useCollectionFolders();
@@ -317,6 +329,8 @@ export function DashboardEditorClient() {
   const [tabs, setTabs] = React.useState<Tab[]>([{ id: "tab-1", label: "탭 1" }]);
   const [activeTab, setActiveTab] = React.useState("tab-1");
   const [rightPanelOpen, setRightPanelOpen] = React.useState(false);
+  const [editingTabId, setEditingTabId] = React.useState<string | null>(null);
+  const [tabNameInput, setTabNameInput] = React.useState("");
 
   // 탭별 독립 위젯 맵: { tabId: DashWidget[] }
   const [tabWidgets, setTabWidgets] = React.useState<Record<string, DashWidget[]>>(
@@ -338,7 +352,9 @@ export function DashboardEditorClient() {
         const restoredWidgets: Record<string, DashWidget[]> = {};
         existing.tabData.forEach((t) => {
           restoredWidgets[t.id] = t.widgets.map((w) => ({
-            id: w.id, title: w.title, datasetId: w.datasetId, chartType: w.chartType, filters: w.queryParams?.filters
+            id: w.id, title: w.title, datasetId: w.datasetId, chartType: w.chartType,
+            filters: w.queryParams?.filters,
+            axisMapping: w.axisMapping,
           }));
         });
         setTabs(restoredTabs);
@@ -348,7 +364,8 @@ export function DashboardEditorClient() {
         // 구버전 호환: 탭 없이 저장된 경우 첫 탭에 넣기
         setTabWidgets({
           "tab-1": existing.widgets.map((w) => ({
-            id: w.id, title: w.title, datasetId: w.datasetId, chartType: w.chartType, filters: w.queryParams?.filters
+            id: w.id, title: w.title, datasetId: w.datasetId, chartType: w.chartType,
+            filters: w.queryParams?.filters, axisMapping: w.axisMapping,
           })),
         });
       }
@@ -374,10 +391,14 @@ export function DashboardEditorClient() {
     setActiveTab(newId);
   };
 
-  const handleAddWidget = (title: string, datasetId: string, chartType: ChartType, filters?: FilterParam[]) => {
+  const handleAddWidget = (title: string, datasetId: string, chartType: ChartType, filters?: FilterParam[], vizSettings?: VizSettings) => {
+    const axisMapping: AxisMapping | undefined =
+      vizSettings?.xKey || vizSettings?.yKey
+        ? { x: vizSettings.xKey || undefined, y: vizSettings.yKey ? [vizSettings.yKey] : [] }
+        : undefined;
     setTabWidgets((prev) => ({
       ...prev,
-      [activeTab]: [...(prev[activeTab] ?? []), { id: generateId(), title, datasetId, chartType, filters }],
+      [activeTab]: [...(prev[activeTab] ?? []), { id: generateId(), title, datasetId, chartType, filters, vizSettings, axisMapping }],
     }));
     setRightPanelOpen(false);
   };
@@ -396,6 +417,20 @@ export function DashboardEditorClient() {
       ...prev,
       [activeTab]: (prev[activeTab] ?? []).map((w) => w.id === id ? { ...w, chartType } : w),
     }));
+  };
+
+  /** 탭 이름 수정 시작 */
+  const startEditingTab = (tab: Tab) => {
+    setEditingTabId(tab.id);
+    setTabNameInput(tab.label);
+  };
+
+  /** 탭 이름 저장 */
+  const handleTabNameSave = () => {
+    if (editingTabId && tabNameInput.trim()) {
+      setTabs((prev) => prev.map((t) => t.id === editingTabId ? { ...t, label: tabNameInput.trim() } : t));
+    }
+    setEditingTabId(null);
   };
 
   const isEmpty = widgets.length === 0;
@@ -496,26 +531,31 @@ export function DashboardEditorClient() {
               };
               saveDashboard(dashboard);
 
-              // 지정된 컬렉션에 항목 등록
-              if (collectionId) {
-                const entry: FolderEntry = {
-                  id: `db-${Date.now()}`,
-                  type: "dashboard",
-                  name: dashboardName,
-                  lastEditor: "나",
-                  lastModified: new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
-                  href: `/dashboards/new?name=${encodeURIComponent(dashboardName)}&collection=${collectionId}`,
-                };
-                addEntry(collectionId, entry);
-              }
+              // 1. 엔트리 생성 (ID를 이름 기반으로 고정하여 v2 시스템에서 중복 방지)
+              const entryId = `db-${dashboardName.replace(/\s+/g, "-")}`; 
+              const entry: FolderEntry = {
+                id: entryId,
+                type: "dashboard",
+                name: dashboardName,
+                lastEditor: "나",
+                lastModified: new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
+                href: `/dashboards/new?name=${encodeURIComponent(dashboardName)}&collection=${collectionId}`,
+              };
+
+              // 2. 컬렉션에 추가 (기존 이름의 대시보드는 useCollectionFolders에서 걸러냄)
+              addEntry(collectionId, entry);
 
               setSaveToast(true);
               setTimeout(() => {
                 setSaveToast(false);
-                // 유효한 collectionFolder ID면 해당 컬렉션으로, 아니면 대시보드 목록으로
-                const validFolder = collectionId && getFolder(collectionId);
-                const dest = validFolder ? `/collections/${collectionId}` : "/dashboards";
-                router.push(dest);
+                // ROOT_ID → /collections, PERSONAL_ID → /collections/personal, 다른 컬렉션 → /collections/[id]
+                if (collectionId === ROOT_ID) {
+                  router.push("/collections");
+                } else if (collectionId === PERSONAL_ID) {
+                  router.push("/collections/personal");
+                } else {
+                  router.push(`/collections/${collectionId}`);
+                }
               }, 1200);
             }}
             className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
@@ -531,12 +571,31 @@ export function DashboardEditorClient() {
           <div
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
+            onDoubleClick={() => startEditingTab(tab)}
             className={cn(
-              "flex items-center gap-1 px-1 py-2.5 mr-1 border-b-2 -mb-px cursor-pointer transition-colors",
+              "flex items-center gap-1 px-1 py-2.5 mr-1 border-b-2 -mb-px cursor-pointer transition-colors group/tab",
               activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
-            <span className="text-sm font-medium px-1">{tab.label}</span>
+            {editingTabId === tab.id ? (
+              <input
+                autoFocus
+                value={tabNameInput}
+                onChange={(e) => setTabNameInput(e.target.value)}
+                onBlur={handleTabNameSave}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleTabNameSave();
+                  if (e.key === "Escape") setEditingTabId(null);
+                }}
+                className="text-sm font-medium bg-transparent border-b border-primary outline-none w-24 px-1"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium px-1">{tab.label}</span>
+                <Pencil className="h-3 w-3 opacity-0 group-hover/tab:opacity-100 transition-opacity" />
+              </div>
+            )}
             <ChevronDown className="h-3 w-3 opacity-60" />
           </div>
         ))}

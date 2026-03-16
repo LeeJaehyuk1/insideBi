@@ -190,7 +190,7 @@ function ResultChart({ data, chartType, xKey, yKey, settings }: {
   if (chartType === "area") {
     return (
       <ResponsiveContainer width="100%" height={h}>
-        <AreaChart data={data}>
+        <AreaChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis dataKey={rx} tick={tick} label={settings.xLabel ? { value: settings.xLabel, position: "insideBottom", offset: -4, fontSize: 11 } : undefined} />
           <YAxis tick={tick} label={settings.yLabel ? { value: settings.yLabel, angle: -90, position: "insideLeft", fontSize: 11 } : undefined} />
@@ -778,6 +778,14 @@ export function NoCodeBuilder({
     return [selectClause, `FROM ${tbl}`, whereClause, groupByClause, orderByClause, limitClause].filter(Boolean).join("\n");
   };
 
+  /* 자동 실행 (필터/요약/정렬 등 변경 시) */
+  React.useEffect(() => {
+    if ((tableId || datasetId) && columns.length > 0) {
+      handleRun();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, aggregations, breakouts, sortColumn, sortDir, limit, mode]);
+
   /* 실행 */
   const handleRun = async () => {
     const id = tableId || datasetId;
@@ -837,7 +845,7 @@ export function NoCodeBuilder({
   const handleConfirmSave = (title: string, _desc: string, targetColId: string) => {
     const id = tableId || datasetId;
     if (!id) return;
-    const saved = saveQuestion({ title, datasetId: id, filters, chartType });
+    const saved = saveQuestion({ title, datasetId: id, filters, chartType, vizSettings });
     const finalColId = targetColId || collectionId || "our-analytics";
     const entry: FolderEntry = {
       id: `q-${saved.id}`, type: "question", name: title,

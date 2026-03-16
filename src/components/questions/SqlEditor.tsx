@@ -131,7 +131,7 @@ function ChartRenderer({ result, chartType, settings }: { result: QueryResult; c
     const TICK_STYLE = { fontSize: 11, fill: "var(--muted-foreground)" };
 
     /* 숫자 카드 (KPI) */
-    if (chartType === "kpi" || chartType === "number" as any) {
+    if (chartType === "kpi") {
         const val = data[0]?.[ry];
         return (
             <div className="flex flex-col items-center justify-center h-full gap-2">
@@ -179,7 +179,7 @@ function ChartRenderer({ result, chartType, settings }: { result: QueryResult; c
     }
 
     /* 선 */
-    if (chartType === "line" || chartType === "combo" as any) {
+    if (chartType === "line") {
         return (
             <ResponsiveContainer width="100%" height="100%">
                 <RLineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
@@ -404,7 +404,7 @@ export function SqlEditor() {
 
     const handleConfirmSave = (title: string, _desc: string, targetColId: string) => {
         const datasetId = `sql:${dbId}`;
-        const saved = saveQuestion({ title, datasetId, filters: [], chartType });
+        const saved = saveQuestion({ title, datasetId, filters: [], chartType, vizSettings });
         const finalColId = targetColId || "our-analytics";
         const entry: FolderEntry = {
             id: `q-${saved.id}`, type: "question", name: title,

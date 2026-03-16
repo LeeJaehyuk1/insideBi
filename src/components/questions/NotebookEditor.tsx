@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { useCollectionFolders } from "@/hooks/useCollectionFolders";
 import type { FolderEntry } from "@/lib/mock-data/collection-folders";
 import { SaveQuestionModal } from "./SaveQuestionModal";
+import { DEFAULT_VIZ_SETTINGS } from "./ChartSettingsSidebar";
+import type { VizSettings } from "./ChartSettingsSidebar";
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line,
   AreaChart, Area, PieChart, Pie, Cell,
@@ -26,39 +28,83 @@ import {
 
 const CHART_COLORS = ["#3b82f6", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"];
 
-function ResultChart({ data, chartType, xKey, yKey }: {
-  data: Record<string, unknown>[]; chartType: ChartType; xKey: string; yKey: string;
+function ResultChart({ data, chartType, xKey, yKey, settings }: {
+  data: Record<string, unknown>[];
+  chartType: ChartType;
+  xKey: string;
+  yKey: string;
+  settings: VizSettings;
 }) {
   const tick = { fontSize: 11, fill: "var(--muted-foreground)" };
+  const rx = settings.xKey || xKey;
+  const ry = settings.yKey || yKey;
+  const color = settings.color || "#3b82f6";
+
+  if (chartType === "kpi") {
+    const val = data[0]?.[ry];
+    return (
+      <div className="flex flex-col items-center justify-center h-40 gap-2">
+        <p className="text-4xl font-bold" style={{ color }}>
+          {typeof val === "number" ? val.toLocaleString() : String(val ?? "—")}
+        </p>
+        <p className="text-sm text-muted-foreground">{ry}</p>
+      </div>
+    );
+  }
   if (chartType === "pie") {
     return (
       <ResponsiveContainer width="100%" height={280}>
         <PieChart>
-          <Pie data={data} dataKey={yKey} nameKey={xKey} cx="50%" cy="50%" outerRadius={110} label>
-            {data.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+          <Pie data={data} dataKey={ry} nameKey={rx} cx="50%" cy="50%" outerRadius={110}
+            label={settings.showLabels} labelLine={settings.showLabels}>
+            {data.map((_, i) => <Cell key={i} fill={i === 0 ? color : CHART_COLORS[i % CHART_COLORS.length]} />)}
           </Pie>
-          <Tooltip /><Legend />
+          <Tooltip />
+          {settings.showLegend && <Legend />}
         </PieChart>
       </ResponsiveContainer>
     );
   }
-  if (chartType === "line" || chartType === "area") {
+  if (chartType === "line") {
     return (
       <ResponsiveContainer width="100%" height={280}>
-        <AreaChart data={data}>
+        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey={xKey} tick={tick} /><YAxis tick={tick} /><Tooltip />
-          <Area dataKey={yKey} stroke="#3b82f6" fill="#3b82f620" strokeWidth={2} />
+          <XAxis dataKey={rx} tick={tick} />
+          <YAxis tick={tick} />
+          <Tooltip />
+          {settings.showLegend && <Legend />}
+          <Line type="monotone" dataKey={ry} stroke={color} strokeWidth={2}
+            dot={settings.showLabels} label={settings.showLabels ? { fontSize: 10 } : false} />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  }
+  if (chartType === "area") {
+    return (
+      <ResponsiveContainer width="100%" height={280}>
+        <AreaChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis dataKey={rx} tick={tick} />
+          <YAxis tick={tick} />
+          <Tooltip />
+          {settings.showLegend && <Legend />}
+          <Area type="monotone" dataKey={ry} stroke={color} fill={`${color}20`} strokeWidth={2} />
         </AreaChart>
       </ResponsiveContainer>
     );
   }
+  // 기본: bar
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={data}>
+      <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-        <XAxis dataKey={xKey} tick={tick} /><YAxis tick={tick} /><Tooltip />
-        <Bar dataKey={yKey} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+        <XAxis dataKey={rx} tick={tick} />
+        <YAxis tick={tick} />
+        <Tooltip />
+        {settings.showLegend && <Legend />}
+        <Bar dataKey={ry} fill={color} radius={[4, 4, 0, 0]}
+          label={settings.showLabels ? { position: "top", fontSize: 10 } : false} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -139,6 +185,9 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   const [datasetId, setDatasetId] = React.useState<string>(initialQuestion?.datasetId ?? "");
   const [filters, setFilters] = React.useState<FilterParam[]>(initialQuestion?.filters ?? []);
   const [chartType, setChartType] = React.useState<ChartType>(initialQuestion?.chartType ?? "bar");
+  const [vizSettings, setVizSettings] = React.useState<VizSettings>(
+    initialQuestion?.vizSettings ?? DEFAULT_VIZ_SETTINGS
+  );
   const [questionTitle, setQuestionTitle] = React.useState(initialQuestion?.title ?? "");
   const [previewData, setPreviewData] = React.useState<Record<string, unknown>[]>([]);
   const [isRunning, setIsRunning] = React.useState(false);
@@ -214,7 +263,7 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   const handleConfirmSave = (title: string, _desc: string, targetColId: string) => {
     if (!datasetId) return;
     const finalTitle = title || questionTitle.trim() || `${selectedDataset?.label ?? "질문"} 분석`;
-    const saved = saveQuestion({ title: finalTitle, datasetId, filters, chartType });
+    const saved = saveQuestion({ title: finalTitle, datasetId, filters, chartType, vizSettings });
 
     const finalColId = targetColId || "our-analytics";
     const entry: FolderEntry = {
@@ -267,11 +316,14 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
     }
 
     const resultKeys = Object.keys(previewData[0]);
-    const xKey = resultKeys.find((k) => {
+    const defaultXKey = resultKeys.find((k) => {
       const col = schema?.columns.find((c) => c.key === k);
       return col?.role === "dimension" || col?.type === "date" || col?.type === "string";
     }) ?? resultKeys[0] ?? "";
-    const yKey = resultKeys.find((k) => k !== xKey) ?? resultKeys[1] ?? resultKeys[0] ?? "";
+    const defaultYKey = resultKeys.find((k) => k !== defaultXKey) ?? resultKeys[1] ?? resultKeys[0] ?? "";
+    // vizSettings에 저장된 키 우선, 없으면 자동 감지 값 사용
+    const xKey = vizSettings.xKey || defaultXKey;
+    const yKey = vizSettings.yKey || defaultYKey;
 
     if (chartType === "table") {
       const displayRows = previewData.slice(0, 10);
@@ -306,7 +358,7 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
       );
     }
 
-    return <ResultChart data={previewData} chartType={chartType} xKey={xKey} yKey={yKey} />;
+    return <ResultChart data={previewData} chartType={chartType} xKey={xKey} yKey={yKey} settings={vizSettings} />;
   }
 
   const toggleStep = (s: 1 | 2 | 3) => setOpenStep((prev) => (prev === s ? s : s));

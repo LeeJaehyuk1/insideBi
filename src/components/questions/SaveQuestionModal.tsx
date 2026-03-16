@@ -66,14 +66,27 @@ export function SaveQuestionModal({
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  if (!open) return null;
-
-  // 표시할 폴더 목록 (루트 + 하위 컬렉션)
-  const folderOptions = hydrated
-    ? folders.map((f) => ({ id: f.id, name: f.name }))
-    : [{ id: ROOT_ID, name: "우리의 분석" }];
+  // 표시할 폴더 목록 (현행화 및 정렬)
+  const folderOptions = React.useMemo(() => {
+    if (!hydrated) return [{ id: ROOT_ID, name: "우리의 분석" }];
+    
+    // 1. 개인 컬렉션 2. 우리의 분석(루트) 3. 나머지 가나다순
+    return [...folders].sort((a, b) => {
+      const isAPersonal = a.id.includes("personal") || a.name.includes("개인");
+      const isBPersonal = b.id.includes("personal") || b.name.includes("개인");
+      if (isAPersonal && !isBPersonal) return -1;
+      if (!isAPersonal && isBPersonal) return 1;
+      
+      if (a.id === ROOT_ID) return -1;
+      if (b.id === ROOT_ID) return 1;
+      
+      return a.name.localeCompare(b.name, "ko");
+    });
+  }, [folders, hydrated]);
 
   const selectedFolder = folderOptions.find((f) => f.id === collectionId);
+
+  if (!open) return null;
 
   const handleSave = () => {
     if (!name.trim()) return;

@@ -143,6 +143,26 @@ function GenericChart({
     );
   }
 
+  if (chartType === "scatter") {
+    return (
+      <ResponsiveContainer width="100%" height={H}>
+        <ScatterChart margin={{ top: 8, right: 16, left: 0, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey={x} name={x} tick={{ fontSize: 11 }}
+            label={{ value: x, position: "bottom", fontSize: 11 }} />
+          <YAxis dataKey={y[0]} name={y[0]} tick={{ fontSize: 11 }} />
+          <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Scatter name={y[0]} data={data} fill={SERIES_COLORS[0]}>
+            {data.map((_, i) => (
+              <Cell key={i} fill={SERIES_COLORS[i % SERIES_COLORS.length]} />
+            ))}
+          </Scatter>
+        </ScatterChart>
+      </ResponsiveContainer>
+    );
+  }
+
   // Default: line
   return (
     <ResponsiveContainer width="100%" height={H}>
@@ -748,8 +768,21 @@ function CustomDatasetRenderer({
     );
   }
 
+  // axisMapping 없고 차트 타입이면 데이터 컬럼에서 자동 파생
+  const effectiveMapping: AxisMapping | undefined = (() => {
+    if (axisMapping && axisMapping.y.length > 0) return axisMapping;
+    if (chartType === "table" || data.length === 0) return undefined;
+    const cols = Object.keys(data[0]);
+    if (cols.length < 2) return undefined;
+    const numericCols = cols.filter((c) => typeof data[0][c] === "number");
+    const xCol = cols.find((c) => typeof data[0][c] !== "number") ?? cols[0];
+    const yCols = numericCols.length > 0 ? numericCols : cols.filter((c) => c !== xCol).slice(0, 1);
+    return yCols.length > 0 ? { x: xCol, y: yCols } : undefined;
+  })();
+
   // axisMapping 설정된 경우: GenericChart로 렌더링
-  if (axisMapping && axisMapping.y.length > 0) {
+  if (effectiveMapping && effectiveMapping.y.length > 0) {
+    const axisMapping = effectiveMapping;
     if (chartType === "waterfall") {
       return <WaterfallRenderer data={data} axisMapping={axisMapping} />;
     }
@@ -769,7 +802,7 @@ function CustomDatasetRenderer({
   }
 
   // axisMapping 없음 또는 table 차트: 자동 테이블 미리보기
-  if (chartType === "table" || !axisMapping || axisMapping.y.length === 0) {
+  if (chartType === "table" || !effectiveMapping || effectiveMapping.y.length === 0) {
     const columns = data.length > 0 ? Object.keys(data[0]) : [];
     if (columns.length === 0) {
       return (
@@ -782,7 +815,7 @@ function CustomDatasetRenderer({
 
     return (
       <div className="overflow-auto h-full">
-        {(!axisMapping || axisMapping.y.length === 0) && chartType !== "table" && (
+        {(!effectiveMapping || effectiveMapping.y.length === 0) && chartType !== "table" && (
           <div className="text-[10px] text-amber-600 dark:text-amber-400 px-3 pt-2 pb-1">
             ⚙️ 위젯 설정에서 X / Y 축을 지정하면 차트로 전환됩니다
           </div>

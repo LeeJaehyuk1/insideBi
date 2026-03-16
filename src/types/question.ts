@@ -1,5 +1,6 @@
 import type { FilterParam } from "./query";
 import type { ChartType } from "./builder";
+import type { VizSettings } from "@/components/questions/ChartSettingsSidebar";
 
 export interface SavedQuestion {
   id: string;
@@ -7,5 +8,6 @@ export interface SavedQuestion {
   datasetId: string;
   filters: FilterParam[];
   chartType: ChartType;
+  vizSettings?: VizSettings;
   savedAt: string;
 }

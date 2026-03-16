@@ -3,7 +3,8 @@
 import * as React from "react";
 import { X, Search, Clock, FolderOpen, Folder } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { collections } from "@/lib/mock-data/collections";
+import { useCollectionFolders } from "@/hooks/useCollectionFolders";
+import { ROOT_ID } from "@/lib/mock-data/collection-folders";
 
 interface CollectionPickerModalProps {
   selected: string;
@@ -14,16 +15,30 @@ interface CollectionPickerModalProps {
 type Tab = "recent" | "collection";
 
 export function CollectionPickerModal({ selected, onSelect, onClose }: CollectionPickerModalProps) {
+  const { folders, hydrated } = useCollectionFolders();
   const [tab, setTab] = React.useState<Tab>("recent");
   const [search, setSearch] = React.useState("");
   const [tempSelected, setTempSelected] = React.useState(selected);
 
-  const filtered = collections.filter((c) =>
+  // useCollectionFolders에서 루트와 그 하위 폴더들을 평탄화하여 목록화
+  const allFolders = React.useMemo(() => {
+    if (!hydrated) return [];
+    // 루트 폴더와 모든 일반 폴더 목록 추출
+    return folders.map(f => ({
+      id: f.id,
+      name: f.name,
+      personal: f.id.includes("personal") || f.name.includes("개인")
+    }));
+  }, [folders, hydrated]);
+
+  const filtered = allFolders.filter((c) =>
     !search.trim() || c.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  // 최근 탭: personal 컬렉션을 먼저 (mock)
-  const recentList = [...collections].sort((a) => (a.personal ? -1 : 1));
+  // 최근 탭: 단순하게 목록 순서대로 (개인 폴더 우선)
+  const recentList = [...allFolders].sort((a) => (a.personal ? -1 : 1)).slice(0, 5);
+
+  if (!hydrated) return null;
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -81,8 +96,7 @@ export function CollectionPickerModal({ selected, onSelect, onClose }: Collectio
         <div className="flex-1 overflow-y-auto bg-muted/10">
           {tab === "recent" ? (
             <>
-              <p className="px-6 pt-4 pb-2 text-xs font-semibold text-muted-foreground">오늘</p>
-              <div className="mx-4 rounded-lg border border-border overflow-hidden">
+              <div className="mx-4 mt-4 rounded-lg border border-border overflow-hidden">
                 {recentList.map((c, i) => (
                   <button
                     key={c.id}
@@ -160,3 +174,4 @@ export function CollectionPickerModal({ selected, onSelect, onClose }: Collectio
     </div>
   );
 }
+

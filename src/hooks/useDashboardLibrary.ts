@@ -22,19 +22,23 @@ export function useDashboardLibrary() {
   const [library, setLibrary] = React.useState<SavedDashboard[]>([]);
   const [hydrated, setHydrated] = React.useState(false);
 
-  // mount: 서버에서 로드, 실패 시 localStorage 폴백
+  // mount: 서버에서 로드, 실패하거나 빈 배열이면 localStorage 우선
   React.useEffect(() => {
+    const local = readLocal();
     fetch("/api/dashboards")
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then((data) => {
         const serverLib: SavedDashboard[] = Array.isArray(data.dashboards)
           ? data.dashboards
           : [];
-        setLibrary(serverLib);
-        writeLocal(serverLib);
+        // 서버 데이터가 실제로 있을 때만 사용, 빈 배열이면 localStorage 유지
+        const finalLib = serverLib.length > 0 ? serverLib : local;
+        setLibrary(finalLib);
+        writeLocal(finalLib);
       })
       .catch(() => {
-        setLibrary(readLocal());
+        // 서버 연결 실패 → localStorage 사용
+        setLibrary(local);
       })
       .finally(() => setHydrated(true));
   }, []);
