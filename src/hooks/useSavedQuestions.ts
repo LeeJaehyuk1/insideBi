@@ -45,7 +45,15 @@ export function useSavedQuestions() {
     save(updated);
   };
 
+  const updateQuestion = (id: string, updates: Partial<Omit<SavedQuestion, "id" | "savedAt">>) => {
+    const updated = questions.map((q) =>
+      q.id === id ? { ...q, ...updates, savedAt: new Date().toISOString() } : q
+    );
+    setQuestions(updated);
+    save(updated);
+  };
+
   const getQuestion = (id: string) => questions.find((q) => q.id === id);
 
-  return { questions, hydrated, saveQuestion, deleteQuestion, getQuestion };
+  return { questions, hydrated, saveQuestion, updateQuestion, deleteQuestion, getQuestion };
 }

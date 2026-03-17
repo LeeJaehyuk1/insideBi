@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Search, X, Clock, Table2, FolderOpen, LayoutGrid } from "lucide-react";
+import { Search, X, Clock, Table2, FolderOpen, LayoutGrid, Upload, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ─────────────────────────────────────────
@@ -80,7 +80,21 @@ function saveRecent(id: string, label: string, dbId: string) {
 /* ─────────────────────────────────────────
    메인 페이지
 ───────────────────────────────────────── */
-type Tab = "recent" | "table" | "collection";
+/* ─────────────────────────────────────────
+   CSV 파싱 유틸
+───────────────────────────────────────── */
+function parseCsv(text: string): { headers: string[]; rows: Record<string, string>[] } {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length === 0) return { headers: [], rows: [] };
+  const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+  const rows = lines.slice(1).map((line) => {
+    const vals = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+    return Object.fromEntries(headers.map((h, i) => [h, vals[i] ?? ""]));
+  });
+  return { headers, rows };
+}
+
+type Tab = "recent" | "table" | "collection" | "upload";
 
 export default function QuestionPickPage() {
   const router = useRouter();
@@ -89,6 +103,13 @@ export default function QuestionPickPage() {
   const [dbId, setDbId] = React.useState("railway");
   const [search, setSearch] = React.useState("");
   const [recent, setRecent] = React.useState<{ id: string; label: string; dbId: string }[]>([]);
+
+  /* ── 업로드 상태 ── */
+  const [dragOver, setDragOver] = React.useState(false);
+  const [uploadFile, setUploadFile] = React.useState<File | null>(null);
+  const [uploadPreview, setUploadPreview] = React.useState<{ headers: string[]; rows: Record<string, string>[] } | null>(null);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => { setRecent(getRecent()); }, []);
 
@@ -102,6 +123,45 @@ export default function QuestionPickPage() {
   const handleSelect = (tableId: string, label: string) => {
     saveRecent(tableId, label, dbId);
     router.push(`/questions/nocode?dataset=${tableId}`);
+  };
+
+  const handleFilePick = (file: File) => {
+    setUploadError(null);
+    setUploadFile(file);
+    if (!file.name.match(/\.(csv|tsv|txt)$/i)) {
+      setUploadError("CSV 파일만 지원합니다 (.csv, .tsv)");
+      setUploadPreview(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const parsed = parseCsv(text);
+        if (parsed.headers.length === 0) throw new Error("빈 파일입니다");
+        setUploadPreview(parsed);
+      } catch (err) {
+        setUploadError(String(err));
+        setUploadPreview(null);
+      }
+    };
+    reader.readAsText(file, "utf-8");
+  };
+
+  const handleUploadSubmit = () => {
+    if (!uploadFile || !uploadPreview) return;
+    const datasetId = `upload:${uploadFile.name.replace(/\.[^.]+$/, "").replace(/\s+/g, "_")}`;
+    try {
+      const stored = JSON.parse(localStorage.getItem("insightbi_uploaded_datasets_v1") || "{}");
+      stored[datasetId] = {
+        label: uploadFile.name.replace(/\.[^.]+$/, ""),
+        headers: uploadPreview.headers,
+        rows: uploadPreview.rows.slice(0, 5000),
+        uploadedAt: new Date().toISOString(),
+      };
+      localStorage.setItem("insightbi_uploaded_datasets_v1", JSON.stringify(stored));
+    } catch { /* localStorage full */ }
+    router.push(`/questions/nocode?dataset=${encodeURIComponent(datasetId)}`);
   };
 
   const selectedDb = DATABASES.find((d) => d.id === dbId)!;
@@ -161,6 +221,7 @@ export default function QuestionPickPage() {
             { id: "recent", label: "최근", icon: Clock },
             { id: "table", label: "테이블", icon: Table2 },
             { id: "collection", label: "컬렉션", icon: FolderOpen },
+            { id: "upload", label: "파일 업로드", icon: Upload },
           ] as { id: Tab; label: string; icon: React.ElementType }[]).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -285,6 +346,112 @@ export default function QuestionPickPage() {
                   className="mt-1 rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
                   컬렉션 열기
+                </button>
+              </div>
+            )}
+
+            {tab === "upload" && (
+              <div className="flex flex-col gap-5 p-6">
+                {/* 드래그 앤 드롭 존 */}
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOver(false);
+                    const file = e.dataTransfer.files[0];
+                    if (file) handleFilePick(file);
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-8 py-10 cursor-pointer transition-colors",
+                    dragOver
+                      ? "border-primary bg-primary/5"
+                      : uploadPreview
+                      ? "border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20"
+                      : "border-border hover:border-primary/50 hover:bg-muted/30"
+                  )}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.tsv,.txt"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFilePick(file);
+                    }}
+                  />
+                  {uploadPreview ? (
+                    <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+                  ) : (
+                    <FileSpreadsheet className="h-10 w-10 text-muted-foreground/50" />
+                  )}
+                  <div className="text-center">
+                    {uploadPreview ? (
+                      <>
+                        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{uploadFile?.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {uploadPreview.headers.length}개 컬럼 · {uploadPreview.rows.length.toLocaleString()}개 행
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-semibold text-foreground">CSV 파일을 드래그하거나 클릭해 선택</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">.csv, .tsv 형식 지원 · 최대 5,000행</p>
+                      </>
+                    )}
+                  </div>
+                  {uploadPreview && (
+                    <p className="text-xs text-primary hover:underline">다른 파일 선택</p>
+                  )}
+                </div>
+
+                {/* 오류 */}
+                {uploadError && (
+                  <div className="flex items-center gap-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-4 py-2.5 text-sm text-red-600 dark:text-red-400">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {uploadError}
+                  </div>
+                )}
+
+                {/* 미리보기 */}
+                {uploadPreview && uploadPreview.rows.length > 0 && (
+                  <div className="rounded-xl border border-border overflow-hidden">
+                    <div className="px-4 py-2 bg-muted/30 border-b border-border text-xs font-semibold text-muted-foreground">
+                      미리보기 (첫 5행)
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/10">
+                            {uploadPreview.headers.map((h) => (
+                              <th key={h} className="px-3 py-2 text-left font-semibold text-foreground whitespace-nowrap">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {uploadPreview.rows.slice(0, 5).map((row, i) => (
+                            <tr key={i} className="border-b border-border/50 last:border-0">
+                              {uploadPreview.headers.map((h) => (
+                                <td key={h} className="px-3 py-2 text-muted-foreground whitespace-nowrap max-w-[160px] truncate">{row[h]}</td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 질문 만들기 버튼 */}
+                <button
+                  onClick={handleUploadSubmit}
+                  disabled={!uploadPreview}
+                  className="self-start flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Upload className="h-4 w-4" />
+                  이 파일로 질문 만들기
                 </button>
               </div>
             )}

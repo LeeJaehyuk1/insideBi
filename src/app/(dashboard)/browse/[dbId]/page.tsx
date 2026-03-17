@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Database, BookOpen, ChevronRight, LayoutGrid } from "lucide-react";
+import { Database, BookOpen, ChevronRight } from "lucide-react";
 import { getDbInfo, DB_TABLES } from "@/lib/db-catalog";
+import TableCardList from "@/components/browse/TableCardList";
 
 export default function DbTableListPage({ params }: { params: { dbId: string } }) {
   const db = getDbInfo(params.dbId);
@@ -36,20 +37,7 @@ export default function DbTableListPage({ params }: { params: { dbId: string } }
       </nav>
 
       {/* 테이블 카드 그리드 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {tables.map((table) => (
-          <Link
-            key={table.tableId}
-            href={`/browse/${params.dbId}/${table.tableId}`}
-            className="flex items-center gap-3 rounded-xl border border-border bg-background px-5 py-4 hover:border-primary/40 hover:shadow-sm transition-all group"
-          >
-            <LayoutGrid className="h-5 w-5 text-primary shrink-0" />
-            <span className="text-sm font-semibold text-primary group-hover:text-primary/80 transition-colors">
-              {table.label}
-            </span>
-          </Link>
-        ))}
-      </div>
+      <TableCardList dbId={params.dbId} tables={tables} />
 
       {/* 테이블 수 */}
       <p className="text-xs text-muted-foreground">

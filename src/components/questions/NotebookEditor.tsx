@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Database, Filter, BarChart3, Play, Save, ChevronDown, ChevronRight,
   Plus, X, Check, AlertCircle, Loader2,
@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { useCollectionFolders } from "@/hooks/useCollectionFolders";
 import type { FolderEntry } from "@/lib/mock-data/collection-folders";
 import { SaveQuestionModal } from "./SaveQuestionModal";
-import { DEFAULT_VIZ_SETTINGS } from "./ChartSettingsSidebar";
+import { ChartSettingsSidebar, DEFAULT_VIZ_SETTINGS } from "./ChartSettingsSidebar";
 import type { VizSettings } from "./ChartSettingsSidebar";
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line,
@@ -27,6 +27,39 @@ import {
 } from "recharts";
 
 const CHART_COLORS = ["#3b82f6", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"];
+
+/* ── 집계 로직 ── */
+function computeAgg(arr: Record<string, unknown>[], func: string, column: string): number {
+  if (func === "count") return arr.length;
+  const nums = arr.map((r) => Number(r[column])).filter((v) => !isNaN(v));
+  if (!nums.length) return 0;
+  if (func === "sum") return nums.reduce((a, b) => a + b, 0);
+  if (func === "avg") return +(nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(4);
+  if (func === "min") return Math.min(...nums);
+  if (func === "max") return Math.max(...nums);
+  return 0;
+}
+
+function applyAggregations(rows: Record<string, unknown>[], aggs: { func: string; column: string }[], breakouts: string[]) {
+  const aggKey = (a: { func: string; column: string }) => a.func === "count" ? "count" : `${a.func}_${a.column}`;
+  if (!breakouts.length) {
+    const result: Record<string, unknown> = {};
+    for (const a of aggs) result[aggKey(a)] = computeAgg(rows, a.func, a.column);
+    return [result];
+  }
+  const groups = new Map<string, Record<string, unknown>[]>();
+  for (const row of rows) {
+    const key = breakouts.map((b) => String(row[b] ?? "")).join("||");
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(row);
+  }
+  return Array.from(groups.entries()).map(([, arr]) => {
+    const result: Record<string, unknown> = {};
+    for (const b of breakouts) result[b] = arr[0][b];
+    for (const a of aggs) result[aggKey(a)] = computeAgg(arr, a.func, a.column);
+    return result;
+  });
+}
 
 function ResultChart({ data, chartType, xKey, yKey, settings }: {
   data: Record<string, unknown>[];
@@ -177,13 +210,24 @@ interface NotebookEditorProps {
 }
 
 export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
-  const router = useRouter();
-  const { saveQuestion } = useSavedQuestions();
+  const { saveQuestion, updateQuestion } = useSavedQuestions();
   const { addEntry } = useCollectionFolders();
+  const [savedDest, setSavedDest] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!savedDest) return;
+    const t = setTimeout(() => setSavedDest(null), 5000);
+    return () => clearTimeout(t);
+  }, [savedDest]);
 
   const [openStep, setOpenStep] = React.useState<1 | 2 | 3>(initialQuestion ? 3 : 1);
   const [datasetId, setDatasetId] = React.useState<string>(initialQuestion?.datasetId ?? "");
   const [filters, setFilters] = React.useState<FilterParam[]>(initialQuestion?.filters ?? []);
+  const [aggregations, setAggregations] = React.useState<{ func: string; column: string }[]>(
+    initialQuestion?.aggregations ?? []
+  );
+  const [breakouts, setBreakouts] = React.useState<string[]>(initialQuestion?.breakouts ?? []);
+  const [mode, setMode] = React.useState<"raw" | "summarize">(initialQuestion?.mode ?? "raw");
   const [chartType, setChartType] = React.useState<ChartType>(initialQuestion?.chartType ?? "bar");
   const [vizSettings, setVizSettings] = React.useState<VizSettings>(
     initialQuestion?.vizSettings ?? DEFAULT_VIZ_SETTINGS
@@ -194,6 +238,7 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   const [runError, setRunError] = React.useState<string | null>(null);
   const [hasResult, setHasResult] = React.useState(!!initialQuestion);
   const [saveModalOpen, setSaveModalOpen] = React.useState(false);
+  const [settingsSidebarOpen, setSettingsSidebarOpen] = React.useState(false);
 
   const selectedDataset = dataCatalog.find((d) => d.id === datasetId);
   const schema = datasetId ? getDatasetSchema(datasetId) : null;
@@ -202,7 +247,14 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   /* 초기 로드 (초기 질문 있는 경우) */
   React.useEffect(() => {
     if (initialQuestion) {
-      runQuery(initialQuestion.datasetId, initialQuestion.filters, initialQuestion.chartType);
+      runQuery(
+        initialQuestion.datasetId,
+        initialQuestion.filters,
+        initialQuestion.chartType,
+        initialQuestion.aggregations,
+        initialQuestion.breakouts,
+        initialQuestion.mode
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -210,14 +262,24 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   async function runQuery(
     dsId: string = datasetId,
     flt: FilterParam[] = filters,
-    ct: ChartType = chartType
+    ct: ChartType = chartType,
+    aggs: { func: string; column: string }[] = aggregations,
+    brks: string[] = breakouts,
+    md: "raw" | "summarize" = mode
   ) {
     if (!dsId) return;
     setIsRunning(true);
     setRunError(null);
     try {
       const result = await executeQuery({ datasetId: dsId, filters: flt });
-      setPreviewData(result.data as Record<string, unknown>[]);
+      let rows = result.data as Record<string, unknown>[];
+
+      // 요약 모드 처리
+      if (md === "summarize" && aggs && aggs.length > 0) {
+        rows = applyAggregations(rows, aggs, brks);
+      }
+
+      setPreviewData(rows);
       setHasResult(true);
       setChartType(ct);
     } catch (e) {
@@ -263,7 +325,16 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
   const handleConfirmSave = (title: string, _desc: string, targetColId: string) => {
     if (!datasetId) return;
     const finalTitle = title || questionTitle.trim() || `${selectedDataset?.label ?? "질문"} 분석`;
-    const saved = saveQuestion({ title: finalTitle, datasetId, filters, chartType, vizSettings });
+    const saved = saveQuestion({ 
+      title: finalTitle, 
+      datasetId, 
+      filters, 
+      aggregations,
+      breakouts,
+      mode,
+      chartType, 
+      vizSettings 
+    });
 
     const finalColId = targetColId || "our-analytics";
     const entry: FolderEntry = {
@@ -277,10 +348,28 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
     addEntry(finalColId, entry);
 
     setSaveModalOpen(false);
-    // 저장 후 해당 컬렉션으로 이동
     const dest = finalColId === "our-analytics" ? "/collections" : `/collections/${finalColId}`;
-    router.push(dest);
+    setSavedDest(dest);
   };
+
+  /* 기존 질문 변경사항 저장 (업데이트) */
+  const handleUpdate = () => {
+    if (!initialQuestion || !datasetId) return;
+    updateQuestion(initialQuestion.id, {
+      filters, aggregations, breakouts, mode, chartType, vizSettings,
+    });
+    setSavedDest("/collections");
+  };
+
+  /* ── xKey / yKey 계산 (컴포넌트 레벨) ── */
+  const resultKeys = previewData.length ? Object.keys(previewData[0]) : [];
+  const defaultXKey = resultKeys.find((k) => {
+    const col = schema?.columns.find((c) => c.key === k);
+    return col?.role === "dimension" || col?.type === "date" || col?.type === "string";
+  }) ?? resultKeys[0] ?? "";
+  const defaultYKey = resultKeys.find((k) => k !== defaultXKey) ?? resultKeys[1] ?? resultKeys[0] ?? "";
+  const xKey = vizSettings.xKey || defaultXKey;
+  const yKey = vizSettings.yKey || defaultYKey;
 
   /* ── 차트 미리보기: WidgetRenderer 대신 인라인 테이블 + 간단 메시지 ── */
   function PreviewPanel() {
@@ -300,6 +389,15 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
       );
     }
     if (!hasResult) {
+      if (initialQuestion?.sql && initialQuestion.datasetId.startsWith("sql:")) {
+        return (
+          <div className="space-y-3 p-2">
+            <p className="text-xs text-muted-foreground font-medium">SQL 에디터에서 작성된 질문</p>
+            <pre className="text-xs bg-muted/50 rounded-lg p-3 overflow-x-auto text-foreground">{initialQuestion.sql}</pre>
+            <Link href="/questions/new" className="text-xs text-primary hover:underline font-medium">SQL 에디터에서 편집 →</Link>
+          </div>
+        );
+      }
       return (
         <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted-foreground text-sm">
           <Play className="h-8 w-8 opacity-30" />
@@ -314,16 +412,6 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
         </div>
       );
     }
-
-    const resultKeys = Object.keys(previewData[0]);
-    const defaultXKey = resultKeys.find((k) => {
-      const col = schema?.columns.find((c) => c.key === k);
-      return col?.role === "dimension" || col?.type === "date" || col?.type === "string";
-    }) ?? resultKeys[0] ?? "";
-    const defaultYKey = resultKeys.find((k) => k !== defaultXKey) ?? resultKeys[1] ?? resultKeys[0] ?? "";
-    // vizSettings에 저장된 키 우선, 없으면 자동 감지 값 사용
-    const xKey = vizSettings.xKey || defaultXKey;
-    const yKey = vizSettings.yKey || defaultYKey;
 
     if (chartType === "table") {
       const displayRows = previewData.slice(0, 10);
@@ -365,29 +453,83 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
 
   return (
     <>
-    <div className="max-w-3xl mx-auto space-y-4 pb-12">
+    <div className={cn("mx-auto space-y-4 pb-12 transition-all duration-200", settingsSidebarOpen ? "max-w-5xl" : "max-w-3xl")}>
 
 
 
       {/* ── 결과 미리보기 ── */}
-      <div className="mb-card">
-        <div className="mb-card-header">
-          <div className="flex items-center gap-2">
-            <span className="mb-card-title">결과 미리보기</span>
-            {hasResult && previewData.length > 0 && (
-              <span className="text-xs text-muted-foreground">({previewData.length}행)</span>
-            )}
+      <div className={cn("mb-card overflow-hidden", settingsSidebarOpen && "flex")}>
+        {/* 미리보기 영역 */}
+        <div className="flex-1 min-w-0">
+          <div className="mb-card-header">
+            <div className="flex items-center gap-2">
+              <span className="mb-card-title">결과 미리보기</span>
+              {hasResult && previewData.length > 0 && (
+                <span className="text-xs text-muted-foreground">({previewData.length}행)</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {hasResult && !settingsSidebarOpen && (
+                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary inline-block" />
+                  {chartTypeLabels[chartType] ?? chartType} 형식
+                </span>
+              )}
+              {hasResult && previewData.length > 0 && (
+                <button
+                  onClick={() => setSettingsSidebarOpen((p) => !p)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors border",
+                    settingsSidebarOpen
+                      ? "bg-primary text-white border-primary"
+                      : "bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <BarChart3 className="h-3.5 w-3.5" />
+                  시각화
+                </button>
+              )}
+              {/* 저장 / 업데이트 버튼 */}
+              {initialQuestion ? (
+                <button
+                  onClick={handleUpdate}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  변경사항 저장
+                </button>
+              ) : (
+                <button
+                  onClick={handleSave}
+                  disabled={!hasResult || !datasetId}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  저장
+                </button>
+              )}
+            </div>
           </div>
-          {hasResult && (
-            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary inline-block" />
-              {chartTypeLabels[chartType] ?? chartType} 형식
-            </span>
-          )}
+          <div className="p-4">
+            <PreviewPanel />
+          </div>
         </div>
-        <div className="p-4">
-          <PreviewPanel />
-        </div>
+
+        {/* 시각화 설정 사이드바 */}
+        {settingsSidebarOpen && (
+          <ChartSettingsSidebar
+            open={settingsSidebarOpen}
+            onClose={() => setSettingsSidebarOpen(false)}
+            chartType={chartType}
+            onChartTypeChange={(t) => setChartType(t)}
+            settings={vizSettings}
+            onSettingsChange={(s) => setVizSettings((prev) => ({ ...prev, ...s }))}
+            columns={schema?.columns ?? []}
+            data={previewData}
+            xKey={xKey}
+            yKey={yKey}
+          />
+        )}
       </div>
     </div>
 
@@ -401,6 +543,14 @@ export function NotebookEditor({ initialQuestion }: NotebookEditorProps) {
         (schema?.columns ?? []).map((c) => [c.key, c.label])
       )}
     />
+    {savedDest && (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-medium animate-in slide-in-from-bottom-4 duration-300 whitespace-nowrap">
+        <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+        <span>저장됐습니다</span>
+        <Link href={savedDest} className="font-semibold text-emerald-300 hover:text-emerald-200 underline underline-offset-2 ml-1">컬렉션에서 보기</Link>
+        <button onClick={() => setSavedDest(null)} className="ml-2 text-white/40 hover:text-white transition-colors"><X className="h-3.5 w-3.5" /></button>
+      </div>
+    )}
     </>
   );
 }

@@ -12,7 +12,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const pool = getPool();
-    const result = await pool.query(
+    
+    // 1. 컬럼 정보 조회
+    const colResult = await pool.query(
       `SELECT column_name, data_type, udt_name
        FROM information_schema.columns
        WHERE table_schema = $1 AND table_name = $2
@@ -20,16 +22,35 @@ export async function GET(req: NextRequest) {
       [schema, table]
     );
 
-    const columns = result.rows.map((row) => {
+    // 2. 기본키(PK) 컬럼 조회
+    const pkResult = await pool.query(
+      `SELECT kcu.column_name
+       FROM information_schema.table_constraints tc
+       JOIN information_schema.key_column_usage kcu
+         ON tc.constraint_name = kcu.constraint_name
+         AND tc.table_schema = kcu.table_schema
+       WHERE tc.constraint_type = 'PRIMARY KEY'
+         AND tc.table_schema = $1
+         AND tc.table_name = $2`,
+      [schema, table]
+    );
+
+    const pkColumns = new Set(pkResult.rows.map(r => r.column_name));
+
+    const columns = colResult.rows.map((row) => {
+      const colName = row.column_name as string;
       const dt = row.data_type as string;
+      const isPk = pkColumns.has(colName);
+      
       const isNum = ["integer","bigint","smallint","numeric","decimal","real","double precision","float"].some((t) => dt.includes(t));
       const isDate = ["date","timestamp","time"].some((t) => dt.includes(t));
       const type = isNum ? "number" : isDate ? "date" : "string";
+      
       return {
-        key: row.column_name as string,
-        label: (row.column_name as string).replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+        key: colName,
+        label: colName.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
         type,
-        role: isNum ? "measure" : "dimension",
+        role: isPk ? "identifier" : (isNum ? "measure" : "dimension"),
         aggregatable: isNum,
         filterable: true,
       };

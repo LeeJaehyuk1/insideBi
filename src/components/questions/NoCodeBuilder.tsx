@@ -1,17 +1,18 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Play, Plus, X, BarChart3, BarChart2,
   Save, ChevronDown, Eye, LayoutGrid, Terminal,
-  ArrowUpDown, Rows3, Info, Table2, ChevronLeft, Key,
+  ArrowUpDown, Rows3, Info, Table2, ChevronLeft, Key, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { dataCatalog } from "@/lib/data-catalog";
 import { getDatasetSchema } from "@/lib/dataset-schemas";
 import { executeQuery } from "@/lib/query-engine";
-import { getTableLabel, getDbLabel } from "@/lib/table-columns";
+import { getTableLabel } from "@/lib/table-columns";
 import { useSavedQuestions } from "@/hooks/useSavedQuestions";
 import { useCollectionFolders } from "@/hooks/useCollectionFolders";
 import type { FolderEntry } from "@/lib/mock-data/collection-folders";
@@ -668,6 +669,13 @@ export function NoCodeBuilder({
   const router = useRouter();
   const { saveQuestion } = useSavedQuestions();
   const { addEntry } = useCollectionFolders();
+  const [savedDest, setSavedDest] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!savedDest) return;
+    const t = setTimeout(() => setSavedDest(null), 5000);
+    return () => clearTimeout(t);
+  }, [savedDest]);
 
   const isDbTableId = (id: string) => !!id && !dataCatalog.find((d) => d.id === id);
 
@@ -720,6 +728,7 @@ export function NoCodeBuilder({
   const [saveModalOpen, setSaveModalOpen] = React.useState(false);
   const [summarySidebarOpen, setSummarySidebarOpen] = React.useState(false);
   const [filterSidebarOpen, setFilterSidebarOpen] = React.useState(false);
+  const [filterPanelExpanded, setFilterPanelExpanded] = React.useState(true);
   const [generatedSql, setGeneratedSql] = React.useState<string | null>(null);
   const [vizSettings, setVizSettings] = React.useState<VizSettings>(DEFAULT_VIZ_SETTINGS);
 
@@ -836,16 +845,18 @@ export function NoCodeBuilder({
         rows = applyAggregations(rows, aggregations, breakouts);
       }
       setResult(rows);
-      setHasResult(true);
-      setResultDisplayMode("table");
-      setVizPanelMode("none");
-      // 집계 모드면 차트 표시, 아니면 테이블
-      if (mode === "summarize") {
-        const def = (dataset?.defaultChart as ChartType) ?? "bar";
-        setChartType(["kpi","gauge","scatter"].includes(def) ? "bar" : def);
-      } else {
-        setChartType("table");
+      // 첫 실행 시에만 displayMode 초기화 (재실행 시 사용자 선택 유지)
+      if (!hasResult) {
+        setResultDisplayMode(mode === "summarize" ? "chart" : "table");
+        setVizPanelMode("none");
+        if (mode === "summarize") {
+          const def = (dataset?.defaultChart as ChartType) ?? "bar";
+          setChartType(["kpi","gauge","scatter"].includes(def) ? "bar" : def);
+        } else {
+          setChartType("table");
+        }
       }
+      setHasResult(true);
       setEditMode("result");
     } finally {
       setIsRunning(false);
@@ -891,7 +902,7 @@ export function NoCodeBuilder({
     addEntry(finalColId, entry);
     setSaveModalOpen(false);
     const dest = finalColId === "our-analytics" ? "/collections" : `/collections/${finalColId}`;
-    router.push(dest);
+    setSavedDest(dest);
   };
 
   const resultKeys = result.length ? Object.keys(result[0]) : [];
@@ -946,7 +957,11 @@ export function NoCodeBuilder({
               {/* 필터 */}
               <button
                 onClick={() => {
-                  setFilterSidebarOpen((p) => !p);
+                  if (filters.length > 0) {
+                    setFilterPanelExpanded((p) => !p);
+                  } else {
+                    setFilterSidebarOpen((p) => !p);
+                  }
                   setSummarySidebarOpen(false);
                 }}
                 className={cn(
@@ -1004,14 +1019,14 @@ export function NoCodeBuilder({
           </div>
 
           {/* ── 필터 패널 (결과 뷰 상단) ── */}
-          {filters.length > 0 && (
+          {filters.length > 0 && filterPanelExpanded && (
             <FilterPanel
               filters={filters}
               columns={columns}
               tableLabel={tableLabel || "테이블"}
               onUpdate={(idx, updated) => setFilters((p) => p.map((f, i) => (i === idx ? updated : f)))}
               onRemove={(idx) => setFilters((p) => p.filter((_, i) => i !== idx))}
-              onAdd={(f) => setFilters((p) => [...p, f])}
+              onAdd={(f) => { setFilters((p) => [...p, f]); setFilterPanelExpanded(true); }}
             />
           )}
 
@@ -1167,6 +1182,14 @@ export function NoCodeBuilder({
             </div>
           </div>
         </div>
+        {savedDest && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-medium animate-in slide-in-from-bottom-4 duration-300 whitespace-nowrap">
+            <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+            <span>저장됐습니다</span>
+            <Link href={savedDest} className="font-semibold text-emerald-300 hover:text-emerald-200 underline underline-offset-2 ml-1">컬렉션에서 보기</Link>
+            <button onClick={() => setSavedDest(null)} className="ml-2 text-white/40 hover:text-white transition-colors"><X className="h-3.5 w-3.5" /></button>
+          </div>
+        )}
       </>
     );
   }
@@ -1312,100 +1335,124 @@ export function NoCodeBuilder({
           )}
 
           {/* ── 요약 섹션 ── */}
-          {hasTable && mode === "summarize" && (
+          {hasTable && (
             <div>
               <p className="text-sm font-semibold text-primary mb-2">요약</p>
-              <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 overflow-visible">
-                <div className="flex gap-0 divide-x divide-emerald-200 dark:divide-emerald-800">
-                  <div className="flex-1 px-4 py-3 space-y-2">
-                    <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">집계</p>
-                    <div className="flex flex-wrap gap-2">
-                      {aggregations.map((agg, idx) => {
-                        const col = columns.find((c) => c.key === agg.column);
-                        const label = agg.func === "count" ? "COUNT(*)" : `${agg.func.toUpperCase()}(${col?.label ?? agg.column})`;
-                        return (
-                          <div key={idx} className="relative">
-                            <button
-                              onClick={() => setAggPickerOpen(aggPickerOpen === idx ? null : idx)}
-                              className={cn(
-                                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
-                                aggPickerOpen === idx
-                                  ? "border-emerald-500 bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200"
-                                  : "border-emerald-300 bg-background text-emerald-700 hover:border-emerald-500 dark:border-emerald-700 dark:text-emerald-300"
-                              )}
-                            >
-                              {label}
-                            </button>
-                            <button
-                              onClick={() => setAggregations((p) => p.filter((_, i) => i !== idx))}
-                              className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-muted border border-border text-muted-foreground hover:bg-destructive hover:text-white transition-colors"
-                            >
-                              <X className="h-2.5 w-2.5" />
-                            </button>
-                            {aggPickerOpen === idx && (
-                              <AggPickerPopover
-                                agg={agg}
-                                measureCols={measureCols}
-                                allCols={columns}
-                                onChange={(updated) => {
-                                  setAggregations((p) => p.map((a, i) => i === idx ? updated : a));
-                                  setAggPickerOpen(null);
-                                }}
-                                onClose={() => setAggPickerOpen(null)}
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
+              {mode === "raw" ? (
+                <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/10 overflow-visible">
+                  <div className="flex gap-0 divide-x divide-emerald-200 dark:divide-emerald-800">
+                    <div className="flex-1 px-4 py-3">
                       <button
-                        onClick={() => setAggregations((p) => [...p, { func: "count", column: "" }])}
-                        className="inline-flex items-center gap-1 rounded-full border border-dashed border-emerald-300 px-3 py-1.5 text-xs text-emerald-600 hover:border-emerald-500 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 transition-colors"
+                        onClick={() => setMode("summarize")}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-emerald-300 bg-background px-4 py-2 text-sm text-emerald-600 hover:border-emerald-500 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 transition-colors"
                       >
-                        <Plus className="h-3 w-3" />집계 추가
+                        함수 또는 메트릭 선택
+                      </button>
+                    </div>
+                    <div className="flex items-center px-3 py-3 text-xs text-emerald-500 font-medium shrink-0">(으)로</div>
+                    <div className="flex-1 px-4 py-3">
+                      <button
+                        onClick={() => setMode("summarize")}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-emerald-300 bg-background px-4 py-2 text-sm text-emerald-600 hover:border-emerald-500 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 transition-colors"
+                      >
+                        그룹화할 열 선택
                       </button>
                     </div>
                   </div>
-
-                  <div className="flex-1 px-4 py-3 space-y-2">
-                    <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">그룹화 기준</p>
-                    <div className="flex flex-wrap gap-2 relative">
-                      {breakouts.map((b, idx) => {
-                        const col = columns.find((c) => c.key === b);
-                        return (
-                          <span key={idx} className="relative inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-background px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">
-                            {col?.label ?? b}
-                            <button
-                              onClick={() => setBreakouts((p) => p.filter((_, i) => i !== idx))}
-                              className="ml-0.5 text-emerald-500 hover:text-destructive transition-colors"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        );
-                      })}
-                      <div className="relative">
+                </div>
+              ) : (
+                <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 overflow-visible">
+                  <div className="flex gap-0 divide-x divide-emerald-200 dark:divide-emerald-800">
+                    <div className="flex-1 px-4 py-3 space-y-2">
+                      <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">집계</p>
+                      <div className="flex flex-wrap gap-2">
+                        {aggregations.map((agg, idx) => {
+                          const col = columns.find((c) => c.key === agg.column);
+                          const label = agg.func === "count" ? "COUNT(*)" : `${agg.func.toUpperCase()}(${col?.label ?? agg.column})`;
+                          return (
+                            <div key={idx} className="relative">
+                              <button
+                                onClick={() => setAggPickerOpen(aggPickerOpen === idx ? null : idx)}
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                                  aggPickerOpen === idx
+                                    ? "border-emerald-500 bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200"
+                                    : "border-emerald-300 bg-background text-emerald-700 hover:border-emerald-500 dark:border-emerald-700 dark:text-emerald-300"
+                                )}
+                              >
+                                {label}
+                              </button>
+                              <button
+                                onClick={() => setAggregations((p) => p.filter((_, i) => i !== idx))}
+                                className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-muted border border-border text-muted-foreground hover:bg-destructive hover:text-white transition-colors"
+                              >
+                                <X className="h-2.5 w-2.5" />
+                              </button>
+                              {aggPickerOpen === idx && (
+                                <AggPickerPopover
+                                  agg={agg}
+                                  measureCols={measureCols}
+                                  allCols={columns}
+                                  onChange={(updated) => {
+                                    setAggregations((p) => p.map((a, i) => i === idx ? updated : a));
+                                    setAggPickerOpen(null);
+                                  }}
+                                  onClose={() => setAggPickerOpen(null)}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
                         <button
-                          onClick={() => setBreakoutPickerOpen((p) => !p)}
+                          onClick={() => setAggregations((p) => [...p, { func: "count", column: "" }])}
                           className="inline-flex items-center gap-1 rounded-full border border-dashed border-emerald-300 px-3 py-1.5 text-xs text-emerald-600 hover:border-emerald-500 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 transition-colors"
                         >
-                          <Plus className="h-3 w-3" />그룹화 추가
+                          <Plus className="h-3 w-3" />집계 추가
                         </button>
-                        {breakoutPickerOpen && (
-                          <BreakoutPickerPopover
-                            columns={dimensionCols}
-                            selected={breakouts}
-                            onAdd={(key) => {
-                              if (!breakouts.includes(key)) setBreakouts((p) => [...p, key]);
-                              setBreakoutPickerOpen(false);
-                            }}
-                            onClose={() => setBreakoutPickerOpen(false)}
-                          />
-                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 px-4 py-3 space-y-2">
+                      <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">그룹화 기준</p>
+                      <div className="flex flex-wrap gap-2 relative">
+                        {breakouts.map((b, idx) => {
+                          const col = columns.find((c) => c.key === b);
+                          return (
+                            <span key={idx} className="relative inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-background px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">
+                              {col?.label ?? b}
+                              <button
+                                onClick={() => setBreakouts((p) => p.filter((_, i) => i !== idx))}
+                                className="ml-0.5 text-emerald-500 hover:text-destructive transition-colors"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          );
+                        })}
+                        <div className="relative">
+                          <button
+                            onClick={() => setBreakoutPickerOpen((p) => !p)}
+                            className="inline-flex items-center gap-1 rounded-full border border-dashed border-emerald-300 px-3 py-1.5 text-xs text-emerald-600 hover:border-emerald-500 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 transition-colors"
+                          >
+                            <Plus className="h-3 w-3" />그룹화 추가
+                          </button>
+                          {breakoutPickerOpen && (
+                            <BreakoutPickerPopover
+                              columns={dimensionCols}
+                              selected={breakouts}
+                              onAdd={(key) => {
+                                if (!breakouts.includes(key)) setBreakouts((p) => [...p, key]);
+                                setBreakoutPickerOpen(false);
+                              }}
+                              onClose={() => setBreakoutPickerOpen(false)}
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -1494,6 +1541,14 @@ export function NoCodeBuilder({
         columnLabels={Object.fromEntries(columns.map((c) => [c.key, c.label]))}
         defaultCollectionId={collectionId}
       />
+      {savedDest && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-medium animate-in slide-in-from-bottom-4 duration-300 whitespace-nowrap">
+          <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+          <span>저장됐습니다</span>
+          <Link href={savedDest} className="font-semibold text-emerald-300 hover:text-emerald-200 underline underline-offset-2 ml-1">컬렉션에서 보기</Link>
+          <button onClick={() => setSavedDest(null)} className="ml-2 text-white/40 hover:text-white transition-colors"><X className="h-3.5 w-3.5" /></button>
+        </div>
+      )}
     </>
   );
 }

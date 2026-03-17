@@ -128,5 +128,19 @@ export function useCollectionFolders() {
     [mutate]
   );
 
-  return { folders, hydrated, getFolder, createFolder, addEntry, removeEntry, renameEntry };
+  /** 고정/고정 해제 */
+  const togglePin = React.useCallback(
+    (folderId: string, entryId: string) => {
+      mutate((prev) =>
+        prev.map((f) =>
+          f.id === folderId
+            ? { ...f, entries: f.entries.map((e) => e.id === entryId ? { ...e, pinned: !e.pinned } : e) }
+            : f
+        )
+      );
+    },
+    [mutate]
+  );
+
+  return { folders, hydrated, getFolder, createFolder, addEntry, removeEntry, renameEntry, togglePin };
 }

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getDbInfo, getTableInfo } from "@/lib/db-catalog";
-import { getPool } from "@/lib/db";
+import { fetchTableRows } from "@/lib/db";
 import { TableDetailClient } from "./TableDetailClient";
 
 export default async function TableDetailPage({
@@ -8,19 +8,12 @@ export default async function TableDetailPage({
 }: {
   params: { dbId: string; tableId: string };
 }) {
-  const db = getDbInfo(params.dbId);
+  const db    = getDbInfo(params.dbId);
   const table = getTableInfo(params.dbId, params.tableId);
   if (!db || !table) notFound();
 
-  let rows: Record<string, unknown>[] = [];
-  try {
-    const pool = getPool();
-    const result = await pool.query(`SELECT * FROM ${params.tableId} LIMIT 1000`);
-    rows = result.rows;
-  } catch {
-    // DB 연결 실패 시 빈 배열
-    rows = [];
-  }
+  // 실제 DB에서 데이터 조회 (최대 2000행)
+  const rows = await fetchTableRows(params.tableId, 2000);
 
   return (
     <TableDetailClient

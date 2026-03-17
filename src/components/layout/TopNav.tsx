@@ -35,6 +35,8 @@ import {
   X,
 } from "lucide-react";
 import { NewDashboardModal } from "@/components/dashboard/NewDashboardModal";
+import { NewCollectionModal } from "@/components/collections/NewCollectionModal";
+import { NewItemMenu, NewItemAction } from "@/components/layout/NewItemMenu";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { useAlerts } from "@/hooks/useAlerts";
@@ -71,11 +73,6 @@ const RISK_NAV: NavGroup[] = [
 ];
 
 
-const NEW_NAV: NavItem[] = [
-  { title: "질문",      href: "/questions/pick", icon: Table2,         description: "테이블 또는 컬렉션 선택" },
-  { title: "SQL 쿼리", href: "/questions/new",  icon: FileText,        description: "SQL 에디터로 직접 작성" },
-  { title: "대시보드",  icon: LayoutTemplate,    description: "커스텀 대시보드 구성", action: "new-dashboard" },
-];
 
 /* ── 드롭다운 공통 ── */
 function NavDropdown({
@@ -203,12 +200,14 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
   const [roleDropOpen, setRoleDropOpen] = React.useState(false);
   const roleDropRef = React.useRef<HTMLDivElement>(null);
   const [newDashboardOpen, setNewDashboardOpen] = React.useState(false);
+  const [newCollectionOpen, setNewCollectionOpen] = React.useState(false);
   const { bookmarks, toggle } = useBookmarks();
   const [bmOpen, setBmOpen] = React.useState(false);
   const bmRef = React.useRef<HTMLDivElement>(null);
 
-  const handleNavAction = React.useCallback((action: string) => {
+  const handleNavAction = React.useCallback((action: NewItemAction) => {
     if (action === "new-dashboard") setNewDashboardOpen(true);
+    if (action === "new-collection") setNewCollectionOpen(true);
   }, []);
 
   const { role, setRole, userName, setUserName, logout } = useRole();
@@ -371,16 +370,7 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
 
       {/* ── + 새로 만들기 ── */}
       <div className="ml-2">
-        <NavDropdown
-          trigger={
-            <span className="flex items-center gap-1">
-              <Plus className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">새로 만들기</span>
-            </span>
-          }
-          items={NEW_NAV}
-          onAction={handleNavAction}
-        />
+        <NewItemMenu onAction={handleNavAction} />
       </div>
 
       {/* ── Spacer ── */}
@@ -595,6 +585,10 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
     <NewDashboardModal
       open={newDashboardOpen}
       onClose={() => setNewDashboardOpen(false)}
+    />
+    <NewCollectionModal
+      open={newCollectionOpen}
+      onClose={() => setNewCollectionOpen(false)}
     />
     </>
   );

@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
     ChevronDown, Play, AlignLeft, Download, RefreshCw, X,
     Database, Table, ChevronRight, Terminal, Save, ExternalLink,
     BarChart2, LineChart, PieChart, Activity, Hash, Grid,
-    Layers, TrendingUp, CircleDot, GitBranch, Crosshair,
+    Layers, TrendingUp, CircleDot, GitBranch, Crosshair, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -268,10 +268,16 @@ function SchemaPanel({ dbId, onClose, onTableClick }: {
    메인 SQL 에디터
 ───────────────────────────────────────── */
 export function SqlEditor() {
-    const router = useRouter();
     const { saveQuestion } = useSavedQuestions();
     const { addEntry } = useCollectionFolders();
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+    const [savedDest, setSavedDest] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        if (!savedDest) return;
+        const t = setTimeout(() => setSavedDest(null), 5000);
+        return () => clearTimeout(t);
+    }, [savedDest]);
 
     const [dbId, setDbId] = React.useState("insightbi");
     const [sql, setSql] = React.useState("SELECT * FROM TABLE_NAME");
@@ -404,7 +410,7 @@ export function SqlEditor() {
 
     const handleConfirmSave = (title: string, _desc: string, targetColId: string) => {
         const datasetId = `sql:${dbId}`;
-        const saved = saveQuestion({ title, datasetId, filters: [], chartType, vizSettings });
+        const saved = saveQuestion({ title, datasetId, sql, filters: [], chartType, vizSettings });
         const finalColId = targetColId || "our-analytics";
         const entry: FolderEntry = {
             id: `q-${saved.id}`, type: "question", name: title,
@@ -415,7 +421,7 @@ export function SqlEditor() {
         addEntry(finalColId, entry);
         setSaveOpen(false);
         const dest = finalColId === "our-analytics" ? "/collections" : `/collections/${finalColId}`;
-        router.push(dest);
+        setSavedDest(dest);
     };
 
     const selectedDb = DATABASES.find((d) => d.id === dbId) ?? DATABASES[0];
@@ -679,6 +685,14 @@ export function SqlEditor() {
                     (result?.columns ?? []).map((c) => [c, c])
                 )}
             />
+            {savedDest && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-medium animate-in slide-in-from-bottom-4 duration-300 whitespace-nowrap">
+                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>저장됐습니다</span>
+                    <Link href={savedDest} className="font-semibold text-emerald-300 hover:text-emerald-200 underline underline-offset-2 ml-1">컬렉션에서 보기</Link>
+                    <button onClick={() => setSavedDest(null)} className="ml-2 text-white/40 hover:text-white transition-colors"><X className="h-3.5 w-3.5" /></button>
+                </div>
+            )}
         </div>
     );
 }

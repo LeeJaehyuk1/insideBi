@@ -15,6 +15,7 @@ import { dataCatalog } from "@/lib/data-catalog";
 import { WidgetRenderer } from "@/components/builder/WidgetRenderer";
 import { useDashboardLibrary } from "@/hooks/useDashboardLibrary";
 import { useCollectionFolders } from "@/hooks/useCollectionFolders";
+import { consumeAutoDashboard } from "@/lib/auto-dashboard";
 import { ROOT_ID, PERSONAL_ID } from "@/lib/mock-data/collection-folders";
 import type { FolderEntry } from "@/lib/mock-data/collection-folders";
 import type { WidgetConfig, ChartType, AxisMapping } from "@/types/builder";
@@ -316,6 +317,7 @@ function RightPanel({ onAddWidget }: {
 export function DashboardEditorClient() {
   const params = useSearchParams();
   const router = useRouter();
+  const isAuto = params.get("auto") === "1";
   const initialName = params.get("name") ?? "새 대시보드";
   const collectionId = params.get("collection") || ROOT_ID;
 
@@ -341,9 +343,27 @@ export function DashboardEditorClient() {
   // 현재 활성 탭의 위젯
   const widgets = tabWidgets[activeTab] ?? [];
 
-  // 라이브러리 hydration 완료 후 기존 저장 데이터 로드
+  // 라이브러리 hydration 완료 후 기존 저장 데이터 또는 자동 대시보드 로드
   React.useEffect(() => {
     if (!libHydrated || loaded) return;
+
+    // 자동 대시보드: localStorage에서 설정 읽기
+    if (isAuto) {
+      const autoConfig = consumeAutoDashboard();
+      if (autoConfig?.widgets?.length) {
+        setTabWidgets({
+          "tab-1": autoConfig.widgets.map((w) => ({
+            id: w.id,
+            title: w.title,
+            datasetId: w.datasetId,
+            chartType: w.chartType,
+          })),
+        });
+        setLoaded(true);
+        return;
+      }
+    }
+
     const existing = library.find((d) => d.name === initialName);
     if (existing) {
       if (existing.tabData?.length) {
@@ -371,7 +391,7 @@ export function DashboardEditorClient() {
       }
     }
     setLoaded(true);
-  }, [libHydrated, library, initialName, loaded]);
+  }, [libHydrated, library, initialName, loaded, isAuto]);
 
   const nameInputRef = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => {

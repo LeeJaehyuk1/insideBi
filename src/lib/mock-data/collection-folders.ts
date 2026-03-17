@@ -7,6 +7,7 @@ export interface FolderEntry {
   lastEditor?: string;
   lastModified?: string;  // "3월 10, 2026"
   href: string;
+  pinned?: boolean;
 }
 
 export interface CollectionFolder {
@@ -29,8 +30,8 @@ export const collectionFolders: CollectionFolder[] = [
     id: ROOT_ID,
     name: "우리의 분석",
     entries: [
-      { id: "db-1111",   type: "dashboard",  name: "1111",                               lastEditor: "재혁 이", lastModified: "3월 10, 2026", href: "/dashboards/new?name=1111" },
-      { id: "db-4444",   type: "dashboard",  name: "4444",                               lastEditor: "재혁 이", lastModified: "3월 10, 2026", href: "/dashboards/new?name=4444" },
+      { id: "db-1111",   type: "dashboard",  name: "1111",                               pinned: true, lastEditor: "재혁 이", lastModified: "3월 10, 2026", href: "/dashboards/new?name=1111" },
+      { id: "db-4444",   type: "dashboard",  name: "4444",                               pinned: true, lastEditor: "재혁 이", lastModified: "3월 10, 2026", href: "/dashboards/new?name=4444" },
       { id: "auto-dash", type: "collection", name: "Automatically Generated Dashboards",                                                      href: "/collections/auto-dash" },
       { id: "examples",  type: "collection", name: "Examples",                                                                                href: "/collections/examples" },
       { id: "q-tdirncr", type: "question",   name: "Td Irncr",                           lastEditor: "재혁 이", lastModified: "3월 10, 2026", href: "/browse/railway/td_irncr" },
