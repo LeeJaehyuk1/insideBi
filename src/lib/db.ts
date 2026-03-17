@@ -4,8 +4,15 @@ let pool: Pool | null = null;
 
 export function getPool(): Pool {
   if (!pool) {
+    const connectionString = process.env.DATABASE_URL;
+    if (connectionString) {
+      const masked = connectionString.replace(/:([^@]+)@/, ":****@");
+      console.log(`[DB] Initializing pool with: ${masked}`);
+    } else {
+      console.warn("[DB] DATABASE_URL is not set!");
+    }
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString,
     });
   }
   return pool;
@@ -24,7 +31,8 @@ export async function fetchTableRows(
       [limit],
     );
     return result.rows as Record<string, unknown>[];
-  } catch {
+  } catch (err) {
+    console.error(`[DB] Error fetching table rows for ${tableId}:`, err);
     return [];
   }
 }
@@ -37,7 +45,8 @@ export async function fetchTableCount(tableId: string): Promise<number> {
       `SELECT COUNT(*)::int AS n FROM "${tableId}"`,
     );
     return result.rows[0]?.n ?? 0;
-  } catch {
+  } catch (err) {
+    console.error(`[DB] Error fetching table count for ${tableId}:`, err);
     return 0;
   }
 }
