@@ -11,17 +11,55 @@ import javax.sql.DataSource;
 @Configuration
 public class DataSourceConfig {
 
-    @Value("${DATABASE_URL:jdbc:postgresql://localhost:5432/insidebi}")
+    @Value("${DATABASE_URL:}")
     private String databaseUrl;
+
+    @Value("${DATABASE_PRIVATE_URL:}")
+    private String databasePrivateUrl;
+
+    @Value("${spring.profiles.active:}")
+    private String activeProfile;
 
     @Bean
     public DataSource dataSource() {
-        String jdbcUrl = databaseUrl;
-        // Railway provides postgresql:// but JDBC needs jdbc:postgresql://
-        if (jdbcUrl.startsWith("postgresql://")) {
-            jdbcUrl = "jdbc:" + jdbcUrl;
-        } else if (jdbcUrl.startsWith("postgres://")) {
+        String urlToUse = databasePrivateUrl;
+        if (urlToUse == null || urlToUse.isEmpty()) {
+            urlToUse = databaseUrl;
+        }
+
+        if (urlToUse == null || urlToUse.isEmpty()) {
+            boolean isDevProfile = activeProfile.contains("dev");
+            if (isDevProfile) {
+                // Fallback for local development
+                urlToUse = "jdbc:postgresql://localhost:5432/insidebi";
+                System.out.println("[DataSourceConfig] No DATABASE_URL set, using localhost fallback (dev mode)");
+            } else {
+                throw new IllegalStateException(
+                    "[DataSourceConfig] FATAL: Neither DATABASE_PRIVATE_URL nor DATABASE_URL environment variable is set. " +
+                    "Please configure the database URL in Railway environment variables."
+                );
+            }
+        }
+
+        String jdbcUrl = urlToUse;
+        if (jdbcUrl.startsWith("postgres://")) {
             jdbcUrl = "jdbc:postgresql://" + jdbcUrl.substring("postgres://".length());
+        } else if (jdbcUrl.startsWith("postgresql://")) {
+            jdbcUrl = "jdbc:postgresql://" + jdbcUrl.substring("postgresql://".length());
+        }
+
+        // Mask password for logging
+        String maskedUrl = jdbcUrl.replaceFirst(":([^@/]+)@", ":****@");
+        System.out.println("[DataSourceConfig] Using JDBC URL: " + maskedUrl);
+
+        // For Railway/External DBs, sslmode=require is often needed if not present
+        if (!jdbcUrl.contains("localhost") && !jdbcUrl.contains("sslmode=")) {
+            if (jdbcUrl.contains("?")) {
+                jdbcUrl += "&sslmode=require";
+            } else {
+                jdbcUrl += "?sslmode=require";
+            }
+            System.out.println("[DataSourceConfig] Appended sslmode=require to URL");
         }
 
         HikariConfig config = new HikariConfig();
@@ -30,6 +68,12 @@ public class DataSourceConfig {
         config.setMaximumPoolSize(10);
         config.setMinimumIdle(2);
         config.setConnectionTimeout(30000);
-        return new HikariDataSource(config);
+        
+        try {
+            return new HikariDataSource(config);
+        } catch (Exception e) {
+            System.err.println("[DataSourceConfig] Failed to create DataSource: " + e.getMessage());
+            throw e;
+        }
     }
 }

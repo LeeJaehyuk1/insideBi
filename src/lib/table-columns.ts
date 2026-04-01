@@ -14,7 +14,7 @@ export async function getColumnsForTableAsync(tableId: string): Promise<ColumnMe
          ORDER BY ordinal_position`,
         [tableId]
       );
-      return result.rows.map((row) => {
+      return result.rows.map((row: any) => {
         const dt = row.data_type as string;
         const isNum = ["integer","bigint","smallint","numeric","decimal","real","double precision"].some((t) => dt.includes(t));
         const isDate = ["date","timestamp","time"].some((t) => dt.includes(t));
@@ -47,7 +47,7 @@ export async function getColumnsForTableAsync(tableId: string): Promise<ColumnMe
 export function getTableLabel(tableId: string, dbId = "railway"): string {
   return (
     DB_TABLES[dbId]?.find((t) => t.tableId === tableId)?.label ??
-    tableId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    tableId.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
   );
 }
 
