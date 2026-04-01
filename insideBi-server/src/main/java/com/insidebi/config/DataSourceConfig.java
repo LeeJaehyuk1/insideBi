@@ -52,14 +52,19 @@ public class DataSourceConfig {
         String maskedUrl = jdbcUrl.replaceFirst(":([^@/]+)@", ":****@");
         System.out.println("[DataSourceConfig] Using JDBC URL: " + maskedUrl);
 
-        // For Railway/External DBs, sslmode=require is often needed if not present
-        if (!jdbcUrl.contains("localhost") && !jdbcUrl.contains("sslmode=")) {
+        // Railway internal network (.railway.internal) does NOT need SSL
+        // External/public URLs do need SSL
+        boolean isRailwayInternal = jdbcUrl.contains(".railway.internal");
+        boolean isLocalhost = jdbcUrl.contains("localhost");
+        if (!isLocalhost && !isRailwayInternal && !jdbcUrl.contains("sslmode=")) {
             if (jdbcUrl.contains("?")) {
                 jdbcUrl += "&sslmode=require";
             } else {
                 jdbcUrl += "?sslmode=require";
             }
             System.out.println("[DataSourceConfig] Appended sslmode=require to URL");
+        } else if (isRailwayInternal) {
+            System.out.println("[DataSourceConfig] Railway internal network detected - skipping SSL");
         }
 
         HikariConfig config = new HikariConfig();
