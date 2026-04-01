@@ -1,4 +1,5 @@
 import { DatasetSchema } from "@/types/dataset";
+import { getCustomDatasetSchema } from "@/lib/custom-dataset-runtime";
 
 const nplTrendSchema: DatasetSchema = {
   id: "npl-trend",
@@ -267,11 +268,7 @@ export function getDatasetSchema(id: string): DatasetSchema | undefined {
   if (datasetSchemas[id]) return datasetSchemas[id];
   // 커스텀 데이터셋: 런타임 스키마에서 동적 조회
   if (id.startsWith("custom-")) {
-    // lazy import to avoid circular: getCustomDatasetSchema is side-effect free
-    if (typeof window !== "undefined") {
-      const { getCustomDatasetSchema } = require("@/lib/custom-dataset-runtime");
-      return getCustomDatasetSchema(id);
-    }
+    return getCustomDatasetSchema(id);
   }
   return undefined;
 }

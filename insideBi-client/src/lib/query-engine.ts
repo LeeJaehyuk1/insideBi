@@ -51,21 +51,14 @@ export async function executeQuery<T = Record<string, unknown>>(
     const sql = `SELECT * FROM ${config.datasetId} ${where} ${lim}`.trim();
 
     try {
-      // 서버 환경에서는 직접 DB 사용, 클라이언트에서는 API 호출
-      let rows: Record<string, unknown>[];
-      if (typeof window === "undefined") {
-        const { getPool } = await import("@/lib/db");
-        const result = await getPool().query(sql, params);
-        rows = result.rows;
-      } else {
-        const res = await fetch("/api/db-query", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sql, params }),
-        });
-        const json = await res.json();
-        rows = json.rows ?? [];
-      }
+      // Vite React 앱 = 브라우저 전용, 항상 API 호출
+      const res = await fetch("/api/db-query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sql, params }),
+      });
+      const json = await res.json();
+      const rows: Record<string, unknown>[] = json.rows ?? [];
       return {
         data: rows as unknown as T[],
         meta: { total: rows.length, datasetId: config.datasetId, executedAt: new Date().toISOString(), params: config },
