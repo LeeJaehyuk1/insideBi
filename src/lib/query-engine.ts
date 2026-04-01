@@ -54,8 +54,8 @@ export async function executeQuery<T = Record<string, unknown>>(
       // 서버 환경에서는 직접 DB 사용, 클라이언트에서는 API 호출
       let rows: Record<string, unknown>[];
       if (typeof window === "undefined") {
-        const { getPool } = await import("@/lib/db");
-        const result = await getPool().query(sql, params);
+        const dbModule = await import("@/lib/db") as typeof import("@/lib/db");
+        const result = await dbModule.getPool().query(sql, params);
         rows = result.rows;
       } else {
         const res = await fetch("/api/db-query", {
