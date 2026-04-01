@@ -2,13 +2,6 @@ server:
   port: ${PORT:8080}
 
 spring:
-  datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/insidebi}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      connection-timeout: 30000
 
 app:
   ai-backend-url: ${AI_BACKEND_URL:http://localhost:8000}
