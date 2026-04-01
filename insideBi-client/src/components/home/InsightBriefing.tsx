@@ -2,6 +2,7 @@
 import * as React from "react";
 import { TrendingUp, TrendingDown, Minus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 type Severity = "normal" | "caution" | "warning" | "danger";
 
@@ -112,7 +113,7 @@ export function InsightBriefing({ onSearch }: InsightBriefingProps = {}) {
   const [error, setError] = React.useState(false);
 
   React.useEffect(() => {
-    fetch("/api/briefing")
+    apiFetch("/api/briefing")
       .then((r) => r.json())
       .then((json) => {
         if (json.items) setItems(json.items);

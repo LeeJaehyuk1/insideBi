@@ -8,6 +8,7 @@ import {
   ArrowUpDown, Rows3, Info, Table2, ChevronLeft, Key, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 import { dataCatalog } from "@/lib/data-catalog";
 import { getDatasetSchema } from "@/lib/dataset-schemas";
 import { executeQuery } from "@/lib/query-engine";
@@ -94,7 +95,7 @@ async function fetchTableRows(
   const order = sortColumn ? `ORDER BY ${sortColumn} ${sortDir.toUpperCase()}` : "";
   const lim = limit > 0 ? `LIMIT ${limit}` : "";
   const sql = [`SELECT *`, `FROM ${tableId}`, where, order, lim].filter(Boolean).join(" ");
-  const res = await fetch("/api/db-query", {
+  const res = await apiFetch("/api/db-query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sql, params }),

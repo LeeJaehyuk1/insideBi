@@ -3,6 +3,7 @@ import * as React from "react";
 import { Plus, Trash2, RefreshCw, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiFetch } from "@/lib/api-client";
 
 interface TrainingItem {
   id: string;
@@ -32,7 +33,7 @@ export function GoldenSQLTab({ password }: GoldenSQLTabProps) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/training", { headers });
+      const res = await apiFetch("/api/admin/training", { headers });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail);
       // SQL 타입만 필터
@@ -56,7 +57,7 @@ export function GoldenSQLTab({ password }: GoldenSQLTabProps) {
     setAdding(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/training?type=sql", {
+      const res = await apiFetch("/api/admin/training?type=sql", {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ question, sql }),
@@ -80,7 +81,7 @@ export function GoldenSQLTab({ password }: GoldenSQLTabProps) {
     setRetraining(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/retrain-all", {
+      const res = await apiFetch("/api/admin/retrain-all", {
         method: "POST",
         headers,
       });
@@ -99,7 +100,7 @@ export function GoldenSQLTab({ password }: GoldenSQLTabProps) {
   const handleDelete = async (id: string) => {
     if (!confirm("이 항목을 삭제하시겠습니까?")) return;
     try {
-      const res = await fetch("/api/admin/training-delete", {
+      const res = await apiFetch("/api/admin/training-delete", {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ id }),

@@ -1,6 +1,7 @@
 
 import * as React from "react";
 import { ChatMessage, AiAskResponse } from "@/types/ai";
+import { apiFetch } from "@/lib/api-client";
 
 interface AiChatContextValue {
   messages: ChatMessage[];
@@ -17,7 +18,7 @@ function stripData(msgs: ChatMessage[]) {
 }
 
 function persistHistory(msgs: ChatMessage[]) {
-  fetch("/api/chat-history", {
+  apiFetch("/api/chat-history", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages: stripData(msgs) }),
@@ -30,7 +31,7 @@ export function AiChatProvider({ children }: { children: React.ReactNode }) {
 
   // 마운트 시 서버에서 히스토리 복원
   React.useEffect(() => {
-    fetch("/api/chat-history")
+    apiFetch("/api/chat-history")
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then((data) => {
         if (Array.isArray(data.messages) && data.messages.length > 0) {
@@ -65,7 +66,7 @@ export function AiChatProvider({ children }: { children: React.ReactNode }) {
 
     (async () => {
       try {
-        const res = await fetch("/api/ask", {
+        const res = await apiFetch("/api/ask", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question }),
@@ -120,7 +121,7 @@ export function AiChatProvider({ children }: { children: React.ReactNode }) {
   const submitFeedback = React.useCallback(
     async (messageId: string, rating: "up" | "down", question?: string, sql?: string) => {
       try {
-        await fetch("/api/feedback", {
+        await apiFetch("/api/feedback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message_id: messageId, rating, question, sql }),
@@ -135,7 +136,7 @@ export function AiChatProvider({ children }: { children: React.ReactNode }) {
   const clearHistory = React.useCallback(() => {
     abortRef.current?.abort();
     setMessages([]);
-    fetch("/api/chat-history", { method: "DELETE" }).catch(() => {});
+    apiFetch("/api/chat-history", { method: "DELETE" }).catch(() => {});
   }, []);
 
   const value = React.useMemo(

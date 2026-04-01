@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiFetch } from "@/lib/api-client";
 import { reports as mockReports, ReportMeta } from "@/lib/mock-data";
 import { ReportCreateDialog } from "./ReportCreateDialog";
 
@@ -46,7 +47,7 @@ export function ReportListTable() {
 
   // 서버에서 사용자 보고서 로드
   React.useEffect(() => {
-    fetch("/api/reports")
+    apiFetch("/api/reports")
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then((data) => {
         if (Array.isArray(data.reports)) setUserReports(data.reports);

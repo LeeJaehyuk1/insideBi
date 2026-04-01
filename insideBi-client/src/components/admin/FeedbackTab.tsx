@@ -3,6 +3,7 @@ import * as React from "react";
 import { ThumbsUp, ThumbsDown, CheckCircle, Trash2, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 
 interface FeedbackItem {
   message_id: string;
@@ -31,7 +32,7 @@ export function FeedbackTab({ password }: FeedbackTabProps) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/feedback", { headers });
+      const res = await apiFetch("/api/admin/feedback", { headers });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail);
       // 최신 순 정렬
@@ -59,7 +60,7 @@ export function FeedbackTab({ password }: FeedbackTabProps) {
     setProcessingId(item.message_id);
     setError("");
     try {
-      const res = await fetch("/api/admin/feedback-approve", {
+      const res = await apiFetch("/api/admin/feedback-approve", {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -82,7 +83,7 @@ export function FeedbackTab({ password }: FeedbackTabProps) {
     if (!confirm("이 피드백을 삭제하시겠습니까?")) return;
     setProcessingId(messageId);
     try {
-      const res = await fetch("/api/admin/feedback-delete", {
+      const res = await apiFetch("/api/admin/feedback-delete", {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ message_id: messageId }),

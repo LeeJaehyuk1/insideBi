@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReportMeta } from "@/lib/mock-data";
+import { apiFetch } from "@/lib/api-client";
 
 const typeOptions: { value: ReportMeta["type"]; label: string }[] = [
   { value: "monthly", label: "월간" },
@@ -48,7 +49,7 @@ export function ReportCreateDialog({ open, onClose, onCreated }: Props) {
 
     // 서버에 저장 (실패 시 localStorage 폴백)
     try {
-      await fetch("/api/reports", {
+      await apiFetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newReport),

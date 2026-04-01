@@ -1,6 +1,7 @@
 
 import * as React from "react";
 import { SavedDashboard } from "@/types/builder";
+import { apiFetch } from "@/lib/api-client";
 
 const LIB_KEY = "insightbi_dashboards_v1";
 
@@ -24,7 +25,7 @@ export function useDashboardLibrary() {
   // mount: 서버에서 로드, 실패하거나 빈 배열이면 localStorage 우선
   React.useEffect(() => {
     const local = readLocal();
-    fetch("/api/dashboards")
+    apiFetch("/api/dashboards")
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then((data) => {
         const serverLib: SavedDashboard[] = Array.isArray(data.dashboards)
@@ -52,7 +53,7 @@ export function useDashboardLibrary() {
       writeLocal(next);
       return next;
     });
-    fetch("/api/dashboards", {
+    apiFetch("/api/dashboards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(dashboard),

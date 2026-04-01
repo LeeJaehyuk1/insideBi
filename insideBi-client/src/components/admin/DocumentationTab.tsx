@@ -2,6 +2,7 @@
 import * as React from "react";
 import { Plus, Trash2, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api-client";
 
 interface TrainingItem {
   id: string;
@@ -29,7 +30,7 @@ export function DocumentationTab({ password }: DocumentationTabProps) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/training", { headers });
+      const res = await apiFetch("/api/admin/training", { headers });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail);
       const docItems = (data.items as TrainingItem[]).filter(
@@ -52,7 +53,7 @@ export function DocumentationTab({ password }: DocumentationTabProps) {
     setAdding(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/training?type=doc", {
+      const res = await apiFetch("/api/admin/training?type=doc", {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ documentation: docText }),
@@ -73,7 +74,7 @@ export function DocumentationTab({ password }: DocumentationTabProps) {
   const handleDelete = async (id: string) => {
     if (!confirm("이 항목을 삭제하시겠습니까?")) return;
     try {
-      const res = await fetch("/api/admin/training-delete", {
+      const res = await apiFetch("/api/admin/training-delete", {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ id }),

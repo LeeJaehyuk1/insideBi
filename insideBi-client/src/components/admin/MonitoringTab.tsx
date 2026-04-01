@@ -3,6 +3,7 @@ import * as React from "react";
 import { BarChart2, MessageSquare, ThumbsUp, ThumbsDown, Zap, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiFetch } from "@/lib/api-client";
 
 interface MonitoringData {
   feedback: { total: number; up: number; down: number; satisfaction_rate: number };
@@ -23,7 +24,7 @@ export function MonitoringTab({ password }: Props) {
 
   React.useEffect(() => {
     setLoading(true);
-    fetch("/api/admin/monitoring", {
+    apiFetch("/api/admin/monitoring", {
       headers: { "x-admin-password": password },
     })
       .then((r) => r.ok ? r.json() : r.json().then((e) => Promise.reject(e.detail ?? "오류")))

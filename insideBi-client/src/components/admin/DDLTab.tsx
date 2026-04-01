@@ -2,6 +2,7 @@
 import * as React from "react";
 import { RefreshCw, DatabaseZap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api-client";
 
 interface DDLTabProps {
   password: string;
@@ -21,7 +22,7 @@ export function DDLTab({ password }: DDLTabProps) {
     setError("");
     try {
       // ddl.sql은 공개 경로에 없으므로 훈련 데이터에서 DDL 타입을 가져옴
-      const res = await fetch("/api/admin/training", { headers });
+      const res = await apiFetch("/api/admin/training", { headers });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail);
       const ddlItems = (data.items ?? []).filter(
@@ -51,7 +52,7 @@ export function DDLTab({ password }: DDLTabProps) {
     setError("");
     setSyncResult("");
     try {
-      const res = await fetch("/api/admin/ddl-sync", {
+      const res = await apiFetch("/api/admin/ddl-sync", {
         method: "POST",
         headers,
       });

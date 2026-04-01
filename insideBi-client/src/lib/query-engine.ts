@@ -1,4 +1,5 @@
 import { QueryConfig, QueryResult } from "@/types/query";
+import { apiFetch } from "@/lib/api-client";
 import { getRegistryEntry } from "@/lib/dataset-registry";
 import { isCustomDataset, getCustomDatasetRows } from "@/lib/custom-dataset-runtime";
 
@@ -52,7 +53,7 @@ export async function executeQuery<T = Record<string, unknown>>(
 
     try {
       // Vite React 앱 = 브라우저 전용, 항상 API 호출
-      const res = await fetch("/api/db-query", {
+      const res = await apiFetch("/api/db-query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sql, params }),

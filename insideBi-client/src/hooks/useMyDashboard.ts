@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { SavedDashboard } from "@/types/builder";
+import { apiFetch } from "@/lib/api-client";
 
 const MY_KEY = "insightbi_my_dashboard";
 
@@ -10,7 +11,7 @@ export function useMyDashboard() {
 
   // mount: 서버에서 로드, 실패 시 localStorage 폴백
   useEffect(() => {
-    fetch("/api/my-dashboard")
+    apiFetch("/api/my-dashboard")
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then((data) => {
         setMyDashboardState(data.dashboard ?? null);
@@ -29,7 +30,7 @@ export function useMyDashboard() {
   const setMyDashboard = (d: SavedDashboard) => {
     setMyDashboardState(d);
     try { localStorage.setItem(MY_KEY, JSON.stringify(d)); } catch {}
-    fetch("/api/my-dashboard", {
+    apiFetch("/api/my-dashboard", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(d),
@@ -39,7 +40,7 @@ export function useMyDashboard() {
   const clearMyDashboard = () => {
     setMyDashboardState(null);
     try { localStorage.removeItem(MY_KEY); } catch {}
-    fetch("/api/my-dashboard", { method: "DELETE" }).catch(() => {});
+    apiFetch("/api/my-dashboard", { method: "DELETE" }).catch(() => {});
   };
 
   return { myDashboard, hydrated, setMyDashboard, clearMyDashboard };

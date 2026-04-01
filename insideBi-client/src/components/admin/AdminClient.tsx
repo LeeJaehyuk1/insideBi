@@ -7,6 +7,7 @@ import {
   Mail, Bell, Award,
 } from "lucide-react";
 import { AdminLogin } from "@/components/admin/AdminLogin";
+import { apiFetch } from "@/lib/api-client";
 import { OverviewSection }        from "@/components/admin/sections/OverviewSection";
 import { UsersSection }           from "@/components/admin/sections/UsersSection";
 import { GroupsSection }          from "@/components/admin/sections/GroupsSection";
@@ -93,7 +94,7 @@ export function AdminClient() {
   }, []);
 
   const handleLogin = async (pw: string) => {
-    const res = await fetch("/api/admin/login", {
+    const res = await apiFetch("/api/admin/login", {
       method: "POST",
       headers: { "x-admin-password": pw },
     });

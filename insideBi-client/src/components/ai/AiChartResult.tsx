@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { Sparkles } from "lucide-react";
 import { CHART_COLORS } from "@/lib/constants";
+import { apiFetch } from "@/lib/api-client";
 
 const COLORS = [
   CHART_COLORS.primary,
@@ -43,7 +44,7 @@ function useNarrative(data: Record<string, unknown>[], question?: string) {
     if (!data || data.length === 0 || !question) return;
     setNarrative(null);
     setLoading(true);
-    fetch("/api/narrative", {
+    apiFetch("/api/narrative", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, data }),
