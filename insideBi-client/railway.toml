@@ -1,13 +1,8 @@
 [build]
-builder = "NIXPACKS"
-buildCommand = "npm run build"
-
-[build.nixpacksPlan.phases.setup]
-nixPkgs = ["nodejs_22"]
-
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "npx serve dist -s -l $PORT"
 healthcheckPath = "/"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
