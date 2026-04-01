@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/insidebi
+    username: postgres
+    password: postgres
+
+app:
+  ai-backend-url: http://localhost:8000
+  admin-password: "1"
+  cors-allowed-origins: http://localhost:5173

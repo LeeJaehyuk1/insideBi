@@ -1,0 +1,19 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/insidebi}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+app:
+  ai-backend-url: ${AI_BACKEND_URL:http://localhost:8000}
+  admin-password: ${ADMIN_PASSWORD:1}
+  cors-allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
+  rate-limit:
+    max-requests: 10
+    window-seconds: 60
