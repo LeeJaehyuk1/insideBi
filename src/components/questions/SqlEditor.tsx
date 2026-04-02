@@ -50,11 +50,8 @@ const DB_SCHEMA: Record<string, { models: { name: string; count: number }[]; tab
     insightbi: {
         models: [{ name: "리스크 대시보드", count: 4 }],
         tables: [
-            "npl_trend", "credit_grades", "sector_exposure", "concentration",
-            "npl_summary", "pd_lgd_ead", "var_trend", "stress_scenarios",
-            "sensitivity", "var_summary", "lcr_nsfr_trend", "maturity_gap",
-            "liquidity_buffer", "funding_structure", "lcr_gauge",
             "td_irncr", "td_irpos", "td_irriskcr", "td_irriskmr",
+            "td_dmaqfx", "td_dmaqindex", "td_dmaqvol",
         ],
     },
     sample: {

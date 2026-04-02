@@ -244,7 +244,7 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
           <ShieldAlert className="h-4 w-4 text-white" />
         </div>
         <span className="text-sm font-bold text-nav-foreground tracking-tight hidden sm:block">
-          Risk BI
+          Insight BI
         </span>
       </Link>
 

@@ -64,6 +64,44 @@ FORBIDDEN_KEYWORDS = [
     "ALTER", "TRUNCATE", "REPLACE", "ATTACH", "DETACH",
 ]
 
+# ── 학습된 테이블 목록 (관련성 검사용) ───────────────────────────
+KNOWN_TABLES = {
+    "td_irncr", "td_irpos", "td_irriskcr", "td_irriskmr",
+    "td_dmaqfx", "td_dmaqindex", "td_dmaqvol",
+    "npl_trend", "npl_summary", "credit_grades", "sector_exposure",
+    "concentration", "pd_lgd_ead", "var_trend", "var_summary",
+    "stress_scenarios", "sensitivity", "lcr_nsfr_trend", "lcr_gauge",
+    "maturity_gap", "liquidity_buffer", "funding_structure",
+}
+
+def is_relevant_sql(sql: str) -> bool:
+    """생성된 SQL이 학습된 테이블을 참조하는지 확인"""
+    sql_lower = sql.lower()
+    return any(table in sql_lower for table in KNOWN_TABLES)
+
+
+# ChromaDB 유사도 임계값 (낮을수록 유사 / 1.2 초과 = 관련 없음)
+RELEVANCE_DISTANCE_THRESHOLD = float(os.getenv("RELEVANCE_THRESHOLD", "1.2"))
+
+def is_question_relevant(question: str) -> bool:
+    """ChromaDB에서 질문과 학습 데이터 간 유사도를 확인해 관련성 판단"""
+    try:
+        collection = vn.sql_collection
+        results = collection.query(
+            query_texts=[question],
+            n_results=1,
+            include=["distances"],
+        )
+        distances = results.get("distances", [[]])[0]
+        if not distances:
+            return False
+        min_distance = min(distances)
+        print(f"[relevance] distance={min_distance:.4f} threshold={RELEVANCE_DISTANCE_THRESHOLD}")
+        return min_distance <= RELEVANCE_DISTANCE_THRESHOLD
+    except Exception as e:
+        print(f"[relevance] 유사도 확인 실패, 통과 처리: {e}")
+        return True  # 오류 시 통과 (안전 방향)
+
 SUGGESTIONS = [
     "지난 12개월 NPL 비율 추이",
     "업종별 익스포저 TOP 5",
@@ -206,6 +244,13 @@ async def ask_with_retry(question: str, provider: Optional[str] = None, max_atte
     # 프로바이더 인스턴스 결정
     primary_vn = get_provider_vanna(provider) if provider else vn
 
+    # ── Step 0: 관련성 사전 검사 ─────────────────────────────
+    if not is_question_relevant(question):
+        raise HTTPException(
+            status_code=400,
+            detail="학습된 데이터와 관련 없는 질문입니다. 등록된 테이블 데이터에 대해 질문해 주세요."
+        )
+
     # ── Step 1: 캐시 조회 ─────────────────────────────────────
     cached_sql, score = find_cached_sql(question)
     if cached_sql:
@@ -229,6 +274,11 @@ async def ask_with_retry(question: str, provider: Optional[str] = None, max_atte
                 raise HTTPException(
                     status_code=400,
                     detail="보안 위반 쿼리가 감지되었습니다. 데이터 조회 질문만 가능합니다."
+                )
+            if not is_relevant_sql(sql):
+                raise HTTPException(
+                    status_code=400,
+                    detail="학습된 데이터와 관련 없는 질문입니다. 등록된 테이블 데이터에 대해 질문해 주세요."
                 )
             df = primary_vn.run_sql(sql)
             _sql_cache[question.strip()] = sql
@@ -256,6 +306,11 @@ async def ask_with_retry(question: str, provider: Optional[str] = None, max_atte
                         raise HTTPException(
                             status_code=400,
                             detail="보안 위반 쿼리가 감지되었습니다."
+                        )
+                    if not is_relevant_sql(sql):
+                        raise HTTPException(
+                            status_code=400,
+                            detail="학습된 데이터와 관련 없는 질문입니다. 등록된 테이블 데이터에 대해 질문해 주세요."
                         )
                     df = fallback_vn.run_sql(sql)
                     _sql_cache[question.strip()] = sql

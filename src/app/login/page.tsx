@@ -39,7 +39,7 @@ function LoginForm() {
             <ShieldAlert className="h-7 w-7 text-white" />
           </div>
           <div className="text-center">
-            <h1 className="text-xl font-bold text-foreground">Risk BI</h1>
+            <h1 className="text-xl font-bold text-foreground">Insight BI</h1>
             <p className="text-sm text-muted-foreground mt-0.5">금융 리스크관리 BI 솔루션</p>
           </div>
         </div>

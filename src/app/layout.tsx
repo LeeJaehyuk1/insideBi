@@ -7,7 +7,7 @@ import { RoleProvider } from "@/context/RoleContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Risk BI - 금융 리스크관리 대시보드",
+  title: "Insight BI - 금융 리스크관리 대시보드",
   description: "신용/시장/유동성 리스크 종합 관리 시스템",
 };
 

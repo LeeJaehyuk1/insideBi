@@ -61,7 +61,7 @@ export function AppSidebar({ onAiOpen }: AppSidebarProps = {}) {
           <ShieldAlert className="h-5 w-5 text-white" />
         </div>
         <div>
-          <p className="text-sm font-bold text-sidebar-foreground">Risk BI</p>
+          <p className="text-sm font-bold text-sidebar-foreground">Insight BI</p>
           <p className="text-xs text-sidebar-foreground/60">금융 리스크관리</p>
         </div>
       </div>

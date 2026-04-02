@@ -197,11 +197,8 @@ export function MetaHome() {
         <div className="space-y-1.5">
           <h1 className="text-2xl font-bold text-foreground">
             안녕하세요,{" "}
-            <span className="text-primary">Risk BI</span>입니다
+            <span className="text-primary">Insight BI</span>입니다
           </h1>
-          <p className="text-sm text-muted-foreground">
-            금융 리스크 데이터에 대해 무엇이든 물어보세요
-          </p>
         </div>
         <AiSearchBar onSearch={handleSearch} />
       </section>
