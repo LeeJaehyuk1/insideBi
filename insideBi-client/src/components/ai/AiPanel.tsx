@@ -8,6 +8,14 @@ import { Separator } from "@/components/ui/separator";
 import { useAiChat } from "@/hooks/useAiChat";
 import { AiChatMessage } from "./AiChatMessage";
 import { AiSuggestions } from "./AiSuggestions";
+import { cn } from "@/lib/utils";
+import type { LLMProvider } from "@/types/ai";
+
+const PROVIDER_STYLES: Record<LLMProvider, { active: string; dot: string; label: string }> = {
+  groq:   { active: "border-orange-400 bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300", dot: "bg-orange-400", label: "Groq" },
+  gemini: { active: "border-blue-400 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",           dot: "bg-blue-400",   label: "Gemini" },
+  claude: { active: "border-purple-400 bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300", dot: "bg-purple-400", label: "Claude" },
+};
 
 interface AiPanelProps {
   open: boolean;
@@ -16,7 +24,7 @@ interface AiPanelProps {
 }
 
 export function AiPanel({ open, onOpenChange, defaultQuestion }: AiPanelProps) {
-  const { messages, ask, submitFeedback, clearHistory } = useAiChat();
+  const { messages, ask, submitFeedback, clearHistory, provider, setProvider, providers } = useAiChat();
   const [input, setInput] = React.useState("");
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
@@ -24,12 +32,10 @@ export function AiPanel({ open, onOpenChange, defaultQuestion }: AiPanelProps) {
   const isLoading = messages.some((m) => m.status === "loading");
   const askedRef = React.useRef<string | undefined>(undefined);
 
-  // Scroll to bottom when new messages arrive
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Focus textarea when panel opens; fire defaultQuestion once
   React.useEffect(() => {
     if (open) {
       setTimeout(() => textareaRef.current?.focus(), 100);
@@ -55,6 +61,8 @@ export function AiPanel({ open, onOpenChange, defaultQuestion }: AiPanelProps) {
     }
   };
 
+  const activeProvider = PROVIDER_STYLES[provider];
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[520px] max-w-[95vw] flex flex-col p-0 gap-0 h-full">
@@ -79,9 +87,38 @@ export function AiPanel({ open, onOpenChange, defaultQuestion }: AiPanelProps) {
               </Button>
             )}
           </div>
+
+          {/* 프로바이더 선택 */}
+          <div className="flex items-center gap-1.5 pt-1">
+            {(["groq", "gemini", "claude"] as LLMProvider[]).map((p) => {
+              const meta = providers.find((x) => x.id === p);
+              const style = PROVIDER_STYLES[p];
+              const isActive = provider === p;
+              const isAvailable = meta?.available ?? false;
+
+              return (
+                <button
+                  key={p}
+                  onClick={() => isAvailable && setProvider(p)}
+                  disabled={!isAvailable}
+                  title={isAvailable ? `${style.label} (${meta?.model})` : `${style.label} (API 키 미설정)`}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-lg border transition-all",
+                    isActive
+                      ? style.active
+                      : "border-border text-muted-foreground hover:bg-muted",
+                    !isAvailable && "opacity-40 cursor-not-allowed"
+                  )}
+                >
+                  <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", isActive ? style.dot : "bg-muted-foreground/40")} />
+                  {style.label}
+                </button>
+              );
+            })}
+          </div>
         </SheetHeader>
 
-        {/* Messages — native scroll so scrollIntoView works */}
+        {/* Messages */}
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
           <div className="py-4 space-y-1">
             {messages.length === 0 ? (
@@ -95,7 +132,6 @@ export function AiPanel({ open, onOpenChange, defaultQuestion }: AiPanelProps) {
                 />
               ))
             )}
-            {/* Scroll anchor */}
             <div ref={bottomRef} />
           </div>
         </div>
@@ -123,8 +159,8 @@ export function AiPanel({ open, onOpenChange, defaultQuestion }: AiPanelProps) {
               <Send className="h-4 w-4" />
             </Button>
           </div>
-          <p className="mt-1.5 text-[10px] text-muted-foreground">
-            Powered by Ollama · 데이터 조회 전용 (쓰기 불가)
+          <p className={cn("mt-1.5 text-[10px]", activeProvider.active.includes("orange") ? "text-orange-500" : activeProvider.active.includes("blue") ? "text-blue-500" : "text-purple-500")}>
+            {activeProvider.label} · {providers.find(p => p.id === provider)?.model ?? ""} · 데이터 조회 전용
           </p>
         </div>
       </SheetContent>

@@ -29,6 +29,8 @@ import requests as _requests
 from vanna_setup import (
     vn,
     get_fallback_vn,
+    get_provider_vanna,
+    available_providers,
     MODEL_NAME,
     LLM_PROVIDER,
     SQLCODER_MODE,
@@ -110,6 +112,7 @@ def require_admin(x_admin_password: str = Header(...)):
 
 class AskRequest(BaseModel):
     question: str
+    provider: Optional[str] = None  # "groq" | "gemini" | "claude" | None(기본)
 
 
 class FeedbackRequest(BaseModel):
@@ -187,31 +190,34 @@ def generate_summary(question: str, df: pd.DataFrame, sql: str) -> str:
 
 # ── SQLCoder 이중 파이프라인 핵심 함수 ───────────────────────────
 
-async def ask_with_retry(question: str, max_attempts: int = 2):
+async def ask_with_retry(question: str, provider: Optional[str] = None, max_attempts: int = 2):
     """
     [파이프라인]
-    1) SQL 캐시 조회        → 히트 시 LLM 생략
-    2) Primary LLM 시도    → SQLCoder (Ollama or Defog API)
-    3) Primary 실패 시     → Fallback LLM (Groq or 범용 Ollama) 재시도
-    4) 모두 실패           → 503 에러
+    1) SQL 캐시 조회          → 히트 시 LLM 생략
+    2) 지정 프로바이더 LLM    → groq | gemini | claude | 기본(vn)
+    3) 실패 시 Fallback LLM  → 프로바이더 미지정 시에만 적용
+    4) 모두 실패              → 503 에러
     """
+    # 프로바이더 인스턴스 결정
+    primary_vn = get_provider_vanna(provider) if provider else vn
+
     # ── Step 1: 캐시 조회 ─────────────────────────────────────
     cached_sql, score = find_cached_sql(question)
     if cached_sql:
-        print(f"[cache HIT] score={score:.2f}  sql={cached_sql[:60]}")
+        print(f"[cache HIT] score={score:.2f}  provider={provider or 'default'}  sql={cached_sql[:60]}")
         try:
-            df = vn.run_sql(cached_sql)
+            df = primary_vn.run_sql(cached_sql)
             return cached_sql, df, True, "cache"
         except Exception as e:
-            print(f"[cache] 캐시 SQL 실행 실패, Primary LLM으로 폴백: {e}")
+            print(f"[cache] 캐시 SQL 실행 실패, LLM으로 폴백: {e}")
 
-    # ── Step 2: Primary LLM (SQLCoder) ───────────────────────
+    # ── Step 2: 지정 프로바이더 LLM ──────────────────────────
     last_error: str = ""
     context = question
 
     for attempt in range(max_attempts):
         try:
-            sql = vn.generate_sql(context)
+            sql = primary_vn.generate_sql(context)
             if not sql or not sql.upper().strip().startswith("SELECT"):
                 raise ValueError(f"유효하지 않은 SQL 형식: {sql[:80]}")
             if not validate_sql(sql):
@@ -219,45 +225,46 @@ async def ask_with_retry(question: str, max_attempts: int = 2):
                     status_code=400,
                     detail="보안 위반 쿼리가 감지되었습니다. 데이터 조회 질문만 가능합니다."
                 )
-            df = vn.run_sql(sql)
+            df = primary_vn.run_sql(sql)
             _sql_cache[question.strip()] = sql
-            backend = f"sqlcoder-{SQLCODER_MODE}" if LLM_PROVIDER == "sqlcoder" else LLM_PROVIDER
+            backend = provider or (f"sqlcoder-{SQLCODER_MODE}" if LLM_PROVIDER == "sqlcoder" else LLM_PROVIDER)
             print(f"[{backend}] 성공 (attempt={attempt+1})  sql={sql[:60]}")
             return sql, df, False, backend
         except HTTPException:
             raise
         except Exception as e:
             last_error = str(e)
-            print(f"[primary] attempt={attempt+1} 실패: {last_error[:120]}")
+            print(f"[{provider or 'primary'}] attempt={attempt+1} 실패: {last_error[:120]}")
             context = f"{question}\n[이전 시도 오류, 다시 시도: {last_error[:80]}]"
 
-    # ── Step 3: Fallback LLM ─────────────────────────────────
-    fallback_vn = get_fallback_vn()
-    if fallback_vn is not None:
-        print("[fallback] Primary 실패 → Fallback LLM 시도")
-        for attempt in range(2):
-            try:
-                sql = fallback_vn.generate_sql(context)
-                if not sql or not sql.upper().strip().startswith("SELECT"):
-                    raise ValueError(f"Fallback SQL 형식 오류: {sql[:80]}")
-                if not validate_sql(sql):
-                    raise HTTPException(
-                        status_code=400,
-                        detail="보안 위반 쿼리가 감지되었습니다."
-                    )
-                df = fallback_vn.run_sql(sql)
-                _sql_cache[question.strip()] = sql
-                print(f"[fallback] 성공 (attempt={attempt+1})  sql={sql[:60]}")
-                return sql, df, False, "fallback"
-            except HTTPException:
-                raise
-            except Exception as e:
-                last_error = str(e)
-                print(f"[fallback] attempt={attempt+1} 실패: {last_error[:120]}")
+    # ── Step 3: Fallback LLM (프로바이더 미지정 시에만) ───────
+    if not provider:
+        fallback_vn = get_fallback_vn()
+        if fallback_vn is not None:
+            print("[fallback] Primary 실패 → Fallback LLM 시도")
+            for attempt in range(2):
+                try:
+                    sql = fallback_vn.generate_sql(context)
+                    if not sql or not sql.upper().strip().startswith("SELECT"):
+                        raise ValueError(f"Fallback SQL 형식 오류: {sql[:80]}")
+                    if not validate_sql(sql):
+                        raise HTTPException(
+                            status_code=400,
+                            detail="보안 위반 쿼리가 감지되었습니다."
+                        )
+                    df = fallback_vn.run_sql(sql)
+                    _sql_cache[question.strip()] = sql
+                    print(f"[fallback] 성공 (attempt={attempt+1})  sql={sql[:60]}")
+                    return sql, df, False, "fallback"
+                except HTTPException:
+                    raise
+                except Exception as e:
+                    last_error = str(e)
+                    print(f"[fallback] attempt={attempt+1} 실패: {last_error[:120]}")
 
     raise HTTPException(
         status_code=503,
-        detail=f"SQL 생성에 실패했습니다 (Primary + Fallback 모두 실패): {last_error}"
+        detail=f"SQL 생성에 실패했습니다: {last_error}"
     )
 
 
@@ -411,12 +418,18 @@ async def cache_reload():
     return {"before": before, "after": len(_sql_cache)}
 
 
+@app.get("/api/providers")
+async def get_providers():
+    """사용 가능한 LLM 프로바이더 목록"""
+    return {"providers": available_providers()}
+
+
 @app.post("/api/ask")
 async def ask(req: AskRequest):
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="질문을 입력해주세요.")
 
-    sql, df, from_cache, backend = await ask_with_retry(req.question)
+    sql, df, from_cache, backend = await ask_with_retry(req.question, provider=req.provider)
 
     data = json.loads(df.to_json(orient="records", force_ascii=False))
     chart_type = infer_chart_type(df)
@@ -430,7 +443,8 @@ async def ask(req: AskRequest):
         "chart_type": chart_type,
         "summary": summary,
         "from_cache": from_cache,
-        "backend": backend,   # 어느 LLM이 응답했는지 디버깅용
+        "backend": backend,
+        "provider": req.provider or "default",
     }
 
 

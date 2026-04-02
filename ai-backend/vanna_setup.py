@@ -46,6 +46,14 @@ GROQ_API_KEY   = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL_SQL = os.getenv("GROQ_MODEL_SQL", "llama-3.3-70b-versatile")  # SQL 생성 메인
 GROQ_MODEL_FB  = os.getenv("GROQ_MODEL_FB",  "llama-3.1-8b-instant")     # SQL 생성 폴백
 
+# Gemini (인터넷 환경)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+
+# Claude (인터넷 환경)
+CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY", "")
+CLAUDE_MODEL   = os.getenv("CLAUDE_MODEL", "claude-haiku-4-5-20251001")
+
 # 범용 Ollama fallback 모델 (로컬)
 FALLBACK_OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:latest")
 
@@ -559,3 +567,166 @@ vn.run_sql_is_set = True
 if _fallback_vn is not None:
     _fallback_vn.run_sql        = _run_sql
     _fallback_vn.run_sql_is_set = True
+
+
+# ════════════════════════════════════════════════════════════════
+#  멀티 프로바이더: Gemini / Claude (인터넷 환경)
+# ════════════════════════════════════════════════════════════════
+
+class GeminiSQLVanna(_VannaBase, ChromaDB_VectorStore):
+    """Google Gemini — 저비용 고속 Text-to-SQL (1M 컨텍스트)"""
+
+    def __init__(self):
+        ChromaDB_VectorStore.__init__(self, config={"path": CHROMA_PATH, "n_results": 3})
+        import google.generativeai as genai
+        genai.configure(api_key=GEMINI_API_KEY)
+        self._genai = genai
+
+    def system_message(self, message: str) -> dict:
+        return {"role": "system", "content": message}
+
+    def user_message(self, message: str) -> dict:
+        return {"role": "user", "content": message}
+
+    def assistant_message(self, message: str) -> dict:
+        return {"role": "assistant", "content": message}
+
+    def submit_prompt(self, prompt, **kwargs) -> str:
+        raise NotImplementedError
+
+    def generate_sql(self, question: str, **kwargs) -> str:
+        try:
+            similar = self.get_similar_question_sql(question)
+        except Exception:
+            similar = []
+
+        messages = _build_sqlcoder_messages(question, similar)
+        system_content = next((m["content"] for m in messages if m["role"] == "system"), "")
+        contents = [
+            {"role": "model" if m["role"] == "assistant" else "user", "parts": [m["content"]]}
+            for m in messages if m["role"] != "system"
+        ]
+
+        model = self._genai.GenerativeModel(
+            GEMINI_MODEL,
+            system_instruction=system_content,
+        )
+        resp = model.generate_content(
+            contents,
+            generation_config=self._genai.GenerationConfig(
+                temperature=0.0,
+                max_output_tokens=300,
+            ),
+        )
+        return _clean_sql(resp.text)
+
+    def generate_embedding(self, data: str, **kwargs):
+        return ChromaDB_VectorStore.generate_embedding(self, data, **kwargs)
+
+
+class ClaudeSQLVanna(_VannaBase, ChromaDB_VectorStore):
+    """Anthropic Claude — 200K 컨텍스트 고정확도 Text-to-SQL"""
+
+    def __init__(self):
+        ChromaDB_VectorStore.__init__(self, config={"path": CHROMA_PATH, "n_results": 3})
+        import anthropic
+        self._client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+
+    def system_message(self, message: str) -> dict:
+        return {"role": "system", "content": message}
+
+    def user_message(self, message: str) -> dict:
+        return {"role": "user", "content": message}
+
+    def assistant_message(self, message: str) -> dict:
+        return {"role": "assistant", "content": message}
+
+    def submit_prompt(self, prompt, **kwargs) -> str:
+        raise NotImplementedError
+
+    def generate_sql(self, question: str, **kwargs) -> str:
+        try:
+            similar = self.get_similar_question_sql(question)
+        except Exception:
+            similar = []
+
+        messages = _build_sqlcoder_messages(question, similar)
+        system_content = next((m["content"] for m in messages if m["role"] == "system"), "")
+        chat_messages = [m for m in messages if m["role"] != "system"]
+
+        resp = self._client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=300,
+            system=system_content,
+            messages=chat_messages,
+        )
+        return _clean_sql(resp.content[0].text)
+
+    def generate_embedding(self, data: str, **kwargs):
+        return ChromaDB_VectorStore.generate_embedding(self, data, **kwargs)
+
+
+# ── 멀티 프로바이더 레지스트리 ──────────────────────────────────────
+
+_provider_registry: dict[str, _VannaBase] = {}
+
+_PROVIDER_META = {
+    "groq":   {"name": "Groq",   "model": GROQ_MODEL_SQL, "color": "orange"},
+    "gemini": {"name": "Gemini", "model": GEMINI_MODEL,   "color": "blue"},
+    "claude": {"name": "Claude", "model": CLAUDE_MODEL,   "color": "purple"},
+}
+
+
+def _init_providers():
+    if GROQ_API_KEY:
+        try:
+            inst = GroqSQLVanna()
+            inst.run_sql = _run_sql
+            inst.run_sql_is_set = True
+            _provider_registry["groq"] = inst
+            print(f"[provider] Groq 초기화 완료 ({GROQ_MODEL_SQL})")
+        except Exception as e:
+            print(f"[provider] Groq 초기화 실패: {e}")
+
+    if GEMINI_API_KEY:
+        try:
+            inst = GeminiSQLVanna()
+            inst.run_sql = _run_sql
+            inst.run_sql_is_set = True
+            _provider_registry["gemini"] = inst
+            print(f"[provider] Gemini 초기화 완료 ({GEMINI_MODEL})")
+        except Exception as e:
+            print(f"[provider] Gemini 초기화 실패: {e}")
+
+    if CLAUDE_API_KEY:
+        try:
+            inst = ClaudeSQLVanna()
+            inst.run_sql = _run_sql
+            inst.run_sql_is_set = True
+            _provider_registry["claude"] = inst
+            print(f"[provider] Claude 초기화 완료 ({CLAUDE_MODEL})")
+        except Exception as e:
+            print(f"[provider] Claude 초기화 실패: {e}")
+
+
+_init_providers()
+
+
+def get_provider_vanna(provider: str) -> _VannaBase:
+    """지정 프로바이더 Vanna 인스턴스 반환. 없으면 기본 vn."""
+    return _provider_registry.get(provider, vn)
+
+
+def available_providers() -> list[dict]:
+    """프론트엔드에 노출할 프로바이더 목록 (가용 여부 포함)"""
+    result = []
+    for key in ["groq", "gemini", "claude"]:
+        meta = _PROVIDER_META[key]
+        result.append({
+            "id": key,
+            "name": meta["name"],
+            "model": meta["model"],
+            "color": meta["color"],
+            "available": key in _provider_registry,
+        })
+    return result

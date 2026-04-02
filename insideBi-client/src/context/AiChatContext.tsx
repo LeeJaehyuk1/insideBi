@@ -1,6 +1,6 @@
 
 import * as React from "react";
-import { ChatMessage, AiAskResponse } from "@/types/ai";
+import { ChatMessage, AiAskResponse, LLMProvider, ProviderInfo } from "@/types/ai";
 import { apiFetch } from "@/lib/api-client";
 
 interface AiChatContextValue {
@@ -8,6 +8,9 @@ interface AiChatContextValue {
   ask: (question: string) => void;
   submitFeedback: (messageId: string, rating: "up" | "down", question?: string, sql?: string) => Promise<void>;
   clearHistory: () => void;
+  provider: LLMProvider;
+  setProvider: (p: LLMProvider) => void;
+  providers: ProviderInfo[];
 }
 
 const AiChatContext = React.createContext<AiChatContextValue | null>(null);
@@ -27,7 +30,24 @@ function persistHistory(msgs: ChatMessage[]) {
 
 export function AiChatProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+  const [provider, setProvider] = React.useState<LLMProvider>("groq");
+  const [providers, setProviders] = React.useState<ProviderInfo[]>([]);
   const abortRef = React.useRef<AbortController | null>(null);
+
+  // 마운트 시 사용 가능한 프로바이더 목록 로드
+  React.useEffect(() => {
+    apiFetch("/api/providers")
+      .then((r) => r.ok ? r.json() : Promise.reject())
+      .then((data) => {
+        if (Array.isArray(data.providers)) {
+          setProviders(data.providers);
+          // 첫 번째 사용 가능한 프로바이더로 기본값 설정
+          const first = data.providers.find((p: ProviderInfo) => p.available);
+          if (first) setProvider(first.id as LLMProvider);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // 마운트 시 서버에서 히스토리 복원
   React.useEffect(() => {
@@ -38,7 +58,7 @@ export function AiChatProvider({ children }: { children: React.ReactNode }) {
           setMessages(data.messages);
         }
       })
-      .catch(() => {}); // 서버 없으면 빈 상태로 시작
+      .catch(() => {});
   }, []);
 
   const ask = React.useCallback((question: string) => {
@@ -69,7 +89,7 @@ export function AiChatProvider({ children }: { children: React.ReactNode }) {
         const res = await apiFetch("/api/ask", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question }),
+          body: JSON.stringify({ question, provider }),
           signal: controller.signal,
         });
 
@@ -92,6 +112,7 @@ export function AiChatProvider({ children }: { children: React.ReactNode }) {
                   data: data.data,
                   chartType: data.chart_type,
                   fromCache: data.from_cache,
+                  provider: (data.provider || provider) as LLMProvider,
                   status: "success" as const,
                 }
               : m
@@ -116,7 +137,7 @@ export function AiChatProvider({ children }: { children: React.ReactNode }) {
         });
       }
     })();
-  }, []);
+  }, [provider]);
 
   const submitFeedback = React.useCallback(
     async (messageId: string, rating: "up" | "down", question?: string, sql?: string) => {
@@ -140,8 +161,8 @@ export function AiChatProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = React.useMemo(
-    () => ({ messages, ask, submitFeedback, clearHistory }),
-    [messages, ask, submitFeedback, clearHistory]
+    () => ({ messages, ask, submitFeedback, clearHistory, provider, setProvider, providers }),
+    [messages, ask, submitFeedback, clearHistory, provider, providers]
   );
 
   return <AiChatContext.Provider value={value}>{children}</AiChatContext.Provider>;
