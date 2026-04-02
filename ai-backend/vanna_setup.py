@@ -578,9 +578,8 @@ class GeminiSQLVanna(_VannaBase, ChromaDB_VectorStore):
 
     def __init__(self):
         ChromaDB_VectorStore.__init__(self, config={"path": CHROMA_PATH, "n_results": 3})
-        import google.generativeai as genai
-        genai.configure(api_key=GEMINI_API_KEY)
-        self._genai = genai
+        from google import genai
+        self._client = genai.Client(api_key=GEMINI_API_KEY)
 
     def system_message(self, message: str) -> dict:
         return {"role": "system", "content": message}
@@ -607,13 +606,12 @@ class GeminiSQLVanna(_VannaBase, ChromaDB_VectorStore):
             for m in messages if m["role"] != "system"
         ]
 
-        model = self._genai.GenerativeModel(
-            GEMINI_MODEL,
-            system_instruction=system_content,
-        )
-        resp = model.generate_content(
-            contents,
-            generation_config=self._genai.GenerationConfig(
+        from google.genai import types
+        resp = self._client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system_content,
                 temperature=0.0,
                 max_output_tokens=300,
             ),
