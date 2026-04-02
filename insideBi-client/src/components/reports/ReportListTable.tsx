@@ -94,7 +94,7 @@ export function ReportListTable() {
     setUserReports((prev) =>
       prev.map((r) => r.id === report.id ? { ...r, status: next.status } : r)
     );
-    fetch(`/api/reports/${report.id}`, {
+    apiFetch(`/api/reports/${report.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: next.status }),
@@ -103,7 +103,7 @@ export function ReportListTable() {
 
   const handleDelete = async (id: string) => {
     setUserReports((prev) => prev.filter((r) => r.id !== id));
-    fetch(`/api/reports/${id}`, { method: "DELETE" }).catch(() => {});
+    apiFetch(`/api/reports/${id}`, { method: "DELETE" }).catch(() => {});
   };
 
   function SortIcon({ k }: { k: SortKey }) {

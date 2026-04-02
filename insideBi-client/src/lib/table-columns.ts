@@ -1,10 +1,11 @@
 import type { ColumnMeta } from "@/types/dataset";
 import { DB_TABLES } from "@/lib/db-catalog";
+import { apiFetch } from "@/lib/api-client";
 
 /** API를 통해 DB information_schema에서 컬럼 조회 */
 export async function getColumnsForTableAsync(tableId: string): Promise<ColumnMeta[]> {
   try {
-    const res = await fetch(`/api/db-columns?table=${encodeURIComponent(tableId)}`);
+    const res = await apiFetch(`/api/db-columns?table=${encodeURIComponent(tableId)}`);
     const json = await res.json();
     return json.columns ?? [];
   } catch {

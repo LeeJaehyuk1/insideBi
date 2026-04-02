@@ -693,7 +693,7 @@ export function NoCodeBuilder({
 
   React.useEffect(() => {
     if (tableId) {
-      fetch(`/api/db-columns?table=${encodeURIComponent(tableId)}`)
+      apiFetch(`/api/db-columns?table=${encodeURIComponent(tableId)}`)
         .then((r) => r.json())
         .then((json) => { if (json.columns) setColumns(json.columns); })
         .catch(() => setColumns([]));

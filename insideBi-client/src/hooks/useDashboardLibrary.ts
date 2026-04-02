@@ -66,7 +66,7 @@ export function useDashboardLibrary() {
       writeLocal(next);
       return next;
     });
-    fetch(`/api/dashboards/${encodeURIComponent(name)}`, {
+    apiFetch(`/api/dashboards/${encodeURIComponent(name)}`, {
       method: "DELETE",
     }).catch(() => {});
   };
