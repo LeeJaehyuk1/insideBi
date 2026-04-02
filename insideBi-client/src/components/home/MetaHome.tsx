@@ -163,8 +163,14 @@ function SectionHeader({
 }
 
 /* ── 메인 컴포넌트 ── */
+const PROVIDER_STYLES = {
+  groq:   { active: "border-orange-400 bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300", dot: "bg-orange-400", label: "Groq" },
+  gemini: { active: "border-blue-400 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",           dot: "bg-blue-400",   label: "Gemini" },
+  claude: { active: "border-purple-400 bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300", dot: "bg-purple-400", label: "Claude" },
+} as const;
+
 export function MetaHome() {
-  const { messages, ask, submitFeedback, clearHistory } = useAiChat();
+  const { messages, ask, submitFeedback, clearHistory, provider, setProvider, providers } = useAiChat();
   const [sqlOpen, setSqlOpen] = React.useState(false);
   const [feedbackGiven, setFeedbackGiven] = React.useState<"up" | "down" | null>(null);
   const resultRef = React.useRef<HTMLDivElement>(null);
@@ -205,6 +211,32 @@ export function MetaHome() {
           </p>
         </div>
         <AiSearchBar onSearch={handleSearch} />
+
+        {/* 프로바이더 선택 */}
+        <div className="flex items-center justify-center gap-2">
+          {(["groq", "gemini", "claude"] as const).map((p) => {
+            const meta = providers.find((x) => x.id === p);
+            const style = PROVIDER_STYLES[p];
+            const isActive = provider === p;
+            const isUnavailable = providers.length > 0 && meta?.available === false;
+            return (
+              <button
+                key={p}
+                onClick={() => !isUnavailable && setProvider(p)}
+                title={isUnavailable ? `${style.label} — API 키 미설정` : `${style.label}${meta ? ` (${meta.model})` : ""}`}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all",
+                  isActive ? style.active : "border-border text-muted-foreground hover:bg-muted",
+                  isUnavailable && "opacity-35 cursor-not-allowed"
+                )}
+              >
+                <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", isActive ? style.dot : "bg-muted-foreground/40")} />
+                {style.label}
+                {isUnavailable && <span className="text-[9px] opacity-60">미설정</span>}
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       {/* ── AI 검색 결과 (검색 후 표시) ── */}
