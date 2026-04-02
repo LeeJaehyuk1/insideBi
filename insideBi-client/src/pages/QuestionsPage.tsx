@@ -26,7 +26,7 @@ export default function QuestionsPage() {
           </div>
         </div>
         <Link
-          to="/questions/new"
+          to="/questions/nocode"
           className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           <Plus className="h-4 w-4" />
@@ -49,7 +49,7 @@ export default function QuestionsPage() {
           <p className="text-sm font-medium text-foreground">저장된 질문이 없습니다</p>
           <p className="text-xs text-muted-foreground">새 질문을 만들어 데이터를 분석해 보세요</p>
           <Link
-            to="/questions/new"
+            to="/questions/nocode"
             className="inline-flex items-center gap-1.5 mt-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             <Plus className="h-4 w-4" />

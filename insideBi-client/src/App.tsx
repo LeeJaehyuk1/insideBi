@@ -67,8 +67,9 @@ export default function App() {
 
               {/* 질문 */}
               <Route path="/questions" element={<QuestionsPage />} />
-              <Route path="/questions/new" element={<SqlEditorPage />} />
+              <Route path="/questions/pick" element={<NoCodeBuilderPage />} />
               <Route path="/questions/nocode" element={<NoCodeBuilderPage />} />
+              <Route path="/questions/new" element={<SqlEditorPage />} />
               <Route path="/questions/:id" element={<QuestionDetailPage />} />
 
               {/* 탐색 */}
