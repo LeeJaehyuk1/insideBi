@@ -811,9 +811,9 @@ export function NoCodeBuilder({
     return [selectClause, `FROM ${tbl}`, whereClause, groupByClause, orderByClause, limitClause].filter(Boolean).join("\n");
   };
 
-  /* 자동 실행 (필터/요약/정렬 등 변경 시) */
+  /* 자동 실행 (결과 뷰에서 필터/요약/정렬 등 변경 시) */
   React.useEffect(() => {
-    if ((tableId || datasetId) && columns.length > 0) {
+    if (editMode === "result" && (tableId || datasetId) && columns.length > 0) {
       handleRun();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
