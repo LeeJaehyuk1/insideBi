@@ -299,6 +299,16 @@ export function MetaHome() {
                     <Bot className="h-3.5 w-3.5 text-primary" />
                   </div>
                   <span className="text-xs font-medium text-muted-foreground">AI 분석 결과</span>
+                  {lastAssistant.provider && (
+                    <span className={cn(
+                      "text-[10px] font-semibold px-1.5 py-0.5 rounded-full border",
+                      lastAssistant.provider === "groq"   && "border-orange-300 text-orange-600 bg-orange-50 dark:bg-orange-950/40 dark:text-orange-300",
+                      lastAssistant.provider === "gemini" && "border-blue-300 text-blue-600 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-300",
+                      lastAssistant.provider === "claude" && "border-purple-300 text-purple-600 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-300",
+                    )}>
+                      {{ groq: "Groq", gemini: "Gemini", claude: "Claude" }[lastAssistant.provider]}
+                    </span>
+                  )}
                   {lastAssistant.fromCache && (
                     <span className="flex items-center gap-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
                       <Zap className="h-2.5 w-2.5" /> 캐시
