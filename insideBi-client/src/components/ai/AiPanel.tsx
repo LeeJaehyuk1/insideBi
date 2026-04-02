@@ -94,24 +94,25 @@ export function AiPanel({ open, onOpenChange, defaultQuestion }: AiPanelProps) {
               const meta = providers.find((x) => x.id === p);
               const style = PROVIDER_STYLES[p];
               const isActive = provider === p;
-              const isAvailable = meta?.available ?? false;
+              // providers 로드 전이면 모두 선택 가능, 로드 후엔 available 기준
+              const isUnavailable = providers.length > 0 && meta?.available === false;
 
               return (
                 <button
                   key={p}
-                  onClick={() => isAvailable && setProvider(p)}
-                  disabled={!isAvailable}
-                  title={isAvailable ? `${style.label} (${meta?.model})` : `${style.label} (API 키 미설정)`}
+                  onClick={() => !isUnavailable && setProvider(p)}
+                  title={isUnavailable ? `${style.label} — API 키 미설정` : `${style.label}${meta ? ` (${meta.model})` : ""}`}
                   className={cn(
                     "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-lg border transition-all",
                     isActive
                       ? style.active
                       : "border-border text-muted-foreground hover:bg-muted",
-                    !isAvailable && "opacity-40 cursor-not-allowed"
+                    isUnavailable && "opacity-35 cursor-not-allowed"
                   )}
                 >
                   <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", isActive ? style.dot : "bg-muted-foreground/40")} />
                   {style.label}
+                  {isUnavailable && <span className="text-[9px] opacity-60">미설정</span>}
                 </button>
               );
             })}
