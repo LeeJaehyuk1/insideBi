@@ -141,3 +141,45 @@ CREATE TABLE IF NOT EXISTS lcr_gauge (
     lcr_threshold  REAL, -- LCR 규제 최소 (%)
     nsfr_threshold REAL  -- NSFR 규제 최소 (%)
 );
+
+-- 환율 시세 (FX 마켓 데이터)
+CREATE TABLE IF NOT EXISTS td_dmaqfx (
+    std_date          CHAR(8),        -- 기준일자 (YYYYMMDD)
+    fx_vendor_id      VARCHAR(30),    -- 시세 제공사 ID
+    fx_close_code     VARCHAR(10),    -- 종가 구분 코드
+    currency_code     VARCHAR(10),    -- 통화 코드 (USD, EUR 등)
+    fx_code           NUMERIC(20,0),  -- 환율 코드
+    trade_fx_rate     NUMERIC(20,15), -- 거래 환율
+    trade_usd_fx_rate NUMERIC(20,15), -- 거래 USD 환율
+    fx_rate           NUMERIC(20,15), -- 환율
+    usd_fx_rate       NUMERIC(20,15)  -- USD 환율
+);
+
+-- 지수 시세 (Index 마켓 데이터)
+CREATE TABLE IF NOT EXISTS td_dmaqindex (
+    std_date         CHAR(8),        -- 기준일자 (YYYYMMDD)
+    index_close_code VARCHAR(10),    -- 종가 구분 코드
+    index_id         VARCHAR(100),   -- 지수 ID
+    index_name       VARCHAR(100),   -- 지수명
+    curr_price       NUMERIC(30,13), -- 현재가
+    base_price       NUMERIC(30,13), -- 기준가
+    first_price      NUMERIC(30,13), -- 시가
+    min_price        NUMERIC(30,13), -- 저가
+    max_price        NUMERIC(30,13), -- 고가
+    dividend_rate    NUMERIC(20,15), -- 배당률
+    source_std_date  CHAR(8),        -- 원천 기준일자
+    ncr_curr_price   NUMERIC(30,13), -- NCR 적용 현재가
+    currency_code    VARCHAR(10)     -- 통화 코드
+);
+
+-- 변동성 시세 (Volatility 마켓 데이터)
+CREATE TABLE IF NOT EXISTS td_dmaqvol (
+    std_date      CHAR(8),        -- 기준일자 (YYYYMMDD)
+    vendor_id     VARCHAR(30),    -- 시세 제공사 ID
+    item_code     VARCHAR(100),   -- 종목 코드
+    vol_type      NUMERIC(1,0),   -- 변동성 유형
+    underlying_id VARCHAR(50),    -- 기초자산 ID
+    vol           NUMERIC(20,15), -- 변동성
+    quanto_vol    NUMERIC(20,15), -- 콴토 변동성
+    quanto_rho    NUMERIC(20,15)  -- 콴토 상관계수
+);

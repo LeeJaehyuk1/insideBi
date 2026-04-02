@@ -59,18 +59,6 @@ const roleIcons: Record<Role, React.ElementType> = {
 type NavItem = { title: string; href?: string; icon: React.ElementType; description?: string; action?: string };
 type NavGroup = { label: string; items: NavItem[]; color?: string };
 
-const RISK_NAV: NavGroup[] = [
-  {
-    label: "리스크 관리",
-    color: "text-blue-400",
-    items: [
-      { title: "신용리스크", href: "/credit-risk", icon: CreditCard, description: "NPL / PD / LGD / EAD" },
-      { title: "시장리스크", href: "/market-risk", icon: TrendingUp, description: "VaR / 스트레스 테스트" },
-      { title: "유동성리스크", href: "/liquidity-risk", icon: Droplets, description: "LCR / NSFR / 만기갭" },
-      { title: "NCR리스크", href: "/ncr-risk", icon: Target, description: "순자본비율 지표" },
-    ],
-  },
-];
 
 
 
@@ -276,12 +264,6 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
           <span>홈</span>
         </Link>
 
-        {/* 리스크 관리 드롭다운 */}
-        <NavDropdown
-          trigger={<><CreditCard className="h-3.5 w-3.5" /><span>리스크 관리</span></>}
-          groups={RISK_NAV}
-        />
-
         {/* 탐색 */}
         <Link
           href="/browse"
@@ -378,28 +360,19 @@ export function TopNav({ onAiOpen }: TopNavProps = {}) {
 
       {/* ── Right Actions ── */}
       <div className="flex items-center gap-1">
-        {/* AI 분석 */}
-        <button
-          onClick={onAiOpen}
-          title="AI 데이터 분석"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-nav-foreground/80 hover:text-nav-foreground hover:bg-nav-hover transition-colors"
-        >
-          <Bot className="h-4 w-4" />
-          <span className="hidden lg:inline">AI 분석</span>
-        </button>
-
-        {/* 관리자 */}
+        {/* AI 관리 */}
         <Link
           href="/admin"
-          title="관리자"
+          title="AI 관리"
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
             pathname.startsWith("/admin")
               ? "bg-nav-hover text-nav-foreground"
-              : "text-nav-foreground/70 hover:text-nav-foreground hover:bg-nav-hover"
+              : "text-nav-foreground/80 hover:text-nav-foreground hover:bg-nav-hover"
           )}
         >
           <Shield className="h-4 w-4" />
+          <span className="hidden lg:inline">AI 관리</span>
         </Link>
 
         {/* 알림 */}

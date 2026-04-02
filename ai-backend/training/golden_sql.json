@@ -1,618 +1,254 @@
 [
   {
-    "question": "지난 12개월 NPL 비율 추이",
-    "sql": "SELECT month, npl FROM npl_trend ORDER BY month"
+    "question": "최신 USD 환율",
+    "sql": "SELECT std_date, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "NPL 비율이 가장 높은 달은?",
-    "sql": "SELECT month, npl FROM npl_trend ORDER BY npl DESC LIMIT 1"
+    "question": "최신 EUR 환율",
+    "sql": "SELECT std_date, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "업종별 익스포저 TOP 5",
-    "sql": "SELECT sector, amount FROM sector_exposure ORDER BY amount DESC LIMIT 5"
+    "question": "최신 JPY 환율",
+    "sql": "SELECT std_date, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'JPY' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "업종별 부도율(PD) 높은 순으로 보여줘",
-    "sql": "SELECT sector, pd FROM sector_exposure ORDER BY pd DESC"
+    "question": "최신 CNY 환율",
+    "sql": "SELECT std_date, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'CNY' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "신용등급별 익스포저 비율",
-    "sql": "SELECT grade, pct FROM credit_grades ORDER BY pct DESC"
+    "question": "오늘 전체 통화 환율",
+    "sql": "SELECT currency_code, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) ORDER BY currency_code"
   },
   {
-    "question": "신용등급별 금액과 비중",
-    "sql": "SELECT grade, amount, pct FROM credit_grades ORDER BY amount DESC"
+    "question": "최신 기준일 전체 환율 목록",
+    "sql": "SELECT currency_code, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) ORDER BY currency_code"
   },
   {
-    "question": "현재 LCR 수치",
-    "sql": "SELECT lcr FROM lcr_gauge"
+    "question": "USD 환율 추이",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date"
   },
   {
-    "question": "현재 LCR과 NSFR 수치",
-    "sql": "SELECT lcr, nsfr FROM lcr_gauge"
+    "question": "EUR 환율 추이",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY std_date"
   },
   {
-    "question": "LCR NSFR 12개월 추이",
-    "sql": "SELECT month, lcr, nsfr FROM lcr_nsfr_trend ORDER BY month"
+    "question": "JPY 환율 추이",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'JPY' ORDER BY std_date"
   },
   {
-    "question": "스트레스 시나리오별 총 손실 비교",
-    "sql": "SELECT name, total FROM stress_scenarios ORDER BY total DESC"
+    "question": "USD 환율 최근 30일 추이",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 30"
   },
   {
-    "question": "스트레스 테스트 후 BIS 비율이 가장 낮은 시나리오",
-    "sql": "SELECT name, bis_after FROM stress_scenarios ORDER BY bis_after ASC LIMIT 1"
+    "question": "EUR 환율 최근 30일 추이",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY std_date DESC LIMIT 30"
   },
   {
-    "question": "VaR가 1300억원을 초과한 날",
-    "sql": "SELECT date, var FROM var_trend WHERE var > 1300 ORDER BY date"
+    "question": "JPY 환율 최근 30일 추이",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'JPY' ORDER BY std_date DESC LIMIT 30"
   },
   {
-    "question": "최근 20일 VaR 추이",
-    "sql": "SELECT date, var, limit FROM var_trend ORDER BY date DESC LIMIT 20"
+    "question": "USD 환율 최근 90일 추이",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 90"
   },
   {
-    "question": "현재 VaR 한도 사용률",
-    "sql": "SELECT current, limit_val, utilization FROM var_summary"
+    "question": "달러 환율 얼마야",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "만기갭 분석 - 각 구간별 자산 부채 차이",
-    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap ORDER BY rowid"
+    "question": "엔화 환율 얼마야",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'JPY' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "단기 유동성 위험 구간 (갭이 음수인 만기 구간)",
-    "sql": "SELECT bucket, gap FROM maturity_gap WHERE gap < 0 ORDER BY gap ASC"
+    "question": "유로 환율 얼마야",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "유동성 버퍼 전망",
-    "sql": "SELECT date, available, required, stress FROM liquidity_buffer ORDER BY date"
+    "question": "위안화 환율 얼마야",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'CNY' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "조달 구조 비중",
-    "sql": "SELECT source, pct FROM funding_structure ORDER BY pct DESC"
+    "question": "거래 환율과 기준 환율 비교 USD",
+    "sql": "SELECT std_date, trade_fx_rate, fx_rate, trade_fx_rate - fx_rate AS diff FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 10"
   },
   {
-    "question": "안정성 높은 조달 원천만 보여줘",
-    "sql": "SELECT source, amount, pct FROM funding_structure WHERE stability = 'high' ORDER BY amount DESC"
+    "question": "USD 거래환율 추이",
+    "sql": "SELECT std_date, trade_fx_rate, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 30"
   },
   {
-    "question": "총 여신과 부실여신 현황",
-    "sql": "SELECT total_loan, npl_amount, npl_ratio, provision_ratio FROM npl_summary"
+    "question": "환율 가장 높은 통화",
+    "sql": "SELECT currency_code, fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) ORDER BY fx_rate DESC LIMIT 5"
   },
   {
-    "question": "PD LGD EAD 신용리스크 파라미터",
-    "sql": "SELECT pd, lgd, ead, expected_loss, unexpected_loss FROM pd_lgd_ead"
+    "question": "환율 가장 낮은 통화",
+    "sql": "SELECT currency_code, fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) ORDER BY fx_rate ASC LIMIT 5"
   },
   {
-    "question": "리스크 민감도 지표",
-    "sql": "SELECT factor, value FROM sensitivity ORDER BY value DESC"
+    "question": "주요 통화 환율 현황",
+    "sql": "SELECT currency_code, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) AND currency_code IN ('USD', 'EUR', 'JPY', 'CNY', 'GBP', 'AUD') ORDER BY currency_code"
   },
   {
-    "question": "부동산 업종 익스포저",
-    "sql": "SELECT sector, amount, pct, pd FROM sector_exposure WHERE sector = '부동산'"
+    "question": "USD 환율 최고값 최저값",
+    "sql": "SELECT MAX(fx_rate) AS max_rate, MIN(fx_rate) AS min_rate, AVG(fx_rate) AS avg_rate FROM td_dmaqfx WHERE currency_code = 'USD'"
   },
   {
-    "question": "VaR 손익(PnL)이 적자인 날 수",
-    "sql": "SELECT COUNT(*) as loss_days FROM var_trend WHERE pnl < 0"
+    "question": "EUR 환율 최고값 최저값",
+    "sql": "SELECT MAX(fx_rate) AS max_rate, MIN(fx_rate) AS min_rate, AVG(fx_rate) AS avg_rate FROM td_dmaqfx WHERE currency_code = 'EUR'"
   },
   {
-    "question": "월별 HQLA 고유동성자산 추이",
-    "sql": "SELECT month, hqla FROM lcr_nsfr_trend ORDER BY month"
+    "question": "JPY 환율 최고값 최저값",
+    "sql": "SELECT MAX(fx_rate) AS max_rate, MIN(fx_rate) AS min_rate, AVG(fx_rate) AS avg_rate FROM td_dmaqfx WHERE currency_code = 'JPY'"
   },
   {
-    "question": "NCR 비율 요약",
-    "sql": "SELECT item_lclas_nm, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY item_lclas_cd, item_lclas_nm ORDER BY total_val DESC"
+    "question": "USD 환율이 가장 높았던 날",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY fx_rate DESC LIMIT 1"
   },
   {
-    "question": "NCR 순자본비율 추이",
-    "sql": "SELECT std_date, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY std_date ORDER BY std_date"
+    "question": "USD 환율이 가장 낮았던 날",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY fx_rate ASC LIMIT 1"
   },
   {
-    "question": "현재 NCR 수치",
-    "sql": "SELECT item_lclas_nm, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY item_lclas_cd, item_lclas_nm ORDER BY total_val DESC"
+    "question": "EUR 환율이 가장 높았던 날",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY fx_rate DESC LIMIT 1"
   },
   {
-    "question": "위험액 구성 비율",
-    "sql": "SELECT '시장위험액' AS name, SUM(COALESCE(st_specific_risk_amt,0)+COALESCE(st_gen_risk_amt,0)+COALESCE(ir_specific_risk_amt,0)+COALESCE(ir_gen_risk_amt,0)+COALESCE(fx_curr_risk_amt,0)+COALESCE(fx_gold_risk_amt,0)) AS value FROM td_irriskmr WHERE ncr_stress_no = 0 UNION ALL SELECT '신용위험액', SUM(crdt_risk_amt) FROM td_irriskcr WHERE ncr_stress_no = 0"
+    "question": "환율 데이터 기준일자 범위",
+    "sql": "SELECT MIN(std_date) AS start_date, MAX(std_date) AS end_date FROM td_dmaqfx"
   },
   {
-    "question": "NCR 시장위험액 신용위험액 운영위험액",
-    "sql": "SELECT '시장위험액' AS risk_type, SUM(COALESCE(st_specific_risk_amt,0)+COALESCE(st_gen_risk_amt,0)+COALESCE(ir_specific_risk_amt,0)+COALESCE(ir_gen_risk_amt,0)+COALESCE(fx_curr_risk_amt,0)+COALESCE(fx_gold_risk_amt,0)) AS risk_amt FROM td_irriskmr WHERE ncr_stress_no = 0 UNION ALL SELECT '신용위험액', SUM(crdt_risk_amt) FROM td_irriskcr WHERE ncr_stress_no = 0"
+    "question": "등록된 통화 목록",
+    "sql": "SELECT DISTINCT currency_code FROM td_dmaqfx ORDER BY currency_code"
   },
   {
-    "question": "고정이하여신 회의여신 추정손실 비율 추이",
-    "sql": "SELECT month, substandard, doubtful, loss FROM npl_trend ORDER BY month"
+    "question": "KOSPI 지수 현재가",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "NPL 비율이 가장 낮은 달은?",
-    "sql": "SELECT month, npl FROM npl_trend ORDER BY npl ASC LIMIT 1"
+    "question": "KOSPI200 지수 현재가",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI200' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "차주 수가 가장 많은 신용등급",
-    "sql": "SELECT grade, count, amount FROM credit_grades ORDER BY count DESC LIMIT 1"
+    "question": "KOSDAQ 지수 현재가",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSDAQ' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "신용등급별 차주 수 현황",
-    "sql": "SELECT grade, count, amount, pct FROM credit_grades ORDER BY amount DESC"
+    "question": "닛케이 지수 현재가",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'NKY' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "BBB 이하 저등급 익스포저 합계",
-    "sql": "SELECT SUM(amount) as low_grade_total, SUM(pct) as low_grade_pct FROM credit_grades WHERE grade IN ('BBB', 'BB', 'B', 'CCC이하')"
+    "question": "NKY 지수 현재가",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'NKY' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "업종별 집중도 현황 PD와 비중",
-    "sql": "SELECT name, x as pd, y as pct, z as exposure FROM concentration ORDER BY z DESC"
+    "question": "다우존스 지수 현재가",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'INDU' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "PD가 높고 비중도 큰 고위험 집중 업종",
-    "sql": "SELECT name, x as pd, y as pct FROM concentration WHERE x > 2 AND y > 10 ORDER BY x DESC"
+    "question": "나스닥 지수 현재가",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'CCMP' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "충당금 적립 현황",
-    "sql": "SELECT provision_amount, provision_ratio, npl_amount FROM npl_summary"
+    "question": "DAX 지수 현재가",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'DAX' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "충당금 얼마야",
-    "sql": "SELECT provision_amount, provision_ratio FROM npl_summary"
+    "question": "항셍 지수 현재가",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'HSI' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "충당금 적립률",
-    "sql": "SELECT provision_ratio FROM npl_summary"
+    "question": "상해종합 지수 현재가",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'SHCOMP' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "충당금 적립금액",
-    "sql": "SELECT provision_amount FROM npl_summary"
+    "question": "유로스톡스50 지수 현재가",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'EuroStoxx50' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "대손충당금 현황",
-    "sql": "SELECT provision_amount, provision_ratio, npl_amount FROM npl_summary"
+    "question": "주요 지수 현황",
+    "sql": "SELECT index_id, index_name, curr_price, min_price, max_price FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) AND index_id IN ('KOSPI','KOSPI200','KOSDAQ','NKY','INDU','CCMP','DAX','HSI','SHCOMP') ORDER BY index_id"
   },
   {
-    "question": "충당금과 부실여신 비교",
-    "sql": "SELECT npl_amount, provision_amount, provision_ratio FROM npl_summary"
+    "question": "최신 전체 지수 현황",
+    "sql": "SELECT index_id, index_name, curr_price FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) ORDER BY index_id"
   },
   {
-    "question": "충당금 커버리지 비율",
-    "sql": "SELECT provision_ratio, npl_amount, provision_amount FROM npl_summary"
+    "question": "KOSPI 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date"
   },
   {
-    "question": "순 NPL 비율",
-    "sql": "SELECT net_npl, npl_ratio, provision_ratio FROM npl_summary"
+    "question": "KOSPI 최근 30일 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 30"
   },
   {
-    "question": "위험가중자산 RWA 규모",
-    "sql": "SELECT rwa, ead, expected_loss FROM pd_lgd_ead"
+    "question": "KOSPI200 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI200' ORDER BY std_date"
   },
   {
-    "question": "최근 30일 VaR 한도 초과 횟수",
-    "sql": "SELECT breach_count30d FROM var_summary"
+    "question": "KOSDAQ 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSDAQ' ORDER BY std_date"
   },
   {
-    "question": "그리스 지표 델타 감마 베가 로",
-    "sql": "SELECT delta, gamma, vega, rho FROM var_summary"
+    "question": "닛케이 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'NKY' ORDER BY std_date"
   },
   {
-    "question": "최근 20일 VaR 평균과 최대값",
-    "sql": "SELECT avg_last20, max_last20, current, limit_val FROM var_summary"
+    "question": "나스닥 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'CCMP' ORDER BY std_date"
   },
   {
-    "question": "PnL 손실이 가장 컸던 날",
-    "sql": "SELECT date, pnl, var FROM var_trend ORDER BY pnl ASC LIMIT 1"
+    "question": "다우존스 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'INDU' ORDER BY std_date"
   },
   {
-    "question": "VaR 한도를 초과한 날 목록",
-    "sql": "SELECT date, var, limit FROM var_trend WHERE var > limit ORDER BY date"
+    "question": "KOSPI 고가 저가",
+    "sql": "SELECT std_date, curr_price, min_price, max_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 20"
   },
   {
-    "question": "스트레스 시나리오별 신용손실 시장손실 유동성손실",
-    "sql": "SELECT name, credit_loss, market_loss, liquidity_loss, total FROM stress_scenarios ORDER BY total DESC"
+    "question": "KOSPI 최고점",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY curr_price DESC LIMIT 1"
   },
   {
-    "question": "BIS 비율이 8% 미만으로 떨어지는 스트레스 시나리오",
-    "sql": "SELECT name, bis_after, total FROM stress_scenarios WHERE bis_after < 8 ORDER BY bis_after ASC"
+    "question": "KOSPI 최저점",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY curr_price ASC LIMIT 1"
   },
   {
-    "question": "LCR 규제 기준과 현재 수치 비교",
-    "sql": "SELECT lcr, lcr_threshold, lcr - lcr_threshold as margin FROM lcr_gauge"
+    "question": "닛케이 최고점 최저점",
+    "sql": "SELECT MAX(curr_price) AS max_price, MIN(curr_price) AS min_price, AVG(curr_price) AS avg_price FROM td_dmaqindex WHERE index_id = 'NKY'"
   },
   {
-    "question": "HQLA 레벨1 레벨2A 레벨2B 자산 구성",
-    "sql": "SELECT hqla, level1, level2a, level2b FROM lcr_gauge"
+    "question": "나스닥 최고점 최저점",
+    "sql": "SELECT MAX(curr_price) AS max_price, MIN(curr_price) AS min_price FROM td_dmaqindex WHERE index_id = 'CCMP'"
   },
   {
-    "question": "월별 순현금유출 추이",
-    "sql": "SELECT month, outflow, hqla FROM lcr_nsfr_trend ORDER BY month"
+    "question": "KOSPI 배당수익률",
+    "sql": "SELECT std_date, dividend_rate FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "만기갭이 가장 큰 구간",
-    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap ORDER BY gap DESC LIMIT 1"
+    "question": "지수 배당률 현황",
+    "sql": "SELECT index_id, index_name, dividend_rate FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) AND dividend_rate IS NOT NULL ORDER BY dividend_rate DESC"
   },
   {
-    "question": "유동성 버퍼 여유 추이 가용에서 필요를 뺀 값",
-    "sql": "SELECT date, available, required, available - required as buffer_margin FROM liquidity_buffer ORDER BY date"
+    "question": "등록된 지수 목록",
+    "sql": "SELECT DISTINCT index_id, index_name FROM td_dmaqindex ORDER BY index_id"
   },
   {
-    "question": "스트레스 상황에서 유동성이 부족해지는 시점",
-    "sql": "SELECT date, available, stress, available - stress as stress_margin FROM liquidity_buffer WHERE available < stress ORDER BY date"
+    "question": "지수 데이터 기간",
+    "sql": "SELECT MIN(std_date) AS start_date, MAX(std_date) AS end_date FROM td_dmaqindex"
   },
   {
-    "question": "안정성이 낮은 조달 원천",
-    "sql": "SELECT source, amount, pct FROM funding_structure WHERE stability = 'low' ORDER BY amount DESC"
+    "question": "KOSPI KOSDAQ 비교",
+    "sql": "SELECT a.std_date, a.curr_price AS kospi, b.curr_price AS kosdaq FROM td_dmaqindex a JOIN td_dmaqindex b ON a.std_date = b.std_date WHERE a.index_id = 'KOSPI' AND b.index_id = 'KOSDAQ' ORDER BY a.std_date DESC LIMIT 30"
   },
   {
-    "question": "조달 안정성 등급별 합계",
-    "sql": "SELECT stability, SUM(amount) as total_amount, SUM(pct) as total_pct FROM funding_structure GROUP BY stability ORDER BY total_amount DESC"
+    "question": "한국 주요 지수 현황",
+    "sql": "SELECT index_id, index_name, curr_price FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) AND index_id IN ('KOSPI','KOSPI200','KOSDAQ','KOSDQ150') ORDER BY index_id"
   },
   {
-    "question": "거래상대방별 신용위험액 상위 10개",
-    "sql": "SELECT cpty_name, SUM(crdt_risk_amt) AS total_crdt_risk FROM td_irriskcr WHERE ncr_stress_no = 0 AND crdt_risk_amt IS NOT NULL GROUP BY cpty_name ORDER BY total_crdt_risk DESC LIMIT 10"
+    "question": "아시아 지수 현황",
+    "sql": "SELECT index_id, index_name, curr_price FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) AND index_id IN ('KOSPI','NKY','HSI','HSCEI','SHCOMP','SENSEX') ORDER BY index_id"
   },
   {
-    "question": "신용등급별 신용위험액",
-    "sql": "SELECT ncr_grad_cd_nm, SUM(crdt_chng_amt) AS total_chng, SUM(crdt_risk_amt) AS total_risk FROM td_irriskcr WHERE ncr_stress_no = 0 AND crdt_risk_amt IS NOT NULL AND ncr_grad_cd_nm IS NOT NULL GROUP BY ncr_grad_cd_nm ORDER BY total_risk DESC"
-  },
-  {
-    "question": "신용경감 전후 위험액 비교",
-    "sql": "SELECT SUM(crdt_risk_amt) AS risk_before, SUM(crdt_mtgt_risk_amt) AS risk_after, SUM(crdt_risk_amt) - SUM(crdt_mtgt_risk_amt) AS reduction FROM td_irriskcr WHERE ncr_stress_no = 0 AND crdt_risk_amt IS NOT NULL"
-  },
-  {
-    "question": "기준일자별 신용위험액 추이",
-    "sql": "SELECT std_date, SUM(crdt_risk_amt) AS total_crdt_risk FROM td_irriskcr WHERE ncr_stress_no = 0 AND crdt_risk_amt IS NOT NULL GROUP BY std_date ORDER BY std_date"
-  },
-  {
-    "question": "CCF 그룹별 신용환산액 합계",
-    "sql": "SELECT ccf_grp_nm, SUM(crdt_chng_amt) AS total_chng FROM td_irriskcr WHERE ncr_stress_no = 0 AND crdt_chng_amt IS NOT NULL AND ccf_grp_nm IS NOT NULL GROUP BY ccf_grp_nm ORDER BY total_chng DESC"
-  },
-  {
-    "question": "NCR 항목 대분류별 산출값 합계",
-    "sql": "SELECT item_lclas_nm, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY item_lclas_cd, item_lclas_nm ORDER BY total_val DESC"
-  },
-  {
-    "question": "포트폴리오별 NCR 산출값 합계",
-    "sql": "SELECT port_no, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY port_no ORDER BY total_val DESC"
-  },
-  {
-    "question": "기준일자별 NCR 산출값 추이",
-    "sql": "SELECT std_date, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY std_date ORDER BY std_date"
-  },
-  {
-    "question": "NCR 스트레스 시나리오별 산출값 비교",
-    "sql": "SELECT ncr_stress_no, SUM(prod_val) AS total_val FROM td_irncr GROUP BY ncr_stress_no ORDER BY ncr_stress_no"
-  },
-  {
-    "question": "NCR 항목 중분류별 산출값",
-    "sql": "SELECT item_lclas_nm, item_mclas_nm, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY item_lclas_cd, item_lclas_nm, item_mclas_cd, item_mclas_nm ORDER BY item_lclas_cd, total_val DESC"
-  },
-  {
-    "question": "시장금액 상위 10개 포지션 종목",
-    "sql": "SELECT item_name, market_amt, book_amt, eval_pl_amt FROM td_irpos ORDER BY ABS(market_amt) DESC LIMIT 10"
-  },
-  {
-    "question": "NCR 업무영역별 포지션금액 합계",
-    "sql": "SELECT biz_area_nm, SUM(posi_amt) AS total_posi FROM td_irpos WHERE biz_area_nm IS NOT NULL GROUP BY biz_area_cd, biz_area_nm ORDER BY total_posi DESC"
-  },
-  {
-    "question": "파생상품 델타포지션 금액 상위 종목",
-    "sql": "SELECT item_name, delta_posi_amt, gamma_posi_amt, vega_posi_amt FROM td_irpos WHERE delta_posi_amt IS NOT NULL ORDER BY ABS(delta_posi_amt) DESC LIMIT 10"
-  },
-  {
-    "question": "금리위험 해당 포지션의 시장금액 합계",
-    "sql": "SELECT SUM(market_amt) AS ir_risk_market_amt FROM td_irpos WHERE ir_risk_yn = 'Y'"
-  },
-  {
-    "question": "시장위험 유형별 위험액 합계",
-    "sql": "SELECT SUM(COALESCE(st_specific_risk_amt,0) + COALESCE(st_gen_risk_amt,0)) AS stock_risk, SUM(COALESCE(ir_specific_risk_amt,0) + COALESCE(ir_gen_risk_amt,0)) AS ir_risk, SUM(COALESCE(fx_curr_risk_amt,0) + COALESCE(fx_gold_risk_amt,0)) AS fx_risk FROM td_irriskmr WHERE ncr_stress_no = 0"
-  },
-  {
-    "question": "기준일자별 시장위험액 추이",
-    "sql": "SELECT std_date, SUM(COALESCE(st_specific_risk_amt,0) + COALESCE(st_gen_risk_amt,0)) AS stock_risk, SUM(COALESCE(ir_specific_risk_amt,0) + COALESCE(ir_gen_risk_amt,0)) AS ir_risk, SUM(COALESCE(fx_curr_risk_amt,0) + COALESCE(fx_gold_risk_amt,0)) AS fx_risk FROM td_irriskmr WHERE ncr_stress_no = 0 GROUP BY std_date ORDER BY std_date"
-  },
-  {
-    "question": "옵션 감마 베가 위험액 합계",
-    "sql": "SELECT SUM(COALESCE(opt_gamma_risk_amt,0)) AS gamma_risk, SUM(COALESCE(opt_vega_risk_amt,0)) AS vega_risk FROM td_irriskmr WHERE ncr_stress_no = 0"
-  },
-  {
-    "question": "NCR 금리그룹별 금리일반위험액",
-    "sql": "SELECT ncr_ir_grp_nm, SUM(ir_gen_risk_amt) AS total_ir_gen_risk FROM td_irriskmr WHERE ncr_stress_no = 0 AND ir_gen_risk_amt IS NOT NULL AND ncr_ir_grp_nm IS NOT NULL GROUP BY ncr_ir_grp_nm ORDER BY total_ir_gen_risk DESC"
-  },
-  {
-    "question": "주식 개별위험 일반위험액 상위 포지션",
-    "sql": "SELECT item_name, st_specific_risk_amt, st_gen_risk_amt FROM td_irriskmr WHERE ncr_stress_no = 0 AND (st_specific_risk_amt IS NOT NULL OR st_gen_risk_amt IS NOT NULL) ORDER BY COALESCE(st_specific_risk_amt,0) DESC LIMIT 10"
-  },
-  {
-    "question": "NPL 얼마야",
-    "sql": "SELECT total_loan, npl_amount, npl_ratio FROM npl_summary"
-  },
-  {
-    "question": "NPL 현황",
-    "sql": "SELECT total_loan, npl_amount, npl_ratio, provision_ratio FROM npl_summary"
-  },
-  {
-    "question": "부실여신 현황",
-    "sql": "SELECT total_loan, npl_amount, npl_ratio, provision_ratio FROM npl_summary"
-  },
-  {
-    "question": "부실여신 비율",
-    "sql": "SELECT npl_ratio FROM npl_summary"
-  },
-  {
-    "question": "무수익여신 현황",
-    "sql": "SELECT total_loan, npl_amount, npl_ratio, provision_ratio FROM npl_summary"
-  },
-  {
-    "question": "NPL 비율",
-    "sql": "SELECT npl_ratio FROM npl_summary"
-  },
-  {
-    "question": "NPL 추이",
-    "sql": "SELECT month, npl FROM npl_trend ORDER BY month"
-  },
-  {
-    "question": "NPL 트렌드",
-    "sql": "SELECT month, npl FROM npl_trend ORDER BY month"
-  },
-  {
-    "question": "부실여신 추이",
-    "sql": "SELECT month, npl FROM npl_trend ORDER BY month"
-  },
-  {
-    "question": "최근 NPL 비율",
-    "sql": "SELECT month, npl FROM npl_trend ORDER BY month DESC LIMIT 1"
-  },
-  {
-    "question": "NPL 가장 최근 수치",
-    "sql": "SELECT month, npl FROM npl_trend ORDER BY month DESC LIMIT 1"
-  },
-  {
-    "question": "LCR 얼마야",
-    "sql": "SELECT lcr FROM lcr_gauge"
-  },
-  {
-    "question": "LCR 현황",
-    "sql": "SELECT lcr, nsfr FROM lcr_gauge"
-  },
-  {
-    "question": "유동성 현황",
-    "sql": "SELECT lcr, nsfr, hqla, net_outflow FROM lcr_gauge"
-  },
-  {
-    "question": "유동성커버리지비율",
-    "sql": "SELECT lcr FROM lcr_gauge"
-  },
-  {
-    "question": "NSFR 얼마야",
-    "sql": "SELECT nsfr FROM lcr_gauge"
-  },
-  {
-    "question": "NSFR 현황",
-    "sql": "SELECT nsfr, nsfr_threshold FROM lcr_gauge"
-  },
-  {
-    "question": "순안정자금조달비율",
-    "sql": "SELECT nsfr FROM lcr_gauge"
-  },
-  {
-    "question": "LCR NSFR 현황",
-    "sql": "SELECT lcr, nsfr, lcr_threshold, nsfr_threshold FROM lcr_gauge"
-  },
-  {
-    "question": "유동성 비율 추이",
-    "sql": "SELECT month, lcr, nsfr FROM lcr_nsfr_trend ORDER BY month"
-  },
-  {
-    "question": "LCR 추이",
-    "sql": "SELECT month, lcr FROM lcr_nsfr_trend ORDER BY month"
-  },
-  {
-    "question": "LCR 트렌드",
-    "sql": "SELECT month, lcr FROM lcr_nsfr_trend ORDER BY month"
-  },
-  {
-    "question": "HQLA 현황",
-    "sql": "SELECT hqla, level1, level2a, level2b FROM lcr_gauge"
-  },
-  {
-    "question": "고유동성자산 현황",
-    "sql": "SELECT hqla, level1, level2a, level2b FROM lcr_gauge"
-  },
-  {
-    "question": "VaR 얼마야",
-    "sql": "SELECT current, limit_val, utilization FROM var_summary"
-  },
-  {
-    "question": "VaR 현황",
-    "sql": "SELECT current, limit_val, utilization FROM var_summary"
-  },
-  {
-    "question": "현재 VaR",
-    "sql": "SELECT current, limit_val, utilization FROM var_summary"
-  },
-  {
-    "question": "가치위험 현황",
-    "sql": "SELECT current, limit_val, utilization FROM var_summary"
-  },
-  {
-    "question": "VaR 한도 얼마야",
-    "sql": "SELECT current, limit_val, utilization FROM var_summary"
-  },
-  {
-    "question": "VaR 추이",
-    "sql": "SELECT date, var, pnl, var_limit FROM var_trend ORDER BY date"
-  },
-  {
-    "question": "VaR 트렌드",
-    "sql": "SELECT date, var, pnl, var_limit FROM var_trend ORDER BY date DESC LIMIT 60"
-  },
-  {
-    "question": "VaR 초과 날",
-    "sql": "SELECT date, var, var_limit FROM var_trend WHERE var > var_limit ORDER BY date"
-  },
-  {
-    "question": "VaR 한도 초과",
-    "sql": "SELECT date, var, var_limit FROM var_trend WHERE var > var_limit ORDER BY date"
-  },
-  {
-    "question": "PnL 추이",
-    "sql": "SELECT date, pnl, var FROM var_trend ORDER BY date DESC LIMIT 60"
-  },
-  {
-    "question": "손익 현황",
-    "sql": "SELECT date, pnl FROM var_trend ORDER BY date DESC LIMIT 20"
-  },
-  {
-    "question": "NCR 얼마야",
-    "sql": "SELECT item_lclas_nm, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY item_lclas_cd, item_lclas_nm ORDER BY total_val DESC"
-  },
-  {
-    "question": "NCR 현황",
-    "sql": "SELECT item_lclas_nm, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY item_lclas_cd, item_lclas_nm ORDER BY total_val DESC"
-  },
-  {
-    "question": "순자본비율",
-    "sql": "SELECT item_lclas_nm, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY item_lclas_cd, item_lclas_nm ORDER BY total_val DESC"
-  },
-  {
-    "question": "순자본비율 현황",
-    "sql": "SELECT item_lclas_nm, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY item_lclas_cd, item_lclas_nm ORDER BY total_val DESC"
-  },
-  {
-    "question": "NCR 추이",
-    "sql": "SELECT std_date, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY std_date ORDER BY std_date"
-  },
-  {
-    "question": "NCR 트렌드",
-    "sql": "SELECT std_date, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY std_date ORDER BY std_date"
-  },
-  {
-    "question": "순자본비율 추이",
-    "sql": "SELECT std_date, SUM(prod_val) AS total_val FROM td_irncr WHERE ncr_stress_no = 0 GROUP BY std_date ORDER BY std_date"
-  },
-  {
-    "question": "위험액 현황",
-    "sql": "SELECT '시장위험액' AS name, SUM(COALESCE(st_specific_risk_amt,0)+COALESCE(st_gen_risk_amt,0)+COALESCE(ir_specific_risk_amt,0)+COALESCE(ir_gen_risk_amt,0)+COALESCE(fx_curr_risk_amt,0)+COALESCE(fx_gold_risk_amt,0)) AS value FROM td_irriskmr WHERE ncr_stress_no = 0 UNION ALL SELECT '신용위험액', SUM(crdt_risk_amt) FROM td_irriskcr WHERE ncr_stress_no = 0"
-  },
-  {
-    "question": "위험액 구성",
-    "sql": "SELECT '시장위험액' AS name, SUM(COALESCE(st_specific_risk_amt,0)+COALESCE(st_gen_risk_amt,0)+COALESCE(ir_specific_risk_amt,0)+COALESCE(ir_gen_risk_amt,0)+COALESCE(fx_curr_risk_amt,0)+COALESCE(fx_gold_risk_amt,0)) AS value FROM td_irriskmr WHERE ncr_stress_no = 0 UNION ALL SELECT '신용위험액', SUM(crdt_risk_amt) FROM td_irriskcr WHERE ncr_stress_no = 0"
-  },
-  {
-    "question": "시장위험액 얼마야",
-    "sql": "SELECT SUM(COALESCE(st_specific_risk_amt,0)+COALESCE(st_gen_risk_amt,0)+COALESCE(ir_specific_risk_amt,0)+COALESCE(ir_gen_risk_amt,0)+COALESCE(fx_curr_risk_amt,0)+COALESCE(fx_gold_risk_amt,0)) AS total_market_risk FROM td_irriskmr WHERE ncr_stress_no = 0"
-  },
-  {
-    "question": "신용위험액 얼마야",
-    "sql": "SELECT SUM(crdt_risk_amt) AS total_credit_risk FROM td_irriskcr WHERE ncr_stress_no = 0 AND crdt_risk_amt IS NOT NULL"
-  },
-  {
-    "question": "운영위험액 얼마야",
-    "sql": "SELECT SUM(prod_val) AS operational_risk FROM td_irncr WHERE ncr_stress_no = 0 AND item_lclas_nm LIKE '%운영%'"
-  },
-  {
-    "question": "신용리스크 현황",
-    "sql": "SELECT pd, lgd, ead, expected_loss, unexpected_loss, rwa FROM pd_lgd_ead"
-  },
-  {
-    "question": "신용위험 현황",
-    "sql": "SELECT pd, lgd, ead, expected_loss, unexpected_loss, rwa FROM pd_lgd_ead"
-  },
-  {
-    "question": "부도율 얼마야",
-    "sql": "SELECT pd FROM pd_lgd_ead"
-  },
-  {
-    "question": "PD 얼마야",
-    "sql": "SELECT pd FROM pd_lgd_ead"
-  },
-  {
-    "question": "예상손실 얼마야",
-    "sql": "SELECT expected_loss, unexpected_loss FROM pd_lgd_ead"
-  },
-  {
-    "question": "업종별 익스포저 현황",
-    "sql": "SELECT sector, amount, pct, pd FROM sector_exposure ORDER BY amount DESC"
-  },
-  {
-    "question": "업종별 익스포저",
-    "sql": "SELECT sector, amount, pct FROM sector_exposure ORDER BY amount DESC"
-  },
-  {
-    "question": "업종 익스포저",
-    "sql": "SELECT sector, amount, pct FROM sector_exposure ORDER BY amount DESC"
-  },
-  {
-    "question": "업종별 부도율",
-    "sql": "SELECT sector, pd FROM sector_exposure ORDER BY pd DESC"
-  },
-  {
-    "question": "스트레스 테스트 결과",
-    "sql": "SELECT name, credit_loss, market_loss, liquidity_loss, total, bis_after FROM stress_scenarios ORDER BY total DESC"
-  },
-  {
-    "question": "스트레스 시나리오 결과",
-    "sql": "SELECT name, total, bis_after FROM stress_scenarios ORDER BY total DESC"
-  },
-  {
-    "question": "스트레스 테스트",
-    "sql": "SELECT name, total, bis_after FROM stress_scenarios ORDER BY total DESC"
-  },
-  {
-    "question": "최악 시나리오",
-    "sql": "SELECT name, total, bis_after FROM stress_scenarios ORDER BY total DESC LIMIT 1"
-  },
-  {
-    "question": "가장 위험한 시나리오",
-    "sql": "SELECT name, total, bis_after FROM stress_scenarios ORDER BY total DESC LIMIT 1"
-  },
-  {
-    "question": "복합위기 시나리오",
-    "sql": "SELECT name, credit_loss, market_loss, liquidity_loss, total, bis_after FROM stress_scenarios WHERE name LIKE '%복합%'"
-  },
-  {
-    "question": "BIS 비율 하락 시나리오",
-    "sql": "SELECT name, bis_after FROM stress_scenarios ORDER BY bis_after ASC"
-  },
-  {
-    "question": "만기갭",
-    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap ORDER BY rowid"
-  },
-  {
-    "question": "만기갭 현황",
-    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap ORDER BY rowid"
-  },
-  {
-    "question": "자산 부채 만기 분석",
-    "sql": "SELECT bucket, assets, liabilities, gap FROM maturity_gap ORDER BY rowid"
-  },
-  {
-    "question": "유동성 버퍼",
-    "sql": "SELECT date, available, required, stress FROM liquidity_buffer ORDER BY date"
-  },
-  {
-    "question": "유동성 버퍼 현황",
-    "sql": "SELECT date, available, required, stress FROM liquidity_buffer ORDER BY date"
-  },
-  {
-    "question": "조달 구조",
-    "sql": "SELECT source, amount, pct, stability FROM funding_structure ORDER BY pct DESC"
-  },
-  {
-    "question": "조달 현황",
-    "sql": "SELECT source, amount, pct FROM funding_structure ORDER BY amount DESC"
-  },
-  {
-    "question": "리스크 민감도",
-    "sql": "SELECT factor, value FROM sensitivity ORDER BY value DESC"
-  },
-  {
-    "question": "민감도 분석",
-    "sql": "SELECT factor, value FROM sensitivity ORDER BY value DESC"
-  },
-  {
-    "question": "금리리스크 민감도",
-    "sql": "SELECT factor, value FROM sensitivity WHERE factor = '금리리스크'"
-  },
-  {
-    "question": "환율리스크 민감도",
-    "sql": "SELECT factor, value FROM sensitivity WHERE factor = '환율리스크'"
+    "question": "미국 지수 현황",
+    "sql": "SELECT index_id, index_name, curr_price FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) AND index_id IN ('INDU','CCMP') ORDER BY index_id"
   }
 ]

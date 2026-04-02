@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, RefreshCw, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { Plus, Trash2, RefreshCw, ChevronDown, ChevronUp, RotateCcw, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -26,6 +26,7 @@ export function GoldenSQLTab({ password }: GoldenSQLTabProps) {
   const [error, setError] = React.useState("");
   const [successMsg, setSuccessMsg] = React.useState("");
   const [retraining, setRetraining] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
 
   const headers = { "x-admin-password": password };
 
@@ -97,6 +98,27 @@ export function GoldenSQLTab({ password }: GoldenSQLTabProps) {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!confirm(`등록된 Q-SQL 쌍 ${items.length}개를 전부 삭제합니다. 계속하시겠습니까?`)) return;
+    setDeleting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/training-delete-all", {
+        method: "POST",
+        headers,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail);
+      setSuccessMsg(`${data.deleted}개 삭제 완료.`);
+      setTimeout(() => setSuccessMsg(""), 3000);
+      fetchItems();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "삭제 실패");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("이 항목을 삭제하시겠습니까?")) return;
     try {
@@ -148,6 +170,16 @@ export function GoldenSQLTab({ password }: GoldenSQLTabProps) {
             총 {items.length}개 Q-SQL 쌍
           </p>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDeleteAll}
+              disabled={deleting || items.length === 0}
+              className="text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950"
+            >
+              <Eraser className="h-3.5 w-3.5 mr-1" />
+              {deleting ? "삭제 중..." : "전체 삭제"}
+            </Button>
             <Button
               variant="outline"
               size="sm"

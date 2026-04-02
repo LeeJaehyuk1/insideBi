@@ -221,7 +221,7 @@ if DATABASE_URL:
         max_overflow=2,        # 추가 허용 연결 수
         pool_pre_ping=True,    # 쿼리 전 연결 유효성 검사 (끊긴 연결 자동 재연결)
         pool_recycle=300,      # 5분마다 연결 재활용 (Railway idle connection 차단 대응)
-        connect_args={"connect_timeout": 10},  # 연결 타임아웃 10초
+        connect_args={"connect_timeout": 10, "client_encoding": "utf8"},
     )
 
 

@@ -75,22 +75,6 @@ export function AiSearchBar({ onSearch, compact = false, disabled = false }: AiS
         </button>
       </div>
 
-      {/* Suggestion chips — only in full mode */}
-      {!compact && (
-        <div className="flex flex-wrap gap-2 justify-center">
-          {SUGGESTIONS.map((s) => (
-            <button
-              key={s.text}
-              onClick={() => onSearch(s.text)}
-              disabled={disabled}
-              className="flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground hover:border-primary/30 disabled:opacity-50"
-            >
-              <span>{s.emoji}</span>
-              <span>{s.text}</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

@@ -127,6 +127,11 @@ class TrainSQLRequest(BaseModel):
     sql: str
 
 
+class TrainSQLBulkRequest(BaseModel):
+    pairs: list[dict]          # [{question, sql}, ...]
+    overwrite: bool = False    # True면 golden_sql.json 전체 교체, False면 append/upsert
+
+
 class TrainDocRequest(BaseModel):
     documentation: str
 
@@ -635,6 +640,21 @@ async def admin_train_sql(req: TrainSQLRequest, _=Depends(require_admin)):
     try:
         vn.train(question=req.question, sql=req.sql)
         _sql_cache[req.question.strip()] = req.sql
+
+        # golden_sql.json에도 저장 (서버 재시작 후에도 유지)
+        base = os.path.dirname(__file__)
+        filename = os.getenv("GOLDEN_SQL_FILE", "golden_sql.json")
+        path = os.path.join(base, "training", filename)
+        pairs = []
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                pairs = json.load(f)
+        # 중복 질문은 덮어쓰기
+        pairs = [p for p in pairs if p.get("question") != req.question.strip()]
+        pairs.append({"question": req.question.strip(), "sql": req.sql})
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(pairs, f, ensure_ascii=False, indent=2)
+
         return {"ok": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -654,6 +674,32 @@ async def admin_delete_training(req: DeleteTrainingRequest, _=Depends(require_ad
     try:
         vn.remove_training_data(id=req.id)
         return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/admin/training/delete-all")
+async def admin_delete_all_training(_=Depends(require_admin)):
+    """ChromaDB의 SQL 타입 학습 데이터 전체 삭제 + golden_sql.json 초기화"""
+    try:
+        df = vn.get_training_data()
+        deleted = 0
+        if df is not None and len(df) > 0:
+            for _, row in df.iterrows():
+                if row.get("training_data_type") == "sql":
+                    try:
+                        vn.remove_training_data(id=row["id"])
+                        deleted += 1
+                    except Exception:
+                        pass
+        # golden_sql.json 초기화
+        base = os.path.dirname(__file__)
+        filename = os.getenv("GOLDEN_SQL_FILE", "golden_sql.json")
+        path = os.path.join(base, "training", filename)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump([], f)
+        _sql_cache.clear()
+        return {"ok": True, "deleted": deleted}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
