@@ -256,6 +256,55 @@ function BulletRenderer({
   return <BulletChart items={items} height={H} />;
 }
 
+function KpiRenderer({
+  data,
+  axisMapping,
+}: {
+  data: RawRow[];
+  axisMapping?: AxisMapping;
+}) {
+  if (!data.length) {
+    return (
+      <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
+        데이터가 없습니다
+      </div>
+    );
+  }
+
+  const yKey = axisMapping?.y?.[0];
+  const valueKey =
+    yKey ??
+    Object.keys(data[0]).find((key) => typeof data[0][key] === "number");
+
+  if (!valueKey) {
+    return (
+      <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
+        MappingPanel에서 Y축 컬럼을 설정하세요
+      </div>
+    );
+  }
+
+  const row = data[0];
+  const rawValue = row[valueKey];
+  const rawLabel = axisMapping?.x ? row[axisMapping.x] : undefined;
+  const value =
+    typeof rawValue === "number"
+      ? rawValue.toLocaleString(undefined, { maximumFractionDigits: 4 })
+      : String(rawValue ?? "-");
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {valueKey}
+      </div>
+      <div className="text-3xl font-bold text-foreground">{value}</div>
+      {rawLabel != null && (
+        <div className="text-xs text-muted-foreground">{String(rawLabel)}</div>
+      )}
+    </div>
+  );
+}
+
 /* ── NPL 추이 ─────────────────────────────────────────────────── */
 function NplTrend({ type, rawData }: { type: string; rawData: RawRow[] }) {
   const data = rawData.map((d) => ({
@@ -787,6 +836,9 @@ function CustomDatasetRenderer({
     }
     if (chartType === "bullet") {
       return <BulletRenderer data={data} axisMapping={axisMapping} thresholds={thresholds} />;
+    }
+    if (chartType === "kpi") {
+      return <KpiRenderer data={data} axisMapping={axisMapping} />;
     }
     if (["line", "area", "bar", "pie", "scatter"].includes(chartType)) {
       return (

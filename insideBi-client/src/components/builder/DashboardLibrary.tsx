@@ -28,8 +28,7 @@ function useCopyLink() {
   const [copied, setCopied] = React.useState<string | null>(null);
   const copy = (dashboard: SavedDashboard) => {
     try {
-      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(dashboard))));
-      const url = `${window.location.origin}/builder?share=${encoded}`;
+      const url = `${window.location.origin}/dashboards/new?name=${encodeURIComponent(dashboard.name)}`;
       navigator.clipboard.writeText(url).then(() => {
         setCopied(dashboard.name);
         setTimeout(() => setCopied(null), 2000);

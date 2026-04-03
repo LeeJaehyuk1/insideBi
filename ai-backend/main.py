@@ -213,11 +213,12 @@ def infer_chart_type(df: pd.DataFrame) -> str:
     cols = [c.lower() for c in df.columns]
     date_cols = [c for c in cols if any(k in c for k in ["date", "month", "year", "날짜", "월", "기간"])]
     numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
-    pct_cols = [c for c in cols if "pct" in c or "ratio" in c or "rate" in c or "비율" in c]
+    # "rate"는 환율(fx_rate 등) 오탐 방지를 위해 제외, "pct"/"ratio"/"비율"만 파이 조건으로 사용
+    pct_cols = [c for c in cols if "pct" in c or "ratio" in c or "비율" in c]
 
     if date_cols:
         return "area" if len(numeric_cols) >= 2 else "line"
-    if pct_cols and len(df.columns) <= 3 and len(df) <= 10:
+    if pct_cols and len(df.columns) <= 3 and 2 <= len(df) <= 12:
         return "pie"
     return "bar"
 
@@ -245,11 +246,10 @@ async def ask_with_retry(question: str, provider: Optional[str] = None, max_atte
     primary_vn = get_provider_vanna(provider) if provider else vn
 
     # ── Step 0: 관련성 사전 검사 ─────────────────────────────
+    # Chroma distance 선필터가 정상적인 한국어 질문도 과하게 차단하고 있어
+    # 여기서는 텔레메트리만 남기고, 실제 안전성은 아래 SQL 검증으로 처리한다.
     if not is_question_relevant(question):
-        raise HTTPException(
-            status_code=400,
-            detail="학습된 데이터와 관련 없는 질문입니다. 등록된 테이블 데이터에 대해 질문해 주세요."
-        )
+        print(f"[relevance] soft-fail bypassed for question: {question[:80]}")
 
     # ── Step 1: 캐시 조회 ─────────────────────────────────────
     cached_sql, score = find_cached_sql(question)
@@ -891,142 +891,145 @@ async def admin_monitoring(_=Depends(require_admin)):
 
 # ════════════════════════════════════════════════════════════════
 
-def _classify_npl(value: float) -> str:
-    if value >= 3.0: return "danger"
-    if value >= 2.0: return "warning"
-    if value >= 1.5: return "caution"
+def _classify_fx_change(change_pct: float) -> str:
+    """환율 일간 변동률 기준 (절댓값 기준 — 방향 무관하게 변동 자체가 리스크)"""
+    abs_chg = abs(change_pct)
+    if abs_chg >= 2.0: return "warning"
+    if abs_chg >= 1.0: return "caution"
     return "normal"
 
-def _classify_var_util(utilization: float) -> str:
-    if utilization >= 95: return "danger"
-    if utilization >= 80: return "warning"
-    if utilization >= 65: return "caution"
+def _classify_index_change(change_pct: float) -> str:
+    """지수 일간 변동률 기준 (하락이 리스크)"""
+    if change_pct <= -2.0: return "warning"
+    if change_pct <= -1.0: return "caution"
+    if change_pct >= 2.0: return "caution"
     return "normal"
 
-def _classify_lcr(lcr: float) -> str:
-    if lcr < 100: return "danger"
-    if lcr < 110: return "warning"
-    if lcr < 120: return "caution"
+def _classify_vol(vol: float) -> str:
+    """변동성 수준 기준 (annualized %)"""
+    if vol >= 40.0: return "danger"
+    if vol >= 30.0: return "warning"
+    if vol >= 20.0: return "caution"
+    return "normal"
+
+def _classify_rho(rho: float) -> str:
+    """콴토 상관계수 절댓값 기준 (0~1 범위)"""
+    abs_rho = abs(rho)
+    if abs_rho >= 0.7: return "warning"
+    if abs_rho >= 0.5: return "caution"
     return "normal"
 
 
 @app.get("/api/briefing")
 async def get_briefing():
-    """주요 KPI 직접 조회 → 요약 반환 (LLM 호출 없음)"""
+    """시장 데이터 KPI 직접 조회 → 요약 반환 (LLM 호출 없음)"""
     items = []
+
+    # ── USD/KRW 환율 ──────────────────────────────────────────────
     try:
-        # ── NPL ──────────────────────────────────────────────
-        try:
-            df_npl = vn.run_sql(
-                "SELECT npl_ratio, npl_amount, total_loan FROM npl_summary LIMIT 1"
-            )
-            npl_ratio = float(df_npl.iloc[0]["npl_ratio"])
-            npl_amount = float(df_npl.iloc[0]["npl_amount"])
-            total_loan = float(df_npl.iloc[0]["total_loan"])
-            items.append({
-                "key": "npl",
-                "label": "신용리스크 (NPL)",
-                "value": f"{npl_ratio:.2f}%",
-                "subValue": f"NPL 잔액 {npl_amount:.0f}억원 / 총여신 {total_loan:.0f}억원",
-                "status": _classify_npl(npl_ratio),
-                "description": f"NPL 비율 {'정상 수준' if npl_ratio < 1.5 else '기준 초과 — 모니터링 필요'}",
-                "trend": "up" if npl_ratio >= 1.5 else "flat",
-            })
-        except Exception as e:
-            print(f"[briefing] NPL 조회 실패: {e}")
-            items.append({
-                "key": "npl", "label": "신용리스크 (NPL)",
-                "value": "N/A", "status": "caution",
-                "description": "데이터 조회 실패", "trend": "flat",
-            })
-
-        # ── VaR ──────────────────────────────────────────────
-        try:
-            df_var = vn.run_sql(
-                "SELECT current, limit_val, utilization FROM var_summary LIMIT 1"
-            )
-            current_var = float(df_var.iloc[0]["current"])
-            var_limit = float(df_var.iloc[0]["limit_val"])
-            utilization = float(df_var.iloc[0]["utilization"])
-            items.append({
-                "key": "var",
-                "label": "시장리스크 (VaR)",
-                "value": f"{current_var:.0f}억원",
-                "subValue": f"한도 {var_limit:.0f}억원 대비 {utilization:.1f}% 소진",
-                "status": _classify_var_util(utilization),
-                "description": f"VaR 한도 소진율 {utilization:.1f}% — {'여유' if utilization < 65 else '주의 필요'}",
-                "trend": "up" if utilization >= 65 else "flat",
-            })
-        except Exception as e:
-            print(f"[briefing] VaR 조회 실패: {e}")
-            items.append({
-                "key": "var", "label": "시장리스크 (VaR)",
-                "value": "N/A", "status": "caution",
-                "description": "데이터 조회 실패", "trend": "flat",
-            })
-
-        # ── LCR ──────────────────────────────────────────────
-        try:
-            df_lcr = vn.run_sql(
-                "SELECT lcr, nsfr FROM lcr_gauge LIMIT 1"
-            )
-            lcr = float(df_lcr.iloc[0]["lcr"])
-            nsfr = float(df_lcr.iloc[0]["nsfr"])
-            items.append({
-                "key": "lcr",
-                "label": "유동성리스크 (LCR)",
-                "value": f"{lcr:.1f}%",
-                "subValue": f"NSFR {nsfr:.1f}% / 규제 최저 100%",
-                "status": _classify_lcr(lcr),
-                "description": f"LCR {lcr:.1f}% — {'규제 준수' if lcr >= 100 else '규제 미달 위험'}",
-                "trend": "down" if lcr < 120 else "flat",
-            })
-        except Exception as e:
-            print(f"[briefing] LCR 조회 실패: {e}")
-            items.append({
-                "key": "lcr", "label": "유동성리스크 (LCR)",
-                "value": "N/A", "status": "caution",
-                "description": "데이터 조회 실패", "trend": "flat",
-            })
-
-        # ── NCR ──────────────────────────────────────────────
-        try:
-            df_ncr = vn.run_sql(
-                "SELECT current_ncr, ncr_limit, warning_level, target_level, change_from_last_month FROM ncr_summary LIMIT 1"
-            )
-            current_ncr = float(df_ncr.iloc[0]["current_ncr"])
-            ncr_limit = float(df_ncr.iloc[0]["ncr_limit"])
-            warning_level = float(df_ncr.iloc[0]["warning_level"])
-            target_level = float(df_ncr.iloc[0]["target_level"])
-            change = float(df_ncr.iloc[0]["change_from_last_month"])
-            # NCR은 높을수록 좋음: limit(150%) 미만 위험, warning(200%) 미만 경고, target(500%) 미만 주의
-            if current_ncr < ncr_limit:
-                ncr_status = "danger"
-            elif current_ncr < warning_level:
-                ncr_status = "warning"
-            elif current_ncr < target_level:
-                ncr_status = "caution"
-            else:
-                ncr_status = "normal"
-            items.append({
-                "key": "ncr",
-                "label": "NCR리스크 (순자본비율)",
-                "value": f"{current_ncr:.1f}%",
-                "subValue": f"규제 한도 {ncr_limit:.0f}% / 목표 {target_level:.0f}%",
-                "status": ncr_status,
-                "description": f"전월 대비 {'+' if change >= 0 else ''}{change:.1f}%p — {'양호' if current_ncr >= target_level else '목표 미달'}",
-                "trend": "up" if change > 0 else "down" if change < 0 else "flat",
-            })
-        except Exception as e:
-            print(f"[briefing] NCR 조회 실패: {e}")
-            items.append({
-                "key": "ncr", "label": "NCR리스크 (순자본비율)",
-                "value": "N/A", "status": "caution",
-                "description": "데이터 조회 실패", "trend": "flat",
-            })
-
+        df_fx = vn.run_sql(
+            "SELECT std_date, fx_rate FROM td_dmaqfx "
+            "WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 2"
+        )
+        fx_latest = float(df_fx.iloc[0]["fx_rate"])
+        fx_prev = float(df_fx.iloc[1]["fx_rate"]) if len(df_fx) > 1 else fx_latest
+        change_pct = (fx_latest - fx_prev) / fx_prev * 100 if fx_prev else 0.0
+        sign = "+" if change_pct >= 0 else ""
+        items.append({
+            "key": "fx",
+            "label": "USD/KRW 환율",
+            "value": f"{fx_latest:,.2f}",
+            "subValue": f"전일 대비 {sign}{change_pct:.2f}%",
+            "status": _classify_fx_change(change_pct),
+            "description": f"기준일 {str(df_fx.iloc[0]['std_date'])[:10]} 고시환율",
+            "trend": "up" if change_pct > 0.1 else "down" if change_pct < -0.1 else "flat",
+        })
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"[briefing] FX 조회 실패: {e}")
+        items.append({
+            "key": "fx", "label": "USD/KRW 환율",
+            "value": "N/A", "status": "caution",
+            "description": "데이터 조회 실패", "trend": "flat",
+        })
+
+    # ── KOSPI 지수 ────────────────────────────────────────────────
+    try:
+        df_idx = vn.run_sql(
+            "SELECT std_date, curr_price FROM td_dmaqindex "
+            "WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 2"
+        )
+        idx_latest = float(df_idx.iloc[0]["curr_price"])
+        idx_prev = float(df_idx.iloc[1]["curr_price"]) if len(df_idx) > 1 else idx_latest
+        change_pct = (idx_latest - idx_prev) / idx_prev * 100 if idx_prev else 0.0
+        sign = "+" if change_pct >= 0 else ""
+        items.append({
+            "key": "index",
+            "label": "KOSPI 지수",
+            "value": f"{idx_latest:,.2f}",
+            "subValue": f"전일 대비 {sign}{change_pct:.2f}%",
+            "status": _classify_index_change(change_pct),
+            "description": f"기준일 {str(df_idx.iloc[0]['std_date'])[:10]} 종가",
+            "trend": "up" if change_pct > 0.1 else "down" if change_pct < -0.1 else "flat",
+        })
+    except Exception as e:
+        print(f"[briefing] INDEX 조회 실패: {e}")
+        items.append({
+            "key": "index", "label": "KOSPI 지수",
+            "value": "N/A", "status": "caution",
+            "description": "데이터 조회 실패", "trend": "flat",
+        })
+
+    # ── 시장 변동성 ───────────────────────────────────────────────
+    try:
+        df_vol = vn.run_sql(
+            "SELECT AVG(vol) as avg_vol, MAX(vol) as max_vol FROM td_dmaqvol "
+            "WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol)"
+        )
+        avg_vol = float(df_vol.iloc[0]["avg_vol"])
+        max_vol = float(df_vol.iloc[0]["max_vol"])
+        items.append({
+            "key": "vol",
+            "label": "시장 변동성",
+            "value": f"{avg_vol:.1f}%",
+            "subValue": f"최고 {max_vol:.1f}% (평균 기준)",
+            "status": _classify_vol(avg_vol),
+            "description": f"변동성 {'안정 수준' if avg_vol < 20 else '주의 구간' if avg_vol < 30 else '고변동성 경보'}",
+            "trend": "up" if avg_vol >= 25 else "flat",
+        })
+    except Exception as e:
+        print(f"[briefing] VOL 조회 실패: {e}")
+        items.append({
+            "key": "vol", "label": "시장 변동성",
+            "value": "N/A", "status": "caution",
+            "description": "데이터 조회 실패", "trend": "flat",
+        })
+
+    # ── 콴토 상관계수 ─────────────────────────────────────────────
+    try:
+        df_rho = vn.run_sql(
+            "SELECT AVG(quanto_rho) as avg_rho, MIN(quanto_rho) as min_rho, MAX(quanto_rho) as max_rho "
+            "FROM td_dmaqvol "
+            "WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol)"
+        )
+        avg_rho = float(df_rho.iloc[0]["avg_rho"])
+        min_rho = float(df_rho.iloc[0]["min_rho"])
+        max_rho = float(df_rho.iloc[0]["max_rho"])
+        items.append({
+            "key": "rho",
+            "label": "콴토 상관계수",
+            "value": f"{avg_rho:.3f}",
+            "subValue": f"범위 {min_rho:.3f} ~ {max_rho:.3f}",
+            "status": _classify_rho(avg_rho),
+            "description": f"환율-자산 상관도 {'낮음' if abs(avg_rho) < 0.5 else '중간' if abs(avg_rho) < 0.7 else '높음 — 콴토 리스크 주의'}",
+            "trend": "up" if avg_rho > 0.3 else "down" if avg_rho < -0.3 else "flat",
+        })
+    except Exception as e:
+        print(f"[briefing] RHO 조회 실패: {e}")
+        items.append({
+            "key": "rho", "label": "콴토 상관계수",
+            "value": "N/A", "status": "caution",
+            "description": "데이터 조회 실패", "trend": "flat",
+        })
 
     return {"items": items}
 

@@ -1,254 +1,294 @@
 [
   {
-    "question": "최신 USD 환율",
-    "sql": "SELECT std_date, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 1"
-  },
-  {
-    "question": "최신 EUR 환율",
-    "sql": "SELECT std_date, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY std_date DESC LIMIT 1"
-  },
-  {
-    "question": "최신 JPY 환율",
-    "sql": "SELECT std_date, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'JPY' ORDER BY std_date DESC LIMIT 1"
-  },
-  {
-    "question": "최신 CNY 환율",
-    "sql": "SELECT std_date, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'CNY' ORDER BY std_date DESC LIMIT 1"
-  },
-  {
-    "question": "오늘 전체 통화 환율",
-    "sql": "SELECT currency_code, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) ORDER BY currency_code"
-  },
-  {
-    "question": "최신 기준일 전체 환율 목록",
-    "sql": "SELECT currency_code, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) ORDER BY currency_code"
-  },
-  {
-    "question": "USD 환율 추이",
-    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date"
-  },
-  {
-    "question": "EUR 환율 추이",
-    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY std_date"
-  },
-  {
-    "question": "JPY 환율 추이",
-    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'JPY' ORDER BY std_date"
-  },
-  {
-    "question": "USD 환율 최근 30일 추이",
-    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 30"
-  },
-  {
-    "question": "EUR 환율 최근 30일 추이",
-    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY std_date DESC LIMIT 30"
-  },
-  {
-    "question": "JPY 환율 최근 30일 추이",
-    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'JPY' ORDER BY std_date DESC LIMIT 30"
-  },
-  {
-    "question": "USD 환율 최근 90일 추이",
-    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 90"
-  },
-  {
-    "question": "달러 환율 얼마야",
+    "question": "USD 최신 환율",
     "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "엔화 환율 얼마야",
-    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'JPY' ORDER BY std_date DESC LIMIT 1"
+    "question": "달러 환율 지금",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "유로 환율 얼마야",
+    "question": "현재 USD 환율은",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 1"
+  },
+  {
+    "question": "EUR 최신 환율",
     "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "위안화 환율 얼마야",
-    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'CNY' ORDER BY std_date DESC LIMIT 1"
+    "question": "유로 환율 현재",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "거래 환율과 기준 환율 비교 USD",
-    "sql": "SELECT std_date, trade_fx_rate, fx_rate, trade_fx_rate - fx_rate AS diff FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 10"
+    "question": "JPY 최신 환율",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'JPY' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "USD 거래환율 추이",
-    "sql": "SELECT std_date, trade_fx_rate, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 30"
+    "question": "엔화 환율 지금",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'JPY' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "환율 가장 높은 통화",
-    "sql": "SELECT currency_code, fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) ORDER BY fx_rate DESC LIMIT 5"
+    "question": "USD/KRW 환율 90일 추이",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 90"
   },
   {
-    "question": "환율 가장 낮은 통화",
-    "sql": "SELECT currency_code, fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) ORDER BY fx_rate ASC LIMIT 5"
+    "question": "달러 환율 최근 3개월 흐름",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 90"
   },
   {
-    "question": "주요 통화 환율 현황",
-    "sql": "SELECT currency_code, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) AND currency_code IN ('USD', 'EUR', 'JPY', 'CNY', 'GBP', 'AUD') ORDER BY currency_code"
+    "question": "USD 환율 추이 90일",
+    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 90"
   },
   {
-    "question": "USD 환율 최고값 최저값",
-    "sql": "SELECT MAX(fx_rate) AS max_rate, MIN(fx_rate) AS min_rate, AVG(fx_rate) AS avg_rate FROM td_dmaqfx WHERE currency_code = 'USD'"
+    "question": "USD 거래환율 vs 기준환율 비교",
+    "sql": "SELECT std_date, trade_fx_rate, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 60"
   },
   {
-    "question": "EUR 환율 최고값 최저값",
-    "sql": "SELECT MAX(fx_rate) AS max_rate, MIN(fx_rate) AS min_rate, AVG(fx_rate) AS avg_rate FROM td_dmaqfx WHERE currency_code = 'EUR'"
+    "question": "달러 거래환율과 기준환율 차이",
+    "sql": "SELECT std_date, trade_fx_rate, fx_rate, trade_fx_rate - fx_rate AS spread FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 60"
   },
   {
-    "question": "JPY 환율 최고값 최저값",
-    "sql": "SELECT MAX(fx_rate) AS max_rate, MIN(fx_rate) AS min_rate, AVG(fx_rate) AS avg_rate FROM td_dmaqfx WHERE currency_code = 'JPY'"
+    "question": "USD 환율 스프레드 추이",
+    "sql": "SELECT std_date, trade_fx_rate, fx_rate, trade_fx_rate - fx_rate AS spread FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY std_date DESC LIMIT 60"
   },
   {
-    "question": "USD 환율이 가장 높았던 날",
-    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY fx_rate DESC LIMIT 1"
+    "question": "최근 통화별 환율 비교",
+    "sql": "SELECT currency_code, fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) ORDER BY fx_rate DESC"
   },
   {
-    "question": "USD 환율이 가장 낮았던 날",
-    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'USD' ORDER BY fx_rate ASC LIMIT 1"
+    "question": "오늘 전체 통화 환율 목록",
+    "sql": "SELECT currency_code, fx_rate, usd_fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) ORDER BY currency_code"
   },
   {
-    "question": "EUR 환율이 가장 높았던 날",
-    "sql": "SELECT std_date, fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY fx_rate DESC LIMIT 1"
+    "question": "기준일 통화별 환율 순위",
+    "sql": "SELECT currency_code, fx_rate FROM td_dmaqfx WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqfx) ORDER BY fx_rate DESC"
   },
   {
-    "question": "환율 데이터 기준일자 범위",
-    "sql": "SELECT MIN(std_date) AS start_date, MAX(std_date) AS end_date FROM td_dmaqfx"
+    "question": "EUR/USD 환율 추이",
+    "sql": "SELECT std_date, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY std_date DESC LIMIT 90"
   },
   {
-    "question": "등록된 통화 목록",
-    "sql": "SELECT DISTINCT currency_code FROM td_dmaqfx ORDER BY currency_code"
+    "question": "유로 달러 환율 흐름",
+    "sql": "SELECT std_date, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'EUR' ORDER BY std_date DESC LIMIT 90"
   },
   {
-    "question": "KOSPI 지수 현재가",
+    "question": "JPY/USD 환율 추이",
+    "sql": "SELECT std_date, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'JPY' ORDER BY std_date DESC LIMIT 90"
+  },
+  {
+    "question": "엔 달러 환율 최근 추이",
+    "sql": "SELECT std_date, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'JPY' ORDER BY std_date DESC LIMIT 90"
+  },
+  {
+    "question": "CNY/USD 환율 추이",
+    "sql": "SELECT std_date, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'CNY' ORDER BY std_date DESC LIMIT 90"
+  },
+  {
+    "question": "위안화 달러 환율 흐름",
+    "sql": "SELECT std_date, usd_fx_rate FROM td_dmaqfx WHERE currency_code = 'CNY' ORDER BY std_date DESC LIMIT 90"
+  },
+  {
+    "question": "KOSPI 현재가",
     "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "KOSPI200 지수 현재가",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI200' ORDER BY std_date DESC LIMIT 1"
+    "question": "코스피 지수 지금",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "KOSDAQ 지수 현재가",
+    "question": "최신 KOSPI 지수는",
+    "sql": "SELECT std_date, index_name, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 1"
+  },
+  {
+    "question": "KOSDAQ 현재가",
     "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSDAQ' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "닛케이 지수 현재가",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'NKY' ORDER BY std_date DESC LIMIT 1"
+    "question": "코스닥 지수 지금",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSDAQ' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "NKY 지수 현재가",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'NKY' ORDER BY std_date DESC LIMIT 1"
+    "question": "KOSPI200 현재가",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI200' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "다우존스 지수 현재가",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'INDU' ORDER BY std_date DESC LIMIT 1"
+    "question": "코스피200 지수 현재",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI200' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "나스닥 지수 현재가",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'CCMP' ORDER BY std_date DESC LIMIT 1"
+    "question": "KOSPI 지수 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "DAX 지수 현재가",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'DAX' ORDER BY std_date DESC LIMIT 1"
+    "question": "코스피 최근 6개월 흐름",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "항셍 지수 현재가",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'HSI' ORDER BY std_date DESC LIMIT 1"
+    "question": "KOSPI 장기 추이 차트",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "상해종합 지수 현재가",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'SHCOMP' ORDER BY std_date DESC LIMIT 1"
+    "question": "KOSDAQ 지수 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSDAQ' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "유로스톡스50 지수 현재가",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'EuroStoxx50' ORDER BY std_date DESC LIMIT 1"
+    "question": "코스닥 최근 6개월 흐름",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSDAQ' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "주요 지수 현황",
-    "sql": "SELECT index_id, index_name, curr_price, min_price, max_price FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) AND index_id IN ('KOSPI','KOSPI200','KOSDAQ','NKY','INDU','CCMP','DAX','HSI','SHCOMP') ORDER BY index_id"
+    "question": "KOSPI 시고저종 최근 20일",
+    "sql": "SELECT std_date, first_price, min_price, max_price, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 20"
   },
   {
-    "question": "최신 전체 지수 현황",
+    "question": "코스피 OHLC 차트",
+    "sql": "SELECT std_date, first_price, min_price, max_price, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 20"
+  },
+  {
+    "question": "KOSPI 일별 시가 저가 고가 종가",
+    "sql": "SELECT std_date, first_price, min_price, max_price, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 20"
+  },
+  {
+    "question": "글로벌 주요 지수 현재가 비교",
+    "sql": "SELECT index_id, index_name, curr_price FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) ORDER BY curr_price DESC"
+  },
+  {
+    "question": "전세계 주가지수 한눈에",
     "sql": "SELECT index_id, index_name, curr_price FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) ORDER BY index_id"
   },
   {
-    "question": "KOSPI 추이",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date"
+    "question": "해외 주요 지수 최신값",
+    "sql": "SELECT index_id, index_name, curr_price FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) AND index_id IN ('KOSPI','KOSDAQ','NKY','INDU','CCMP','DAX','HSI','SHCOMP') ORDER BY index_id"
   },
   {
-    "question": "KOSPI 최근 30일 추이",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 30"
+    "question": "닛케이 지수 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'NKY' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "KOSPI200 추이",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI200' ORDER BY std_date"
+    "question": "NKY 지수 6개월 흐름",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'NKY' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "KOSDAQ 추이",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSDAQ' ORDER BY std_date"
+    "question": "나스닥 지수 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'CCMP' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "닛케이 추이",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'NKY' ORDER BY std_date"
+    "question": "CCMP 나스닥 최근 흐름",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'CCMP' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "나스닥 추이",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'CCMP' ORDER BY std_date"
+    "question": "다우존스 지수 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'INDU' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "다우존스 추이",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'INDU' ORDER BY std_date"
+    "question": "INDU 다우 6개월 흐름",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'INDU' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "KOSPI 고가 저가",
-    "sql": "SELECT std_date, curr_price, min_price, max_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 20"
+    "question": "항셍 지수 추이",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'HSI' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "KOSPI 최고점",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY curr_price DESC LIMIT 1"
+    "question": "HSI 홍콩 지수 흐름",
+    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'HSI' ORDER BY std_date DESC LIMIT 180"
   },
   {
-    "question": "KOSPI 최저점",
-    "sql": "SELECT std_date, curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY curr_price ASC LIMIT 1"
+    "question": "KOSPI 현재가 vs NCR 적용가 비교",
+    "sql": "SELECT std_date, curr_price, ncr_curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 90"
   },
   {
-    "question": "닛케이 최고점 최저점",
-    "sql": "SELECT MAX(curr_price) AS max_price, MIN(curr_price) AS min_price, AVG(curr_price) AS avg_price FROM td_dmaqindex WHERE index_id = 'NKY'"
+    "question": "KOSPI NCR 적용가 괴리",
+    "sql": "SELECT std_date, curr_price, ncr_curr_price, curr_price - ncr_curr_price AS diff FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 90"
   },
   {
-    "question": "나스닥 최고점 최저점",
-    "sql": "SELECT MAX(curr_price) AS max_price, MIN(curr_price) AS min_price FROM td_dmaqindex WHERE index_id = 'CCMP'"
+    "question": "코스피 시장가격과 NCR 적용가 차이",
+    "sql": "SELECT std_date, curr_price, ncr_curr_price FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 90"
   },
   {
-    "question": "KOSPI 배당수익률",
-    "sql": "SELECT std_date, dividend_rate FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 1"
-  },
-  {
-    "question": "지수 배당률 현황",
+    "question": "지수별 배당률 비교",
     "sql": "SELECT index_id, index_name, dividend_rate FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) AND dividend_rate IS NOT NULL ORDER BY dividend_rate DESC"
   },
   {
-    "question": "등록된 지수 목록",
-    "sql": "SELECT DISTINCT index_id, index_name FROM td_dmaqindex ORDER BY index_id"
+    "question": "주요 지수 배당수익률 순위",
+    "sql": "SELECT index_id, index_name, dividend_rate FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) AND dividend_rate IS NOT NULL ORDER BY dividend_rate DESC"
   },
   {
-    "question": "지수 데이터 기간",
-    "sql": "SELECT MIN(std_date) AS start_date, MAX(std_date) AS end_date FROM td_dmaqindex"
+    "question": "KOSPI 배당률",
+    "sql": "SELECT std_date, dividend_rate FROM td_dmaqindex WHERE index_id = 'KOSPI' ORDER BY std_date DESC LIMIT 1"
   },
   {
-    "question": "KOSPI KOSDAQ 비교",
-    "sql": "SELECT a.std_date, a.curr_price AS kospi, b.curr_price AS kosdaq FROM td_dmaqindex a JOIN td_dmaqindex b ON a.std_date = b.std_date WHERE a.index_id = 'KOSPI' AND b.index_id = 'KOSDAQ' ORDER BY a.std_date DESC LIMIT 30"
+    "question": "최신 최대 변동성",
+    "sql": "SELECT underlying_id, vol FROM td_dmaqvol WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol) ORDER BY vol DESC LIMIT 1"
   },
   {
-    "question": "한국 주요 지수 현황",
-    "sql": "SELECT index_id, index_name, curr_price FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) AND index_id IN ('KOSPI','KOSPI200','KOSDAQ','KOSDQ150') ORDER BY index_id"
+    "question": "현재 가장 높은 변동성 종목",
+    "sql": "SELECT underlying_id, vol FROM td_dmaqvol WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol) ORDER BY vol DESC LIMIT 1"
   },
   {
-    "question": "아시아 지수 현황",
-    "sql": "SELECT index_id, index_name, curr_price FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) AND index_id IN ('KOSPI','NKY','HSI','HSCEI','SHCOMP','SENSEX') ORDER BY index_id"
+    "question": "기초자산별 변동성 순위",
+    "sql": "SELECT underlying_id, vol FROM td_dmaqvol WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol) ORDER BY vol DESC LIMIT 50"
   },
   {
-    "question": "미국 지수 현황",
-    "sql": "SELECT index_id, index_name, curr_price FROM td_dmaqindex WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqindex) AND index_id IN ('INDU','CCMP') ORDER BY index_id"
+    "question": "최신일 기초자산 변동성 비교",
+    "sql": "SELECT underlying_id, vol FROM td_dmaqvol WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol) ORDER BY vol DESC"
+  },
+  {
+    "question": "변동성 높은 기초자산 순서로",
+    "sql": "SELECT underlying_id, vol FROM td_dmaqvol WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol) ORDER BY vol DESC LIMIT 50"
+  },
+  {
+    "question": "변동성 유형별 vol vs quanto_vol",
+    "sql": "SELECT vol_type, AVG(vol) AS avg_vol, AVG(quanto_vol) AS avg_quanto_vol FROM td_dmaqvol WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol) GROUP BY vol_type ORDER BY vol_type"
+  },
+  {
+    "question": "vol_type별 평균 변동성 비교",
+    "sql": "SELECT vol_type, AVG(vol) AS avg_vol, AVG(quanto_vol) AS avg_quanto_vol FROM td_dmaqvol WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol) GROUP BY vol_type ORDER BY vol_type"
+  },
+  {
+    "question": "변동성 유형 구분 현황",
+    "sql": "SELECT vol_type, COUNT(*) AS cnt, AVG(vol) AS avg_vol FROM td_dmaqvol WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol) GROUP BY vol_type ORDER BY vol_type"
+  },
+  {
+    "question": "변동성 vs 콴토 변동성 상관 분포",
+    "sql": "SELECT underlying_id, vol, quanto_vol FROM td_dmaqvol WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol) ORDER BY vol DESC LIMIT 100"
+  },
+  {
+    "question": "vol과 quanto_vol 관계",
+    "sql": "SELECT underlying_id, vol, quanto_vol FROM td_dmaqvol WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol) ORDER BY vol DESC"
+  },
+  {
+    "question": "콴토 변동성 산점도",
+    "sql": "SELECT underlying_id, vol, quanto_vol, quanto_rho FROM td_dmaqvol WHERE std_date = (SELECT MAX(std_date) FROM td_dmaqvol) ORDER BY vol DESC LIMIT 100"
+  },
+  {
+    "question": "변동성 시계열 추이",
+    "sql": "SELECT std_date, AVG(vol) AS avg_vol FROM td_dmaqvol GROUP BY std_date ORDER BY std_date DESC LIMIT 200"
+  },
+  {
+    "question": "전체 변동성 평균 추이",
+    "sql": "SELECT std_date, AVG(vol) AS avg_vol, MAX(vol) AS max_vol FROM td_dmaqvol GROUP BY std_date ORDER BY std_date DESC LIMIT 200"
+  },
+  {
+    "question": "기간별 시장 변동성 흐름",
+    "sql": "SELECT std_date, AVG(vol) AS avg_vol FROM td_dmaqvol GROUP BY std_date ORDER BY std_date DESC LIMIT 200"
+  },
+  {
+    "question": "콴토 변동성 추이",
+    "sql": "SELECT std_date, AVG(quanto_vol) AS avg_quanto_vol FROM td_dmaqvol GROUP BY std_date ORDER BY std_date DESC LIMIT 200"
+  },
+  {
+    "question": "quanto_vol 시계열",
+    "sql": "SELECT std_date, AVG(quanto_vol) AS avg_quanto_vol FROM td_dmaqvol GROUP BY std_date ORDER BY std_date DESC LIMIT 200"
+  },
+  {
+    "question": "콴토 상관계수 추이",
+    "sql": "SELECT std_date, AVG(quanto_rho) AS avg_quanto_rho FROM td_dmaqvol GROUP BY std_date ORDER BY std_date DESC LIMIT 200"
+  },
+  {
+    "question": "quanto_rho 시계열 변화",
+    "sql": "SELECT std_date, AVG(quanto_rho) AS avg_quanto_rho, MIN(quanto_rho) AS min_rho, MAX(quanto_rho) AS max_rho FROM td_dmaqvol GROUP BY std_date ORDER BY std_date DESC LIMIT 200"
+  },
+  {
+    "question": "콴토 헤지 비율 추이",
+    "sql": "SELECT std_date, AVG(quanto_rho) AS avg_quanto_rho FROM td_dmaqvol GROUP BY std_date ORDER BY std_date DESC LIMIT 200"
   }
 ]

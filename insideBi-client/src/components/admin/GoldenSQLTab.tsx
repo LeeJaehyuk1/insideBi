@@ -124,7 +124,7 @@ export function GoldenSQLTab({ password }: GoldenSQLTabProps) {
           onChange={(e) => setQuestion(e.target.value)}
         />
         <textarea
-          placeholder="SQL (예: SELECT month, npl_ratio FROM npl_trend ORDER BY month)"
+          placeholder="SQL (예: SELECT month, npl FROM npl_trend ORDER BY month)"
           value={sql}
           onChange={(e) => setSql(e.target.value)}
           className="w-full min-h-[80px] rounded-md border bg-background px-3 py-2 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-ring"

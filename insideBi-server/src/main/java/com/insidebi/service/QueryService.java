@@ -3,6 +3,7 @@ package com.insidebi.service;
 import com.insidebi.dto.ColumnInfo;
 import com.insidebi.dto.DbQueryRequest;
 import com.insidebi.dto.DbQueryResponse;
+import com.insidebi.dto.QueryColumn;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,15 +30,20 @@ public class QueryService {
     );
 
     public DbQueryResponse executeQuery(DbQueryRequest request) {
-        String sql = request.getSql();
-        if (sql == null || !sql.trim().toUpperCase().startsWith("SELECT")) {
-            throw new SecurityException("Only SELECT statements are allowed");
-        }
-
+        String sql = sanitizeSelect(request.getSql());
         List<Object> params = request.getParams() != null ? request.getParams() : Collections.emptyList();
 
+        long startedAt = System.currentTimeMillis();
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, params.toArray());
-        return new DbQueryResponse(rows, rows.size());
+        long durationMs = System.currentTimeMillis() - startedAt;
+
+        List<QueryColumn> columns = rows.isEmpty()
+                ? List.of()
+                : rows.get(0).entrySet().stream()
+                .map(entry -> new QueryColumn(entry.getKey(), inferValueType(entry.getValue())))
+                .toList();
+
+        return new DbQueryResponse(columns, rows, rows.size(), durationMs, sql);
     }
 
     public List<ColumnInfo> getColumns(String tableName, String schema) {
@@ -47,7 +53,6 @@ public class QueryService {
 
         String schemaName = (schema != null && !schema.isBlank()) ? schema : "public";
 
-        // Get primary keys
         String pkSql = """
                 SELECT kcu.column_name
                 FROM information_schema.table_constraints tc
@@ -62,7 +67,6 @@ public class QueryService {
                 jdbcTemplate.queryForList(pkSql, String.class, tableName, schemaName)
         );
 
-        // Get columns
         String colSql = """
                 SELECT column_name, data_type
                 FROM information_schema.columns
@@ -98,5 +102,36 @@ public class QueryService {
                     .build());
         }
         return result;
+    }
+
+    private String sanitizeSelect(String rawSql) {
+        if (rawSql == null || rawSql.isBlank()) {
+            throw new SecurityException("SQL is required");
+        }
+
+        String sql = rawSql.trim();
+        String normalized = sql.toLowerCase(Locale.ROOT);
+
+        if (!normalized.startsWith("select") && !normalized.startsWith("with")) {
+            throw new SecurityException("Only SELECT statements are allowed");
+        }
+        if (normalized.contains(";")) {
+            throw new SecurityException("Only a single statement is allowed");
+        }
+        if (normalized.contains(" insert ") || normalized.contains(" update ") ||
+                normalized.contains(" delete ") || normalized.contains(" drop ") ||
+                normalized.contains(" alter ") || normalized.contains(" create ")) {
+            throw new SecurityException("Write statements are not allowed");
+        }
+
+        return sql;
+    }
+
+    private String inferValueType(Object value) {
+        if (value == null) return "unknown";
+        if (value instanceof Number) return "number";
+        if (value instanceof java.time.temporal.Temporal || value instanceof java.util.Date) return "date";
+        if (value instanceof Boolean) return "boolean";
+        return "string";
     }
 }

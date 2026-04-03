@@ -95,7 +95,21 @@ export function AiChatProvider({ children }: { children: React.ReactNode }) {
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ detail: "서버 오류" }));
-          throw new Error(err.detail ?? `HTTP ${res.status}`);
+          let proxyDetail = "";
+          if (typeof err.error === "string") {
+            try {
+              const nested = JSON.parse(err.error);
+              if (typeof nested.detail === "string") proxyDetail = nested.detail;
+            } catch {
+              proxyDetail = err.error;
+            }
+          }
+          const message =
+            (typeof err.detail === "string" && err.detail) ||
+            proxyDetail ||
+            (typeof err.error === "string" && err.error) ||
+            `HTTP ${res.status}`;
+          throw new Error(message);
         }
 
         const data: AiAskResponse = await res.json();

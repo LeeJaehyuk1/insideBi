@@ -1,11 +1,11 @@
-
+﻿
 import * as React from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import {
   Plus, Type, Link2, LayoutGrid, SlidersHorizontal, MoreHorizontal,
-  ChevronDown, X, Search, MessageSquare, FileText, FolderOpen,
-  ChevronRight, Table2, Pencil, Check, BarChart2, Maximize2, Trash2,
+  ChevronDown, X, Search, MessageSquare, FileText,
+  Table2, Pencil, Check, BarChart2, Maximize2, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSavedQuestions } from "@/hooks/useSavedQuestions";
@@ -13,14 +13,11 @@ import type { VizSettings } from "@/components/questions/ChartSettingsSidebar";
 import { dataCatalog } from "@/lib/data-catalog";
 import { WidgetRenderer } from "@/components/builder/WidgetRenderer";
 import { useDashboardLibrary } from "@/hooks/useDashboardLibrary";
-import { useCollectionFolders } from "@/hooks/useCollectionFolders";
 import { consumeAutoDashboard } from "@/lib/auto-dashboard";
-import { ROOT_ID, PERSONAL_ID } from "@/lib/mock-data/collection-folders";
-import type { FolderEntry } from "@/lib/mock-data/collection-folders";
 import type { WidgetConfig, ChartType, AxisMapping } from "@/types/builder";
 import type { FilterParam } from "@/types/query";
 
-/* ── 위젯 타입 ── */
+/* Dashboard widget model */
 interface DashWidget {
   id: string;
   title: string;
@@ -36,7 +33,7 @@ function generateId() {
 }
 
 function toWidgetConfig(w: DashWidget): WidgetConfig {
-  // vizSettings에서 axisMapping 파생 (이미 axisMapping이 있으면 그것 우선)
+  // Derive axis mapping from viz settings when explicit mapping is missing.
   const axisMapping: WidgetConfig["axisMapping"] =
     w.axisMapping ??
     (w.vizSettings?.xKey || w.vizSettings?.yKey
@@ -53,15 +50,15 @@ function toWidgetConfig(w: DashWidget): WidgetConfig {
   };
 }
 
-/* ── 탭 타입 ── */
+/* Dashboard tab model */
 interface Tab { id: string; label: string }
 
-/* ── 차트 타입 선택 미니 드롭다운 ── */
+/* Chart type dropdown */
 const CHART_TYPES: { value: ChartType; label: string }[] = [
-  { value: "bar",   label: "막대" },
-  { value: "line",  label: "선" },
-  { value: "area",  label: "영역" },
-  { value: "pie",   label: "파이" },
+  { value: "bar", label: "Bar" },
+  { value: "line", label: "Line" },
+  { value: "area", label: "Area" },
+  { value: "pie", label: "Pie" },
 ];
 
 function ChartTypeDropdown({ value, onChange }: {
@@ -108,7 +105,7 @@ function ChartTypeDropdown({ value, onChange }: {
   );
 }
 
-/* ── 위젯 카드 ── */
+/* Widget card */
 function WidgetCard({ widget, onRemove, onChartTypeChange }: {
   widget: DashWidget;
   onRemove: () => void;
@@ -116,7 +113,7 @@ function WidgetCard({ widget, onRemove, onChartTypeChange }: {
 }) {
   return (
     <div className="flex flex-col rounded-xl border border-border bg-background overflow-hidden group shadow-sm hover:shadow-md transition-shadow">
-      {/* 카드 헤더 */}
+      {/* Card header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/20 shrink-0">
         <span className="text-sm font-semibold text-foreground truncate flex-1">{widget.title}</span>
         <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -129,14 +126,14 @@ function WidgetCard({ widget, onRemove, onChartTypeChange }: {
           </button>
           <button
             onClick={onRemove}
-            title="제거"
+            title="삭제"
             className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
-      {/* 차트 */}
+      {/* Chart preview */}
       <div className="p-3 h-56">
         <WidgetRenderer widget={toWidgetConfig(widget)} />
       </div>
@@ -144,34 +141,20 @@ function WidgetCard({ widget, onRemove, onChartTypeChange }: {
   );
 }
 
-/* ── 우측 패널 ── */
+/* Right-side asset panel */
 function RightPanel({ onAddWidget }: {
   onAddWidget: (title: string, datasetId: string, chartType: ChartType, filters?: FilterParam[], vizSettings?: VizSettings) => void;
 }) {
   const { questions } = useSavedQuestions();
-  const { folders } = useCollectionFolders();
   const [search, setSearch] = React.useState("");
-  const [expandedCols, setExpandedCols] = React.useState<Set<string>>(new Set());
-
-  const toggleCol = (id: string) =>
-    setExpandedCols((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
 
   const savedQs = questions.filter(
-    (q) => !search || q.title.toLowerCase().includes(search.toLowerCase())
-  );
-  // 컬렉션 폴더에서 질문 항목만 필터링 (live data)
-  const cols = folders.filter(
-    (f) => !search || f.name.toLowerCase().includes(search.toLowerCase())
+    (q) => q.datasetId && (!search || q.title.toLowerCase().includes(search.toLowerCase()))
   );
   const catalogItems = dataCatalog.filter(
     (d) => !search || d.label.toLowerCase().includes(search.toLowerCase())
   );
 
-  /* 기본 차트 타입 결정 */
   function defaultChart(datasetId: string): ChartType {
     const ds = dataCatalog.find((d) => d.id === datasetId);
     const def = ds?.defaultChart ?? "bar";
@@ -181,8 +164,6 @@ function RightPanel({ onAddWidget }: {
 
   return (
     <div className="w-72 shrink-0 border-l border-border bg-background flex flex-col h-full">
-
-      {/* 검색 */}
       <div className="px-4 pt-4 pb-3 shrink-0">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -190,43 +171,47 @@ function RightPanel({ onAddWidget }: {
             autoFocus
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="찾다..."
+            placeholder="검색..."
             className="w-full rounded-lg border border-input bg-muted/30 pl-9 pr-3 py-2 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
       </div>
 
-      {/* 새로운 질문 / SQL */}
       <div className="flex items-center gap-2 px-4 pb-3 shrink-0">
         <Link
-          to="/questions/nocode"
+          to="/questions/new"
           className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-xs font-medium hover:bg-muted transition-colors"
         >
-          <MessageSquare className="h-3.5 w-3.5 text-primary" />새로운 질문
+          <MessageSquare className="h-3.5 w-3.5 text-primary" />
+          새 질문
         </Link>
         <Link
           to="/questions/new"
           className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-xs font-medium hover:bg-muted transition-colors"
         >
-          <FileText className="h-3.5 w-3.5 text-muted-foreground" />새로운 SQL 쿼리
+          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+          SQL 편집기
         </Link>
       </div>
 
-      {/* 목록 */}
       <div className="flex-1 overflow-y-auto">
-
-        {/* 저장된 질문 */}
         {savedQs.length > 0 && (
           <div className="mb-2">
             <p className="px-4 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
-              저장된 질문
+              Saved Questions
             </p>
             {savedQs.map((q) => {
               const ds = dataCatalog.find((d) => d.id === q.datasetId);
+              const chartType =
+                q.visualization.type === "line" ||
+                q.visualization.type === "bar" ||
+                q.visualization.type === "pie"
+                  ? q.visualization.type
+                  : defaultChart(q.datasetId!);
               return (
                 <button
                   key={q.id}
-                  onClick={() => onAddWidget(q.title, q.datasetId, q.chartType ?? defaultChart(q.datasetId), q.filters, q.vizSettings)}
+                  onClick={() => onAddWidget(q.title, q.datasetId!, chartType)}
                   className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-primary/5 hover:text-primary transition-colors group"
                 >
                   <Table2 className="h-4 w-4 text-primary shrink-0" />
@@ -241,56 +226,9 @@ function RightPanel({ onAddWidget }: {
           </div>
         )}
 
-        {/* 컬렉션 섹션 */}
-        <p className="px-4 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
-          우리의 분석
-        </p>
-
-        {cols.map((col) => (
-          <div key={col.id}>
-            <button
-              onClick={() => toggleCol(col.id)}
-              className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-muted/60 transition-colors"
-            >
-              <FolderOpen className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="flex-1 text-sm text-foreground truncate">{col.name}</span>
-              <ChevronRight className={cn(
-                "h-4 w-4 text-muted-foreground transition-transform shrink-0",
-                expandedCols.has(col.id) && "rotate-90"
-              )} />
-            </button>
-
-            {expandedCols.has(col.id) && (
-              <div className="pl-4">
-                {col.entries.filter((e) => e.type === "question").map((entry) => {
-                  const qId = entry.href?.split("/questions/")?.[1];
-                  const matchedQ = qId ? questions.find((q) => q.id === qId) : undefined;
-                  const dsId = matchedQ?.datasetId ?? "npl-trend";
-                  const ct = matchedQ?.chartType ?? defaultChart(dsId);
-                  return (
-                    <button
-                      key={entry.id}
-                      onClick={() => onAddWidget(entry.name, dsId, ct, matchedQ?.filters, matchedQ?.vizSettings)}
-                      className="flex items-center gap-3 w-full px-4 py-2 text-left hover:bg-primary/5 hover:text-primary transition-colors group"
-                    >
-                      <Table2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                      <span className="flex-1 text-sm text-foreground group-hover:text-primary truncate">{entry.name}</span>
-                      <Plus className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
-                    </button>
-                  );
-                })}
-                {col.entries.filter((e) => e.type === "question").length === 0 && (
-                  <p className="px-4 py-2 text-xs text-muted-foreground">저장된 질문 없음</p>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-
-        {/* 데이터 카탈로그 (항상 표시, 검색 시 필터) */}
         <div className="mt-1">
           <p className="px-4 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
-            데이터 카탈로그
+            Data Catalog
           </p>
           {(search ? catalogItems : dataCatalog).map((d) => (
             <button
@@ -312,41 +250,38 @@ function RightPanel({ onAddWidget }: {
   );
 }
 
-/* ── 메인 에디터 ── */
+/* Main editor */
 export function DashboardEditorClient() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isAuto = searchParams.get("auto") === "1";
-  const initialName = searchParams.get("name") ?? "새 대시보드";
-  const collectionId = searchParams.get("collection") || ROOT_ID;
-
+  const initialName = searchParams.get("name") ?? "New Dashboard";
   const { saveDashboard, library, hydrated: libHydrated } = useDashboardLibrary();
-  const { addEntry, getFolder } = useCollectionFolders();
   const [saveToast, setSaveToast] = React.useState(false);
 
   const [dashboardName, setDashboardName] = React.useState(initialName);
   const [editingName, setEditingName] = React.useState(false);
   const [nameInput, setNameInput] = React.useState(initialName);
-  const [tabs, setTabs] = React.useState<Tab[]>([{ id: "tab-1", label: "탭 1" }]);
+  const [tabs, setTabs] = React.useState<Tab[]>([{ id: "tab-1", label: "Tab 1" }]);
   const [activeTab, setActiveTab] = React.useState("tab-1");
   const [rightPanelOpen, setRightPanelOpen] = React.useState(false);
   const [editingTabId, setEditingTabId] = React.useState<string | null>(null);
   const [tabNameInput, setTabNameInput] = React.useState("");
 
-  // 탭별 독립 위젯 맵: { tabId: DashWidget[] }
+  // Widgets grouped by tab id.
   const [tabWidgets, setTabWidgets] = React.useState<Record<string, DashWidget[]>>(
     { "tab-1": [] }
   );
   const [loaded, setLoaded] = React.useState(false);
 
-  // 현재 활성 탭의 위젯
+  // Widgets for the active tab.
   const widgets = tabWidgets[activeTab] ?? [];
 
-  // 라이브러리 hydration 완료 후 기존 저장 데이터 또는 자동 대시보드 로드
+  // Restore an existing dashboard once the library is hydrated.
   React.useEffect(() => {
     if (!libHydrated || loaded) return;
 
-    // 자동 대시보드: localStorage에서 설정 읽기
+    // Restore an auto-generated dashboard when one is queued.
     if (isAuto) {
       const autoConfig = consumeAutoDashboard();
       if (autoConfig?.widgets?.length) {
@@ -366,7 +301,7 @@ export function DashboardEditorClient() {
     const existing = library.find((d) => d.name === initialName);
     if (existing) {
       if (existing.tabData?.length) {
-        // 탭 구조 복원
+        // Restore multi-tab dashboards.
         const restoredTabs = existing.tabData.map((t) => ({ id: t.id, label: t.label }));
         const restoredWidgets: Record<string, DashWidget[]> = {};
         existing.tabData.forEach((t) => {
@@ -380,7 +315,7 @@ export function DashboardEditorClient() {
         setActiveTab(restoredTabs[0].id);
         setTabWidgets(restoredWidgets);
       } else if (existing.widgets?.length) {
-        // 구버전 호환: 탭 없이 저장된 경우 첫 탭에 넣기
+        // Backward compatibility for single-tab saved dashboards.
         setTabWidgets({
           "tab-1": existing.widgets.map((w) => ({
             id: w.id, title: w.title, datasetId: w.datasetId, chartType: w.chartType,
@@ -404,9 +339,9 @@ export function DashboardEditorClient() {
 
   const addTab = () => {
     const newId = `tab-${Date.now()}`;
-    const t: Tab = { id: newId, label: `탭 ${tabs.length + 1}` };
+    const t: Tab = { id: newId, label: `Tab ${tabs.length + 1}` };
     setTabs((p) => [...p, t]);
-    setTabWidgets((prev) => ({ ...prev, [newId]: [] }));  // 새 탭은 빈 위젯
+    setTabWidgets((prev) => ({ ...prev, [newId]: [] }));
     setActiveTab(newId);
   };
 
@@ -422,7 +357,7 @@ export function DashboardEditorClient() {
     setRightPanelOpen(false);
   };
 
-  /** 현재 탭에서 위젯 제거 */
+  /** Remove a widget from the active tab. */
   const removeWidget = (id: string) => {
     setTabWidgets((prev) => ({
       ...prev,
@@ -430,7 +365,7 @@ export function DashboardEditorClient() {
     }));
   };
 
-  /** 현재 탭 위젯 차트 타입 변경 */
+  /** Update chart type for a widget in the active tab. */
   const updateChartType = (id: string, chartType: ChartType) => {
     setTabWidgets((prev) => ({
       ...prev,
@@ -438,13 +373,13 @@ export function DashboardEditorClient() {
     }));
   };
 
-  /** 탭 이름 수정 시작 */
+  /** Enter tab-name edit mode. */
   const startEditingTab = (tab: Tab) => {
     setEditingTabId(tab.id);
     setTabNameInput(tab.label);
   };
 
-  /** 탭 이름 저장 */
+  /** Persist tab-name edits. */
   const handleTabNameSave = () => {
     if (editingTabId && tabNameInput.trim()) {
       setTabs((prev) => prev.map((t) => t.id === editingTabId ? { ...t, label: tabNameInput.trim() } : t));
@@ -457,17 +392,17 @@ export function DashboardEditorClient() {
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] -m-6 bg-background">
 
-      {/* 저장 완료 토스트 */}
+      {/* Save toast */}
       {saveToast && (
         <div className="fixed top-4 right-4 z-50 flex items-center gap-2 rounded-lg border bg-background shadow-lg px-4 py-2.5 text-sm font-medium animate-in slide-in-from-top-2">
           <Check className="h-4 w-4 text-green-500" />
-          대시보드가 저장되었습니다
+          Dashboard saved.
         </div>
       )}
 
-      {/* ── 상단 툴바 ── */}
+      {/* Top toolbar */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0 bg-background">
-        {/* 대시보드 이름 */}
+        {/* Dashboard title */}
         <div className="flex items-center gap-2">
           {editingName ? (
             <div className="flex items-center gap-2">
@@ -492,11 +427,11 @@ export function DashboardEditorClient() {
           )}
         </div>
 
-        {/* 우측 툴바 */}
+        {/* Toolbar actions */}
         <div className="flex items-center gap-1">
           <button
             onClick={() => setRightPanelOpen((p) => !p)}
-            title="차트 추가"
+            title="위젯 추가"
             className={cn(
               "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
               rightPanelOpen ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -523,24 +458,22 @@ export function DashboardEditorClient() {
 
           <div className="h-5 w-px bg-border mx-2" />
 
-          {/* 취소 */}
+          {/* Cancel */}
           <button
             onClick={() => window.history.back()}
             className="rounded-lg border border-border px-4 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
-            취소
+            Cancel
           </button>
 
-          {/* 저장 */}
+          {/* Save */}
           <button
             onClick={() => {
-              // 모든 탭의 위젯을 tabData로 저장
               const tabData = tabs.map((t) => ({
                 id: t.id,
                 label: t.label,
                 widgets: (tabWidgets[t.id] ?? []).map((w) => toWidgetConfig(w)),
               }));
-              // widgets(하위호환용): 모든 탭 위젯 합산
               const allWidgets = tabData.flatMap((t) => t.widgets);
               const dashboard = {
                 name: dashboardName,
@@ -550,41 +483,20 @@ export function DashboardEditorClient() {
               };
               saveDashboard(dashboard);
 
-              // 1. 엔트리 생성 (ID를 이름 기반으로 고정하여 v2 시스템에서 중복 방지)
-              const entryId = `db-${dashboardName.replace(/\s+/g, "-")}`; 
-              const entry: FolderEntry = {
-                id: entryId,
-                type: "dashboard",
-                name: dashboardName,
-                lastEditor: "나",
-                lastModified: new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
-                href: `/dashboards/new?name=${encodeURIComponent(dashboardName)}&collection=${collectionId}`,
-              };
-
-              // 2. 컬렉션에 추가 (기존 이름의 대시보드는 useCollectionFolders에서 걸러냄)
-              addEntry(collectionId, entry);
-
               setSaveToast(true);
               setTimeout(() => {
                 setSaveToast(false);
-                // ROOT_ID → /collections, PERSONAL_ID → /collections/personal, 다른 컬렉션 → /collections/[id]
-                if (collectionId === ROOT_ID) {
-                  navigate("/collections");
-                } else if (collectionId === PERSONAL_ID) {
-                  navigate("/collections/personal");
-                } else {
-                  navigate(`/collections/${collectionId}`);
-                }
+                navigate("/dashboards");
               }, 1200);
             }}
             className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            저장
+            Save
           </button>
         </div>
       </div>
 
-      {/* ── 탭 바 ── */}
+      {/* Tabs */}
       <div className="flex items-center px-6 border-b border-border shrink-0 bg-background">
         {tabs.map((tab) => (
           <div
@@ -626,13 +538,13 @@ export function DashboardEditorClient() {
         </button>
       </div>
 
-      {/* ── 본문 ── */}
+      {/* Main content */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
-        {/* 캔버스 */}
+        {/* Canvas */}
         <div className={cn("flex-1 overflow-y-auto", isEmpty ? "flex items-center justify-center bg-muted/10" : "p-6 bg-muted/5")}>
           {isEmpty ? (
-            /* 빈 상태 */
+            /* Empty state */
             <div className="text-center space-y-4 max-w-md px-4">
               <div className="flex justify-center">
                 <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted/60">
@@ -648,23 +560,23 @@ export function DashboardEditorClient() {
               </div>
               <div className="space-y-2">
                 <p className="text-base font-semibold text-foreground">
-                  새로운 질문을 만들거나, 컬렉션에서 기존 질문을<br />찾아보세요.
+                  새 질문을 만들거나 저장된 질문을 추가해 보세요.
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  링크 또는 텍스트 카드를 추가합니다.{" "}
-                  <button className="text-primary hover:underline">섹션을 추가</button>
-                  하여 기본 레이아웃으로 시작할 수 있습니다.
+                  차트, 테이블, 텍스트 위젯을 조합해 대시보드를 구성할 수 있습니다.{" "}
+                  <button className="text-primary hover:underline">위젯 추가</button>
+                  로 바로 시작할 수 있습니다.
                 </p>
               </div>
               <button
                 onClick={() => setRightPanelOpen(true)}
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 shadow-sm transition-colors"
               >
-                차트 추가
+                Add Widget
               </button>
             </div>
           ) : (
-            /* 위젯 그리드 */
+            /* Widget grid */
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-min">
               {widgets.map((w) => (
                 <WidgetCard
@@ -674,7 +586,7 @@ export function DashboardEditorClient() {
                   onChartTypeChange={(t) => updateChartType(w.id, t)}
                 />
               ))}
-              {/* + 카드 추가 버튼 */}
+              {/* Add widget card */}
               <button
                 onClick={() => setRightPanelOpen(true)}
                 className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-all min-h-[240px] text-muted-foreground hover:text-primary group"
@@ -682,13 +594,13 @@ export function DashboardEditorClient() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-current group-hover:border-primary">
                   <Plus className="h-5 w-5" />
                 </div>
-                <span className="text-sm font-medium">차트 추가</span>
+                <span className="text-sm font-medium">Add Widget</span>
               </button>
             </div>
           )}
         </div>
 
-        {/* 우측 패널 */}
+        {/* Right panel */}
         {rightPanelOpen && (
           <div className="animate-in slide-in-from-right duration-200">
             <RightPanel onAddWidget={handleAddWidget} />
@@ -698,3 +610,6 @@ export function DashboardEditorClient() {
     </div>
   );
 }
+
+
+

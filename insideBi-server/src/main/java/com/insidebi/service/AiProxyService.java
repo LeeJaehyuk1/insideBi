@@ -36,7 +36,23 @@ public class AiProxyService {
             return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
         } catch (HttpStatusCodeException e) {
             log.warn("AI backend error: {} {}", e.getStatusCode(), e.getResponseBodyAsString());
-            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getResponseBodyAsString()));
+            try {
+                Object responseBody = restTemplate.getMessageConverters().stream()
+                        .filter(converter -> converter instanceof org.springframework.http.converter.json.MappingJackson2HttpMessageConverter)
+                        .findFirst()
+                        .map(converter -> {
+                            try {
+                                return new com.fasterxml.jackson.databind.ObjectMapper()
+                                        .readValue(e.getResponseBodyAsString(), Object.class);
+                            } catch (Exception parseError) {
+                                return Map.of("error", e.getResponseBodyAsString());
+                            }
+                        })
+                        .orElse(Map.of("error", e.getResponseBodyAsString()));
+                return ResponseEntity.status(e.getStatusCode()).body(responseBody);
+            } catch (Exception ignored) {
+                return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getResponseBodyAsString()));
+            }
         } catch (Exception e) {
             log.error("AI backend unreachable: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

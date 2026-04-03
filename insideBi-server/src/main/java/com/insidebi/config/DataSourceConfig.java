@@ -21,7 +21,6 @@ public class DataSourceConfig {
 
     @Bean
     public DataSource dataSource() {
-        // 1. URL 결정 (PRIVATE 우선, 없으면 PUBLIC)
         String rawUrl = databasePrivateUrl;
         if (rawUrl == null || rawUrl.isEmpty()) {
             rawUrl = databaseUrl;
@@ -33,9 +32,7 @@ public class DataSourceConfig {
 
         System.out.println("[DataSourceConfig] Raw URL prefix: " + rawUrl.substring(0, Math.min(30, rawUrl.length())) + "...");
 
-        // 2. postgres:// 또는 postgresql:// → URI 파싱으로 컴포넌트 추출
         try {
-            // URI 파싱을 위해 scheme 정규화
             String normalizedUrl = rawUrl;
             if (normalizedUrl.startsWith("postgres://")) {
                 normalizedUrl = "postgresql://" + normalizedUrl.substring("postgres://".length());
@@ -56,15 +53,15 @@ public class DataSourceConfig {
             }
 
             boolean isInternal = host != null && host.contains(".railway.internal");
+            boolean isLocal = "localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host);
 
-            // 3. JDBC URL 생성
             String jdbcUrl;
-            if (isInternal) {
-                // Railway 내부 네트워크: SSL 불필요
+            if (isInternal || isLocal) {
                 jdbcUrl = String.format("jdbc:postgresql://%s:%d/%s", host, port, dbName);
-                System.out.println("[DataSourceConfig] Railway internal URL detected, no SSL");
+                System.out.println(isLocal
+                        ? "[DataSourceConfig] Local URL detected, SSL disabled"
+                        : "[DataSourceConfig] Railway internal URL detected, no SSL");
             } else {
-                // 외부 접속: SSL 필요
                 jdbcUrl = String.format("jdbc:postgresql://%s:%d/%s?sslmode=require", host, port, dbName);
                 System.out.println("[DataSourceConfig] External URL detected, SSL enabled");
             }
@@ -82,7 +79,6 @@ public class DataSourceConfig {
             config.setInitializationFailTimeout(60000);
 
             return new HikariDataSource(config);
-
         } catch (URISyntaxException e) {
             System.err.println("[DataSourceConfig] Failed to parse DB URL: " + e.getMessage());
             throw new RuntimeException("Invalid DATABASE_URL format: " + e.getMessage(), e);

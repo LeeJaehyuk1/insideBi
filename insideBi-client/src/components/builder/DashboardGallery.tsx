@@ -28,7 +28,7 @@ export function DashboardGallery({
         <LayoutTemplate className="h-12 w-12 mx-auto opacity-20" />
         <p className="text-sm">저장된 대시보드가 없습니다</p>
         <Link
-          to="/builder"
+          to="/dashboards/new"
           className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           <LayoutTemplate className="h-4 w-4" />

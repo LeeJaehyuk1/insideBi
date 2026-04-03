@@ -1,8 +1,8 @@
 import { SqlEditor } from "@/components/questions/SqlEditor";
 
 export const metadata = {
-  title: "새 질문 · SQL 에디터 — Risk BI",
-  description: "SQL 에디터로 직접 쿼리를 작성하고 결과를 시각화하세요",
+  title: "New Question · SQL Editor",
+  description: "Write SQL, execute queries, and save chart-ready questions.",
 };
 
 export default function NewQuestionPage() {

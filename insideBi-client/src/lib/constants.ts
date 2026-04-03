@@ -47,39 +47,10 @@ export const NAV_GROUPS = [
     label: null,
     items: [
       {
-        title: "Smart Home",
+        title: "홈",
         href: "/",
         icon: "Home",
-        description: "AI 검색 + 인사이트 브리핑",
-      },
-    ],
-  },
-  {
-    label: "리스크 관리",
-    items: [
-      {
-        title: "신용리스크",
-        href: "/credit-risk",
-        icon: "CreditCard",
-        description: "NPL / PD / LGD / EAD",
-      },
-      {
-        title: "시장리스크",
-        href: "/market-risk",
-        icon: "TrendingUp",
-        description: "VaR / 스트레스 테스트",
-      },
-      {
-        title: "유동성리스크",
-        href: "/liquidity-risk",
-        icon: "Droplets",
-        description: "LCR / NSFR / 만기갭",
-      },
-      {
-        title: "NCR리스크",
-        href: "/ncr-risk",
-        icon: "Target",
-        description: "순자본비율 및 기타 지표",
+        description: "AI 검색과 최근 작업",
       },
     ],
   },
@@ -87,41 +58,40 @@ export const NAV_GROUPS = [
     label: "분석",
     items: [
       {
-        title: "대시보드",
-        href: "/dashboards",
-        icon: "BarChart3",
-        description: "저장된 대시보드 목록",
+        title: "질문",
+        href: "/questions",
+        icon: "FileText",
+        description: "저장된 SQL 질의",
       },
       {
-        title: "워크스페이스",
-        href: "/builder",
+        title: "대시보드",
+        href: "/dashboards",
         icon: "LayoutTemplate",
-        description: "커스텀 대시보드 구성",
+        description: "저장된 대시보드",
       },
-      // {
-      //   title: "보고서",
-      //   href: "/reports",
-      //   icon: "FileText",
-      //   description: "경영진 보고서",
-      // },
+      {
+        title: "빌더",
+        href: "/dashboards/new",
+        icon: "BarChart3",
+        description: "대시보드 레이아웃 구성",
+      },
     ],
   },
   {
     label: "설정",
     items: [
       {
-        title: "AI 설정",
+        title: "관리자",
         href: "/admin",
         icon: "Shield",
-        description: "AI 학습 데이터 관리",
+        description: "시스템 설정",
       },
     ],
   },
 ] as const;
 
-// backward-compat flat array (AppSidebar 외부에서 참조 시)
 export const NAV_ITEMS = NAV_GROUPS.flatMap(
-  (g) => [...g.items] as { title: string; href: string; icon: string; description: string }[]
+  (group) => [...group.items] as { title: string; href: string; icon: string; description: string }[],
 );
 
 export const CHART_COLORS = {

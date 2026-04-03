@@ -1,90 +1,42 @@
-
-import * as React from "react";
-import {
-  Lock, LayoutDashboard, Users, Database,
-  Settings, Bot, ShieldCheck, LogOut, Users2,
-  KeyRound, Palette, Wrench, ClipboardList,
-  Mail, Bell, Award,
-} from "lucide-react";
+﻿import * as React from "react";
+import { Bot, Database, Lock, LogOut, ShieldCheck } from "lucide-react";
 import { AdminLogin } from "@/components/admin/AdminLogin";
+import { DatabaseSection } from "@/components/admin/sections/DatabaseSection";
+import { AiSection } from "@/components/admin/sections/AiSection";
 import { apiFetch } from "@/lib/api-client";
-import { OverviewSection }        from "@/components/admin/sections/OverviewSection";
-import { UsersSection }           from "@/components/admin/sections/UsersSection";
-import { GroupsSection }          from "@/components/admin/sections/GroupsSection";
-import { DatabaseSection }        from "@/components/admin/sections/DatabaseSection";
-import { SettingsSection }        from "@/components/admin/sections/SettingsSection";
-import { AiSection }              from "@/components/admin/sections/AiSection";
-import { AuthSection }            from "@/components/admin/sections/AuthSection";
-import { AppearanceSection }      from "@/components/admin/sections/AppearanceSection";
-import { TroubleshootingSection } from "@/components/admin/sections/TroubleshootingSection";
-import { AuditSection }           from "@/components/admin/sections/AuditSection";
-import { EmailSection }           from "@/components/admin/sections/EmailSection";
-import { NotificationsSection }   from "@/components/admin/sections/NotificationsSection";
-import { LicenseSection }         from "@/components/admin/sections/LicenseSection";
-import { useRole }                from "@/context/RoleContext";
-import { cn }                     from "@/lib/utils";
+import { useRole } from "@/context/RoleContext";
+import { cn } from "@/lib/utils";
 
-type SectionId =
-  | "overview" | "users" | "groups" | "database" | "license"
-  | "settings" | "auth" | "appearance" | "email" | "notifications"
-  | "audit" | "troubleshooting"
-  | "ai";
+type SectionId = "database" | "ai";
 
 interface NavItem {
   id: SectionId;
   label: string;
-  icon: React.ElementType;
   description: string;
+  icon: React.ElementType;
 }
 
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
-
-const NAV_GROUPS: NavGroup[] = [
+const NAV_ITEMS: NavItem[] = [
   {
-    label: "관리",
-    items: [
-      { id: "overview",  label: "개요",        icon: LayoutDashboard, description: "시스템 현황"       },
-      { id: "users",     label: "사용자",      icon: Users,           description: "계정 및 역할 관리"  },
-      { id: "groups",    label: "그룹 & 권한",  icon: Users2,          description: "접근 권한 설정"    },
-      { id: "database",  label: "데이터베이스",  icon: Database,        description: "DB 연결 관리"      },
-      { id: "license",   label: "라이선스",    icon: Award,           description: "플랜 및 기능 관리"  },
-    ],
+    id: "database",
+    label: "DB 관리",
+    description: "연결 정보와 스키마 상태를 확인합니다.",
+    icon: Database,
   },
   {
-    label: "설정",
-    items: [
-      { id: "settings",       label: "일반 설정",  icon: Settings,  description: "앱 설정"               },
-      { id: "auth",           label: "인증 설정",  icon: KeyRound,  description: "SSO · LDAP · 비밀번호"  },
-      { id: "appearance",     label: "외관",       icon: Palette,   description: "로고 · 색상 · 폰트"     },
-      { id: "email",          label: "이메일",     icon: Mail,      description: "SMTP 설정"              },
-      { id: "notifications",  label: "알림",       icon: Bell,      description: "Slack · 웹훅 · 이벤트"  },
-    ],
-  },
-  {
-    label: "모니터링",
-    items: [
-      { id: "audit",           label: "감사 로그", icon: ClipboardList, description: "사용자 활동 추적"       },
-      { id: "troubleshooting", label: "문제해결",  icon: Wrench,        description: "로그 · 진단 · 시스템"   },
-    ],
-  },
-  {
-    label: "AI",
-    items: [
-      { id: "ai", label: "AI 관리", icon: Bot, description: "Vanna.ai 학습" },
-    ],
+    id: "ai",
+    label: "AI 관리",
+    description: "학습 데이터와 피드백, 모니터링을 관리합니다.",
+    icon: Bot,
   },
 ];
 
-const ALL_NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 const SESSION_KEY = "admin_auth";
 
 export function AdminClient() {
   const { role } = useRole();
   const [password, setPassword] = React.useState<string | null>(null);
-  const [activeSection, setActiveSection] = React.useState<SectionId>("overview");
+  const [activeSection, setActiveSection] = React.useState<SectionId>("database");
   const [hydrated, setHydrated] = React.useState(false);
 
   React.useEffect(() => {
@@ -99,8 +51,8 @@ export function AdminClient() {
       headers: { "x-admin-password": pw },
     });
     if (!res.ok) {
-      const data = await res.json().catch(() => ({ detail: "로그인 실패" }));
-      throw new Error(data.detail ?? "로그인 실패");
+      const data = await res.json().catch(() => ({ detail: "로그인에 실패했습니다." }));
+      throw new Error(data.detail ?? "로그인에 실패했습니다.");
     }
     sessionStorage.setItem(SESSION_KEY, pw);
     setPassword(pw);
@@ -113,132 +65,100 @@ export function AdminClient() {
 
   if (!hydrated) return null;
 
-  /* 권한 없음 */
   if (role !== "admin") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
           <Lock className="h-7 w-7 text-muted-foreground/50" />
         </div>
         <div>
-          <p className="text-base font-semibold">관리자 역할이 필요합니다</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            우측 상단에서 역할을 <strong>관리자</strong>로 변경하세요.
+          <p className="text-base font-semibold">관리자 권한이 필요합니다.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            상단 역할 메뉴에서 <strong>관리자</strong>로 전환한 뒤 다시 접근해 주세요.
           </p>
         </div>
       </div>
     );
   }
 
-  const activeNav = ALL_NAV_ITEMS.find((n) => n.id === activeSection) ?? ALL_NAV_ITEMS[0];
+  const activeNav = NAV_ITEMS.find((item) => item.id === activeSection) ?? NAV_ITEMS[0];
   const ActiveIcon = activeNav.icon;
 
   return (
     <div className="flex h-[calc(100vh-56px)]">
-
-      {/* ── 사이드바 ── */}
-      <aside className="w-56 flex flex-col border-r border-border bg-muted/20 shrink-0">
-        {/* 헤더 */}
-        <div className="flex items-center gap-2.5 px-4 py-4 border-b border-border">
+      <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-muted/20">
+        <div className="flex items-center gap-2.5 border-b border-border px-4 py-4">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
             <ShieldCheck className="h-4 w-4 text-primary" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-foreground leading-none">관리자 패널</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">Admin Console</p>
+            <p className="text-sm font-bold leading-none text-foreground">관리자 패널</p>
+            <p className="mt-0.5 truncate text-[10px] text-muted-foreground">Admin Console</p>
           </div>
         </div>
 
-        {/* 네비게이션 그룹 */}
-        <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-4">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label}>
-              <p className="px-3 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                {group.label}
-              </p>
-              <div className="space-y-0.5">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeSection === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveSection(item.id)}
-                      className={cn(
-                        "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
-                        isActive
-                          ? "bg-primary/10 text-primary"
-                          : "text-foreground/70 hover:bg-muted hover:text-foreground"
-                      )}
-                    >
-                      <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
-                      <div className="min-w-0">
-                        <p className={cn("text-sm leading-none", isActive ? "font-semibold" : "font-medium")}>
-                          {item.label}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{item.description}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+        <nav className="flex-1 space-y-1 px-2 py-3">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+                  isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground/70 hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
+                <div className="min-w-0">
+                  <p className={cn("text-sm leading-none", isActive ? "font-semibold" : "font-medium")}>{item.label}</p>
+                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{item.description}</p>
+                </div>
+              </button>
+            );
+          })}
         </nav>
 
-        {/* 하단: AI 로그아웃 */}
         {password && (
-          <div className="px-2 py-3 border-t border-border">
+          <div className="border-t border-border px-2 py-3">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30"
             >
               <LogOut className="h-4 w-4 shrink-0" />
-              <span className="text-sm font-medium">AI 로그아웃</span>
+              <span className="text-sm font-medium">AI 인증 로그아웃</span>
             </button>
           </div>
         )}
       </aside>
 
-      {/* ── 콘텐츠 영역 ── */}
       <main className="flex-1 overflow-y-auto">
-        {/* 콘텐츠 헤더 */}
-        <div className="sticky top-0 z-10 flex items-center gap-3 px-6 py-4 border-b border-border bg-background/95 backdrop-blur-sm">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+        <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background/95 px-6 py-4 backdrop-blur-sm">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
             <ActiveIcon className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <h1 className="text-base font-bold text-foreground leading-none">{activeNav.label}</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">{activeNav.description}</p>
+            <h1 className="text-base font-bold leading-none text-foreground">{activeNav.label}</h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">{activeNav.description}</p>
           </div>
         </div>
 
-        {/* 섹션 콘텐츠 */}
         <div className="px-6 py-6">
-          {activeSection === "overview"        && <OverviewSection />}
-          {activeSection === "users"           && <UsersSection />}
-          {activeSection === "groups"          && <GroupsSection />}
-          {activeSection === "database"        && <DatabaseSection />}
-          {activeSection === "license"         && <LicenseSection />}
-          {activeSection === "settings"        && <SettingsSection />}
-          {activeSection === "auth"            && <AuthSection />}
-          {activeSection === "appearance"      && <AppearanceSection />}
-          {activeSection === "email"           && <EmailSection />}
-          {activeSection === "notifications"   && <NotificationsSection />}
-          {activeSection === "audit"           && <AuditSection />}
-          {activeSection === "troubleshooting" && <TroubleshootingSection />}
-          {activeSection === "ai" && (
-            password
-              ? <AiSection password={password} />
-              : (
-                <div className="max-w-sm mx-auto pt-8">
-                  <p className="text-sm text-muted-foreground mb-4 text-center">
-                    AI 관리 기능은 Vanna.ai 백엔드 인증이 필요합니다.
-                  </p>
-                  <AdminLogin onLogin={handleLogin} />
-                </div>
-              )
-          )}
+          {activeSection === "database" && <DatabaseSection />}
+          {activeSection === "ai" &&
+            (password ? (
+              <AiSection password={password} />
+            ) : (
+              <div className="mx-auto max-w-sm pt-8">
+                <p className="mb-4 text-center text-sm text-muted-foreground">
+                  AI 관리 기능은 별도 관리자 인증 후 사용할 수 있습니다.
+                </p>
+                <AdminLogin onLogin={handleLogin} />
+              </div>
+            ))}
         </div>
       </main>
     </div>

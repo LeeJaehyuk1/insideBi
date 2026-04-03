@@ -28,6 +28,10 @@ export function loadCustomCatalog(): CustomDatasetEntry[] {
     }
 }
 
+export function findCustomCatalogEntry(datasetId: string): CustomDatasetEntry | undefined {
+    return loadCustomCatalog().find((entry) => entry.dataset.id === datasetId);
+}
+
 /** 새 항목 추가 후 저장 */
 export function addToCustomCatalog(entry: CustomDatasetEntry): CustomDatasetEntry[] {
     const current = loadCustomCatalog();

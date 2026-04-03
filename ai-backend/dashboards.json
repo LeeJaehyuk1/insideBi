@@ -1,0 +1,383 @@
+[
+  {
+    "name": "환율 시세 모니터링",
+    "savedAt": "2026-04-03T00:00:00.000Z",
+    "widgets": [],
+    "tabData": [
+      {
+        "id": "fx-tab1",
+        "label": "USD 환율",
+        "widgets": [
+          {
+            "id": "fx-w1",
+            "datasetId": "td_dmaqfx",
+            "chartType": "kpi",
+            "title": "USD 최신 환율",
+            "colSpan": 1,
+            "queryParams": {
+              "filters": [{ "column": "currency_code", "operator": "eq", "value": "USD" }],
+              "limit": 1
+            },
+            "axisMapping": { "x": "std_date", "y": ["fx_rate"] }
+          },
+          {
+            "id": "fx-w2",
+            "datasetId": "td_dmaqfx",
+            "chartType": "kpi",
+            "title": "EUR 최신 환율",
+            "colSpan": 1,
+            "queryParams": {
+              "filters": [{ "column": "currency_code", "operator": "eq", "value": "EUR" }],
+              "limit": 1
+            },
+            "axisMapping": { "x": "std_date", "y": ["fx_rate"] }
+          },
+          {
+            "id": "fx-w3",
+            "datasetId": "td_dmaqfx",
+            "chartType": "kpi",
+            "title": "JPY 최신 환율",
+            "colSpan": 1,
+            "queryParams": {
+              "filters": [{ "column": "currency_code", "operator": "eq", "value": "JPY" }],
+              "limit": 1
+            },
+            "axisMapping": { "x": "std_date", "y": ["fx_rate"] }
+          },
+          {
+            "id": "fx-w4",
+            "datasetId": "td_dmaqfx",
+            "chartType": "line",
+            "title": "USD/KRW 환율 90일 추이",
+            "colSpan": 3,
+            "queryParams": {
+              "filters": [{ "column": "currency_code", "operator": "eq", "value": "USD" }],
+              "limit": 90
+            },
+            "axisMapping": { "x": "std_date", "y": ["fx_rate"] }
+          },
+          {
+            "id": "fx-w5",
+            "datasetId": "td_dmaqfx",
+            "chartType": "line",
+            "title": "USD 거래환율 vs 기준환율",
+            "colSpan": 3,
+            "queryParams": {
+              "filters": [{ "column": "currency_code", "operator": "eq", "value": "USD" }],
+              "limit": 60
+            },
+            "axisMapping": { "x": "std_date", "y": ["trade_fx_rate", "fx_rate"] }
+          }
+        ]
+      },
+      {
+        "id": "fx-tab2",
+        "label": "주요 통화 비교",
+        "widgets": [
+          {
+            "id": "fx-w6",
+            "datasetId": "td_dmaqfx",
+            "chartType": "bar",
+            "title": "통화별 환율 비교 (최근)",
+            "colSpan": 3,
+            "queryParams": { "limit": 20 },
+            "axisMapping": { "x": "currency_code", "y": ["fx_rate"] }
+          },
+          {
+            "id": "fx-w7",
+            "datasetId": "td_dmaqfx",
+            "chartType": "line",
+            "title": "EUR/USD 환율 추이",
+            "colSpan": 2,
+            "queryParams": {
+              "filters": [{ "column": "currency_code", "operator": "eq", "value": "EUR" }],
+              "limit": 90
+            },
+            "axisMapping": { "x": "std_date", "y": ["usd_fx_rate"] }
+          },
+          {
+            "id": "fx-w8",
+            "datasetId": "td_dmaqfx",
+            "chartType": "line",
+            "title": "JPY/USD 환율 추이",
+            "colSpan": 2,
+            "queryParams": {
+              "filters": [{ "column": "currency_code", "operator": "eq", "value": "JPY" }],
+              "limit": 90
+            },
+            "axisMapping": { "x": "std_date", "y": ["usd_fx_rate"] }
+          },
+          {
+            "id": "fx-w9",
+            "datasetId": "td_dmaqfx",
+            "chartType": "line",
+            "title": "CNY/USD 환율 추이",
+            "colSpan": 2,
+            "queryParams": {
+              "filters": [{ "column": "currency_code", "operator": "eq", "value": "CNY" }],
+              "limit": 90
+            },
+            "axisMapping": { "x": "std_date", "y": ["usd_fx_rate"] }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "글로벌 지수 모니터링",
+    "savedAt": "2026-04-03T00:00:00.000Z",
+    "widgets": [],
+    "tabData": [
+      {
+        "id": "idx-tab1",
+        "label": "국내 지수",
+        "widgets": [
+          {
+            "id": "idx-w1",
+            "datasetId": "td_dmaqindex",
+            "chartType": "kpi",
+            "title": "KOSPI 현재가",
+            "colSpan": 1,
+            "queryParams": {
+              "filters": [{ "column": "index_id", "operator": "eq", "value": "KOSPI" }],
+              "limit": 1
+            },
+            "axisMapping": { "x": "std_date", "y": ["curr_price"] }
+          },
+          {
+            "id": "idx-w2",
+            "datasetId": "td_dmaqindex",
+            "chartType": "kpi",
+            "title": "KOSDAQ 현재가",
+            "colSpan": 1,
+            "queryParams": {
+              "filters": [{ "column": "index_id", "operator": "eq", "value": "KOSDAQ" }],
+              "limit": 1
+            },
+            "axisMapping": { "x": "std_date", "y": ["curr_price"] }
+          },
+          {
+            "id": "idx-w3",
+            "datasetId": "td_dmaqindex",
+            "chartType": "kpi",
+            "title": "KOSPI200 현재가",
+            "colSpan": 1,
+            "queryParams": {
+              "filters": [{ "column": "index_id", "operator": "eq", "value": "KOSPI200" }],
+              "limit": 1
+            },
+            "axisMapping": { "x": "std_date", "y": ["curr_price"] }
+          },
+          {
+            "id": "idx-w4",
+            "datasetId": "td_dmaqindex",
+            "chartType": "line",
+            "title": "KOSPI 추이",
+            "colSpan": 2,
+            "queryParams": {
+              "filters": [{ "column": "index_id", "operator": "eq", "value": "KOSPI" }],
+              "limit": 180
+            },
+            "axisMapping": { "x": "std_date", "y": ["curr_price"] }
+          },
+          {
+            "id": "idx-w5",
+            "datasetId": "td_dmaqindex",
+            "chartType": "line",
+            "title": "KOSDAQ 추이",
+            "colSpan": 2,
+            "queryParams": {
+              "filters": [{ "column": "index_id", "operator": "eq", "value": "KOSDAQ" }],
+              "limit": 180
+            },
+            "axisMapping": { "x": "std_date", "y": ["curr_price"] }
+          },
+          {
+            "id": "idx-w6",
+            "datasetId": "td_dmaqindex",
+            "chartType": "bar",
+            "title": "KOSPI 시/저/고/현재가 (최근 20일)",
+            "colSpan": 3,
+            "queryParams": {
+              "filters": [{ "column": "index_id", "operator": "eq", "value": "KOSPI" }],
+              "limit": 20
+            },
+            "axisMapping": { "x": "std_date", "y": ["first_price", "min_price", "max_price", "curr_price"] }
+          }
+        ]
+      },
+      {
+        "id": "idx-tab2",
+        "label": "글로벌 지수",
+        "widgets": [
+          {
+            "id": "idx-w7",
+            "datasetId": "td_dmaqindex",
+            "chartType": "bar",
+            "title": "글로벌 주요지수 현재가",
+            "colSpan": 3,
+            "queryParams": { "limit": 30 },
+            "axisMapping": { "x": "index_id", "y": ["curr_price"] }
+          },
+          {
+            "id": "idx-w8",
+            "datasetId": "td_dmaqindex",
+            "chartType": "line",
+            "title": "Nikkei(NKY) 추이",
+            "colSpan": 2,
+            "queryParams": {
+              "filters": [{ "column": "index_id", "operator": "eq", "value": "NKY" }],
+              "limit": 180
+            },
+            "axisMapping": { "x": "std_date", "y": ["curr_price"] }
+          },
+          {
+            "id": "idx-w9",
+            "datasetId": "td_dmaqindex",
+            "chartType": "line",
+            "title": "NASDAQ(CCMP) 추이",
+            "colSpan": 2,
+            "queryParams": {
+              "filters": [{ "column": "index_id", "operator": "eq", "value": "CCMP" }],
+              "limit": 180
+            },
+            "axisMapping": { "x": "std_date", "y": ["curr_price"] }
+          },
+          {
+            "id": "idx-w10",
+            "datasetId": "td_dmaqindex",
+            "chartType": "line",
+            "title": "Dow Jones(INDU) 추이",
+            "colSpan": 2,
+            "queryParams": {
+              "filters": [{ "column": "index_id", "operator": "eq", "value": "INDU" }],
+              "limit": 180
+            },
+            "axisMapping": { "x": "std_date", "y": ["curr_price"] }
+          },
+          {
+            "id": "idx-w11",
+            "datasetId": "td_dmaqindex",
+            "chartType": "line",
+            "title": "항셍(HSI) 추이",
+            "colSpan": 2,
+            "queryParams": {
+              "filters": [{ "column": "index_id", "operator": "eq", "value": "HSI" }],
+              "limit": 180
+            },
+            "axisMapping": { "x": "std_date", "y": ["curr_price"] }
+          }
+        ]
+      },
+      {
+        "id": "idx-tab3",
+        "label": "NCR 적용가",
+        "widgets": [
+          {
+            "id": "idx-w12",
+            "datasetId": "td_dmaqindex",
+            "chartType": "line",
+            "title": "KOSPI 현재가 vs NCR 적용가",
+            "colSpan": 3,
+            "queryParams": {
+              "filters": [{ "column": "index_id", "operator": "eq", "value": "KOSPI" }],
+              "limit": 90
+            },
+            "axisMapping": { "x": "std_date", "y": ["curr_price", "ncr_curr_price"] }
+          },
+          {
+            "id": "idx-w13",
+            "datasetId": "td_dmaqindex",
+            "chartType": "bar",
+            "title": "지수별 배당률 비교",
+            "colSpan": 3,
+            "queryParams": { "limit": 30 },
+            "axisMapping": { "x": "index_id", "y": ["dividend_rate"] }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "변동성 분석",
+    "savedAt": "2026-04-03T00:00:00.000Z",
+    "widgets": [],
+    "tabData": [
+      {
+        "id": "vol-tab1",
+        "label": "변동성 현황",
+        "widgets": [
+          {
+            "id": "vol-w1",
+            "datasetId": "td_dmaqvol",
+            "chartType": "kpi",
+            "title": "최신 최대 변동성",
+            "colSpan": 1,
+            "queryParams": { "limit": 1 },
+            "axisMapping": { "x": "underlying_id", "y": ["vol"] }
+          },
+          {
+            "id": "vol-w2",
+            "datasetId": "td_dmaqvol",
+            "chartType": "bar",
+            "title": "기초자산별 변동성 순위",
+            "colSpan": 3,
+            "queryParams": { "limit": 50 },
+            "axisMapping": { "x": "underlying_id", "y": ["vol"] }
+          },
+          {
+            "id": "vol-w3",
+            "datasetId": "td_dmaqvol",
+            "chartType": "bar",
+            "title": "변동성 유형별 vol vs quanto_vol",
+            "colSpan": 2,
+            "queryParams": { "limit": 50 },
+            "axisMapping": { "x": "vol_type", "y": ["vol", "quanto_vol"] }
+          },
+          {
+            "id": "vol-w4",
+            "datasetId": "td_dmaqvol",
+            "chartType": "scatter",
+            "title": "vol vs quanto_vol 상관 분포",
+            "colSpan": 2,
+            "queryParams": { "limit": 100 },
+            "axisMapping": { "x": "vol", "y": ["quanto_vol"] }
+          }
+        ]
+      },
+      {
+        "id": "vol-tab2",
+        "label": "변동성 추이",
+        "widgets": [
+          {
+            "id": "vol-w5",
+            "datasetId": "td_dmaqvol",
+            "chartType": "line",
+            "title": "변동성 시계열 추이",
+            "colSpan": 3,
+            "queryParams": { "limit": 200 },
+            "axisMapping": { "x": "std_date", "y": ["vol"] }
+          },
+          {
+            "id": "vol-w6",
+            "datasetId": "td_dmaqvol",
+            "chartType": "line",
+            "title": "콴토 변동성(quanto_vol) 추이",
+            "colSpan": 2,
+            "queryParams": { "limit": 200 },
+            "axisMapping": { "x": "std_date", "y": ["quanto_vol"] }
+          },
+          {
+            "id": "vol-w7",
+            "datasetId": "td_dmaqvol",
+            "chartType": "line",
+            "title": "콴토 상관계수(quanto_rho) 추이",
+            "colSpan": 2,
+            "queryParams": { "limit": 200 },
+            "axisMapping": { "x": "std_date", "y": ["quanto_rho"] }
+          }
+        ]
+      }
+    ]
+  }
+]

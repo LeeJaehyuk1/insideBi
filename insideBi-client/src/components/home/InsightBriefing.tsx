@@ -28,10 +28,10 @@ const STATUS_LABEL: Record<Severity, string> = {
 };
 
 const CARD_QUESTIONS: Record<string, string> = {
-  npl: "지난 12개월 NPL 비율 추이를 보여줘",
-  var: "VaR 한도 대비 현황과 추이를 보여줘",
-  lcr: "현재 LCR과 NSFR 수치를 보여줘",
-  ncr: "현재 순자본비율(NCR) 현황과 추이를 보여줘",
+  fx: "최근 USD/KRW 환율 90일 추이를 보여줘",
+  index: "KOSPI 지수 최근 180일 추이를 보여줘",
+  vol: "기초자산별 변동성 현황과 추이를 보여줘",
+  rho: "콴토 상관계수(quanto_rho) 추이를 보여줘",
 };
 
 function BriefingCard({ item, onSearch }: { item: BriefingItem; onSearch?: (q: string) => void }) {
@@ -85,24 +85,6 @@ function SkeletonCard() {
   );
 }
 
-function classifyNpl(value: number): Severity {
-  if (value >= 3.0) return "danger";
-  if (value >= 2.0) return "warning";
-  if (value >= 1.5) return "caution";
-  return "normal";
-}
-function classifyVar(utilization: number): Severity {
-  if (utilization >= 95) return "danger";
-  if (utilization >= 80) return "warning";
-  if (utilization >= 65) return "caution";
-  return "normal";
-}
-function classifyLcr(lcr: number): Severity {
-  if (lcr < 100) return "danger";
-  if (lcr < 110) return "warning";
-  if (lcr < 120) return "caution";
-  return "normal";
-}
 
 interface InsightBriefingProps {
   onSearch?: (question: string) => void;

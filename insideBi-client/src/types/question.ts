@@ -1,17 +1,31 @@
-import type { FilterParam } from "./query";
 import type { ChartType } from "./builder";
-import type { VizSettings } from "@/components/questions/ChartSettingsSidebar";
+
+export type QueryParamType = "text" | "number" | "date";
+
+export interface QueryParamDefinition {
+  key: string;
+  label?: string;
+  type: QueryParamType;
+  required?: boolean;
+  defaultValue?: string;
+}
+
+export interface VisualizationConfig {
+  type: Extract<ChartType, "table" | "line" | "bar" | "pie" | "kpi">;
+  xField?: string;
+  yField?: string;
+  categoryField?: string;
+  showLegend?: boolean;
+}
 
 export interface SavedQuestion {
   id: string;
   title: string;
-  datasetId: string;
-  sql?: string;           // SQL 에디터에서 작성된 쿼리 텍스트
-  filters: FilterParam[];
-  aggregations?: { func: string; column: string }[];
-  breakouts?: string[];
-  mode?: "raw" | "summarize";
-  chartType: ChartType;
-  vizSettings?: VizSettings;
+  description?: string;
+  sql: string;
+  params: QueryParamDefinition[];
+  visualization: VisualizationConfig;
   savedAt: string;
+  updatedAt: string;
+  datasetId?: string;
 }
